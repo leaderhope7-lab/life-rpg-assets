@@ -1067,6 +1067,11 @@ const INSIGHT_LANGUAGE_RULES = {
   }
 };
 
+const INSIGHT_MEDIA_SOURCE_KEYWORDS = ['유튜브', '영상', '강의', '강좌', '튜토리얼', '세미나', '강연'];
+const NON_INSIGHT_ACTIVITY_KEYWORDS = ['운동', '헬스', '달리기', '걷기', '기도', '수면', '잠', '식단', '식사', '밥'];
+const CODING_ACTIVITY_KEYWORDS = ['코딩', '코드', '프로그래밍', '버그', '오류', '에러', '디버깅', '개발', 'API', '함수'];
+const SIMPLE_REACTION_KEYWORDS = ['좋았다', '재미있었다', '인상 깊었다', '공감됐다', '유익했다'];
+
 const RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
 const RANK_THRESHOLDS = [0, 100, 300, 700, 1500, 3000, 6000];
 const RANK_BONUS = { F: 1.0, E: 1.2, D: 1.5, C: 2.0, B: 2.5, A: 3.0, S: 4.0 };
@@ -1520,8 +1525,23 @@ function parseMockMinutes(text) {
   return null;
 }
 
+function findMatchedKeywords(text, keywords) {
+  return keywords.filter(keyword => text.includes(keyword));
+}
+
 function getMatchedInsightKeywords(text, depth) {
-  return INSIGHT_LANGUAGE_RULES[depth].keywords.filter(keyword => text.includes(keyword));
+  const matched = findMatchedKeywords(text, INSIGHT_LANGUAGE_RULES[depth].keywords);
+  if (depth !== 4) return matched;
+
+  return matched.filter(keyword => {
+    if (['업무', '삶', '프로젝트'].includes(keyword)) {
+      return text.includes(`내 ${keyword}`) ||
+        text.includes(`${keyword}에 적용`) ||
+        text.includes(`${keyword} 연결`) ||
+        text.includes(`${keyword} 보고 방식`);
+    }
+    return true;
+  });
 }
 
 function analyzeRecordMock(text) {
@@ -1529,6 +1549,10 @@ function analyzeRecordMock(text) {
   const minutes = parseMockMinutes(activityText);
   const matchedByDepth = {};
   const matchedDepths = [];
+  const matchedMediaSources = findMatchedKeywords(activityText, INSIGHT_MEDIA_SOURCE_KEYWORDS);
+  const matchedNonInsight = findMatchedKeywords(activityText, NON_INSIGHT_ACTIVITY_KEYWORDS);
+  const matchedCoding = findMatchedKeywords(activityText, CODING_ACTIVITY_KEYWORDS);
+  const matchedSimpleReactions = findMatchedKeywords(activityText, SIMPLE_REACTION_KEYWORDS);
 
   for (const depth of [1, 2, 3, 4]) {
     const matchedKeywords = getMatchedInsightKeywords(activityText, depth);
@@ -1536,10 +1560,36 @@ function analyzeRecordMock(text) {
     if (matchedKeywords.length > 0) matchedDepths.push(depth);
   }
 
-  const isApplicable = matchedDepths.includes(1);
   const reviewReasons = [];
+  const hasReadingSource = matchedDepths.includes(1);
+  const hasMediaSource = matchedMediaSources.length > 0;
+  const hasHigherInsightAction = matchedDepths.some(depth => depth >= 3);
+  const isMediaInsightCandidate = hasMediaSource && hasHigherInsightAction;
+  const isApplicable = hasReadingSource || isMediaInsightCandidate;
+  const isPureNonInsight = matchedNonInsight.length > 0 && !hasReadingSource && !hasMediaSource;
+  const isCodingWithoutInsightSource = matchedCoding.length > 0 && !hasReadingSource && !hasMediaSource;
 
-  if (!isApplicable) {
+  if (isPureNonInsight || isCodingWithoutInsightSource || !isApplicable) {
+    let summary = '통찰의 언어 활동으로 보기 어려워요.';
+    let evidence = '책, 독서, 읽기, 문서, 자료, 기사, 보고서, 글, 매뉴얼 관련 표현을 찾지 못했어요.';
+    let reviewReason = '통찰의 언어 적용 대상인지 확인이 필요해요.';
+
+    if (isPureNonInsight) {
+      summary = '통찰의 언어가 아닌 생활/신체/영성 기록으로 보입니다.';
+      evidence = `통찰의 언어 입력원 없이 ${matchedNonInsight.join(', ')} 표현이 있어 제외했어요.`;
+      reviewReason = '';
+    } else if (isCodingWithoutInsightSource) {
+      summary = '코딩/오류 해결 계열 기록으로 보여요.';
+      evidence = `코딩 후보 키워드(${matchedCoding.join(', ')})가 있어 통찰의 언어로 확정하지 않았어요.`;
+      reviewReason = '코드의 장인 후보일 수 있어 별도 검토가 필요해요.';
+    } else if (hasMediaSource && !hasHigherInsightAction) {
+      summary = '유튜브/강의 기록은 아직 통찰의 언어로 확정하기 어려워요.';
+      evidence = `${matchedMediaSources.join(', ')} 표현은 있지만 요약, 정리, 질문, 적용, 계획 같은 통찰 행동이 없어요.`;
+      reviewReason = '유튜브/강의는 정리나 자기화가 있을 때만 통찰의 언어 후보로 봅니다.';
+    } else if (matchedDepths.length > 0) {
+      evidence = `행동 키워드(${matchedDepths.map(d => `${INSIGHT_LANGUAGE_RULES[d].depthName}: ${matchedByDepth[d].join(', ')}`).join(' / ')})는 있지만 읽기/자료/강의 같은 입력원이 부족해요.`;
+    }
+
     return {
       is_applicable: false,
       skill_tree: '통찰의 언어',
@@ -1558,13 +1608,15 @@ function analyzeRecordMock(text) {
       stat_exp: 0,
       char_exp: 0,
       confidence: 'low',
-      evidence: '책, 독서, 읽기, 문서, 자료, 기사, 보고서, 글, 매뉴얼 관련 표현을 찾지 못했어요.',
-      needs_review: true,
-      review_reason: '통찰의 언어 적용 대상인지 확인이 필요해요.'
+      evidence: evidence,
+      needs_review: reviewReason !== '',
+      review_reason: reviewReason
     };
   }
 
   if (minutes === null) reviewReasons.push('시간이 명확하지 않아요.');
+  if (matchedCoding.length > 0) reviewReasons.push('코딩/오류 해결 맥락은 코드의 장인 후보일 수 있어 검토가 필요해요.');
+  if (hasMediaSource && !hasReadingSource) reviewReasons.push('유튜브/강의 기반 판정이라 입력 자료 성격 확인이 필요해요.');
 
   const depth = Math.max(...matchedDepths);
   const rule = INSIGHT_LANGUAGE_RULES[depth];
@@ -1574,6 +1626,15 @@ function analyzeRecordMock(text) {
   const matchedKeywordText = matchedDepths
     .map(d => `${INSIGHT_LANGUAGE_RULES[d].depthName}: ${matchedByDepth[d].join(', ')}`)
     .join(' / ');
+  const evidenceParts = [
+    `가장 깊은 단계는 ${depth}단계 ${rule.depthName}입니다.`,
+    `근거 키워드: ${matchedKeywordText}.`
+  ];
+  if (matchedMediaSources.length > 0) evidenceParts.push(`입력원: ${matchedMediaSources.join(', ')}.`);
+  if (matchedSimpleReactions.length > 0 && depth < 4) {
+    evidenceParts.push(`단순 감상(${matchedSimpleReactions.join(', ')})은 4단계 자기화로 인정하지 않았어요.`);
+  }
+  if (reviewReasons.length > 0) evidenceParts.push(`검토 필요: ${reviewReasons.join(' ')}`);
 
   return {
     is_applicable: true,
@@ -1593,8 +1654,8 @@ function analyzeRecordMock(text) {
     skill_exp: rule.skillExp,
     stat_exp: rule.statExp,
     char_exp: rule.charExp,
-    confidence: minutes === null ? 'medium' : 'high',
-    evidence: `가장 깊은 단계는 ${depth}단계 ${rule.depthName}입니다. 근거 키워드: ${matchedKeywordText}.`,
+    confidence: reviewReasons.length > 0 ? 'medium' : 'high',
+    evidence: evidenceParts.join(' '),
     needs_review: reviewReasons.length > 0,
     review_reason: reviewReasons.join(' ')
   };
@@ -2161,43 +2222,138 @@ window.LIFE_RPG_TEST = {
     const cases = [
       {
         text: '트렌드 코리아를 20분 읽었다.',
-        expected: 'depth 1, skill_exp 20',
-        pass: result => result.depth === 1 && result.skill_exp === 20
+        expected: 'reading depth 1, skill_exp 20, ap 0.33',
+        pass: result => result.is_applicable === true && result.depth === 1 && result.skill_exp === 20 && result.ap === 0.33
+      },
+      {
+        text: '보고서를 1시간 읽었다.',
+        expected: 'reading depth 1, ap 1',
+        pass: result => result.is_applicable === true && result.depth === 1 && result.ap === 1
+      },
+      {
+        text: '기사를 40분 읽었다.',
+        expected: 'reading depth 1, ap 0.67',
+        pass: result => result.is_applicable === true && result.depth === 1 && result.ap === 0.67
       },
       {
         text: '트렌드 코리아를 읽고 중요한 부분에 밑줄을 쳤다.',
-        expected: 'depth 2, skill_exp 40',
-        pass: result => result.depth === 2 && result.skill_exp === 40
+        expected: 'trace depth 2, skill_exp 40',
+        pass: result => result.is_applicable === true && result.depth === 2 && result.skill_exp === 40
+      },
+      {
+        text: '문서를 읽고 필요한 문장에 메모를 남겼다.',
+        expected: 'trace depth 2',
+        pass: result => result.is_applicable === true && result.depth === 2
+      },
+      {
+        text: '자료를 읽으며 확인할 부분을 체크했다.',
+        expected: 'trace depth 2',
+        pass: result => result.is_applicable === true && result.depth === 2
       },
       {
         text: '트렌드 코리아를 읽고 핵심 내용을 요약했다.',
-        expected: 'depth 3, skill_exp 70',
-        pass: result => result.depth === 3 && result.skill_exp === 70
+        expected: 'organize depth 3, skill_exp 70',
+        pass: result => result.is_applicable === true && result.depth === 3 && result.skill_exp === 70
+      },
+      {
+        text: '자료를 정리했다.',
+        expected: 'organize depth 3, needs_review true',
+        pass: result => result.is_applicable === true && result.depth === 3 && result.needs_review === true
+      },
+      {
+        text: '보고서를 읽고 쟁점을 비교하고 분류했다.',
+        expected: 'organize depth 3',
+        pass: result => result.is_applicable === true && result.depth === 3
+      },
+      {
+        text: '책을 읽고 내 기록일지 시스템에 적용할 아이디어를 적었다.',
+        expected: 'self depth 4, skill_exp 100',
+        pass: result => result.is_applicable === true && result.depth === 4 && result.skill_exp === 100
+      },
+      {
+        text: '보고서를 읽고 내 업무 보고 방식에 적용할 점을 정리했다.',
+        expected: 'self depth 4',
+        pass: result => result.is_applicable === true && result.depth === 4
+      },
+      {
+        text: '자료를 읽고 왜 나는 시스템을 오래 유지하지 못하는지 질문을 적었다.',
+        expected: 'self depth 4',
+        pass: result => result.is_applicable === true && result.depth === 4
+      },
+      {
+        text: '책을 읽고 내일부터 한 줄 적용점을 남기기로 계획했다.',
+        expected: 'self depth 4',
+        pass: result => result.is_applicable === true && result.depth === 4
       },
       {
         text: '책을 읽고 인상 깊었다.',
         expected: 'depth must not be 4',
-        pass: result => result.depth !== 4
-      },
-      {
-        text: '책을 읽고 내 기록일지 시스템에 적용할 아이디어를 적었다.',
-        expected: 'depth 4, skill_exp 100',
-        pass: result => result.depth === 4 && result.skill_exp === 100
+        pass: result => result.is_applicable === true && result.depth !== 4
       },
       {
         text: '책을 읽고 좋았다.',
-        expected: 'depth must not be 4',
-        pass: result => result.depth !== 4
+        expected: 'simple reaction, depth must not be 4',
+        pass: result => result.is_applicable === true && result.depth !== 4
       },
       {
-        text: '자료를 정리했다.',
-        expected: 'applicable, needs_review true',
-        pass: result => result.is_applicable === true && result.needs_review === true
+        text: '책을 읽고 재미있었다.',
+        expected: 'simple reaction, depth must not be 4',
+        pass: result => result.is_applicable === true && result.depth !== 4
+      },
+      {
+        text: '책을 읽고 공감됐다.',
+        expected: 'simple reaction, depth must not be 4',
+        pass: result => result.is_applicable === true && result.depth !== 4
       },
       {
         text: '트렌드 코리아를 1시간 30분 읽고 내 업무에 적용할 점을 적었다.',
         expected: 'depth 4, skill_exp 100, ap 1.5',
         pass: result => result.depth === 4 && result.skill_exp === 100 && result.ap === 1.5
+      },
+      {
+        text: '운동을 30분 했다.',
+        expected: 'not insight language',
+        pass: result => result.is_applicable === false && result.skill_exp === 0
+      },
+      {
+        text: '기도를 20분 했다.',
+        expected: 'not insight language',
+        pass: result => result.is_applicable === false && result.skill_exp === 0
+      },
+      {
+        text: '수면을 8시간 했다.',
+        expected: 'not insight language',
+        pass: result => result.is_applicable === false && result.skill_exp === 0
+      },
+      {
+        text: '식단을 기록하고 저녁을 먹었다.',
+        expected: 'not insight language',
+        pass: result => result.is_applicable === false && result.skill_exp === 0
+      },
+      {
+        text: '유튜브 영상을 30분 봤다.',
+        expected: 'youtube without organization is not insight',
+        pass: result => result.is_applicable === false
+      },
+      {
+        text: '강의를 듣고 핵심 내용을 요약했다.',
+        expected: 'lecture with summary becomes depth 3 candidate',
+        pass: result => result.is_applicable === true && result.depth === 3
+      },
+      {
+        text: '유튜브 영상을 보고 내 프로젝트에 적용할 계획을 세웠다.',
+        expected: 'youtube with self-application becomes depth 4 candidate',
+        pass: result => result.is_applicable === true && result.depth === 4
+      },
+      {
+        text: '코딩 오류를 해결했다.',
+        expected: 'coding candidate, not confirmed as insight',
+        pass: result => result.is_applicable === false && result.needs_review === true
+      },
+      {
+        text: 'API 문서를 읽고 오류 해결 과정을 정리했다.',
+        expected: 'coding context requires review',
+        pass: result => result.is_applicable === true && result.needs_review === true
       }
     ];
 
@@ -2209,6 +2365,7 @@ window.LIFE_RPG_TEST = {
         result: passed ? 'PASS' : 'FAIL',
         text: item.text,
         expected: item.expected,
+        is_applicable: result.is_applicable,
         depth: result.depth,
         depth_name: result.depth_name,
         skill_exp: result.skill_exp,
@@ -2216,7 +2373,9 @@ window.LIFE_RPG_TEST = {
         char_exp: result.char_exp,
         minutes: result.minutes,
         ap: result.ap,
-        needs_review: result.needs_review
+        needs_review: result.needs_review,
+        confidence: result.confidence,
+        review_reason: result.review_reason
       };
     });
 
