@@ -953,7 +953,7 @@ body {
    ============================================================ */
 
 // 1) Gemini API 키 (메모장의 [Gemini API] 키)
-const GEMINI_API_KEY = "AIzaSyA0qJ7BDRWkp5BNOM7FztEgVfUwascTCt8";
+const GEMINI_API_KEY = "AIzaSyDFZ2dWzbCDKl1VcNDogWQLmg79mUugx0I";
 
 // 2) OAuth 클라이언트 ID (메모장의 [OAuth 2.0] 클라이언트 ID)
 const OAUTH_CLIENT_ID = "79667510857-seaed2m9b59cepstd3el7c4eipfsvd4m.apps.googleusercontent.com";
@@ -1337,7 +1337,7 @@ function updateSyncIndicator(state) {
 const SKILL_LIST_FOR_AI = Object.entries(SKILLS).map(([id, s]) => `${id}(${s.name})`).join(', ');
 
 async function callGeminiAnalyze(text) {
-  if (GEMINI_API_KEY === "AIzaSyA0qJ7BDRWkp5BNOM7FztEgVfUwascTCt8") {
+  if (GEMINI_API_KEY === "AIzaSyDFZ2dWzbCDKl1VcNDogWQLmg79mUugx0I") {
     throw new Error('Gemini API 키가 설정되지 않았어요');
   }
 
