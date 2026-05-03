@@ -952,17 +952,25 @@ body {
 
 <script>
 /* ============================================================
-   ⚠️ 본인의 정보를 여기에 입력하세요!
+   v0.1.7 개발/테스트 설정
    ============================================================ */
 
-// 1) Gemini API 키 (메모장의 [Gemini API] 키)
-const GEMINI_API_KEY = "여기에_GEMINI_API_KEY_입력";
+const APP_VERSION = 'v0.1.7';
 
-// 2) OAuth 클라이언트 ID (메모장의 [OAuth 2.0] 클라이언트 ID)
+// 절대 index.html에 실제 Gemini API 키를 넣지 말 것.
+// Gemini 연결은 v0.2에서 서버리스 함수를 통해 처리할 예정입니다.
+const GEMINI_API_KEY = null;
+
+// OAuth 클라이언트 ID (Google Drive 실사용 모드에서 사용)
 const OAUTH_CLIENT_ID = "79667510857-seaed2m9b59cepstd3el7c4eipfsvd4m.apps.googleusercontent.com";
 
-// 개발 테스트 모드: true이면 Google 로그인/Drive 없이 앱으로 바로 들어갑니다.
+// DEV_SKIP_LOGIN: 개발 테스트용 로그인 우회
 const DEV_SKIP_LOGIN = true;
+
+// USE_MOCK_ANALYZER: 실제 Gemini가 아니라 Mock 분석기 사용
+const USE_MOCK_ANALYZER = true;
+
+// 실제 배포/실사용 전에는 DEV_SKIP_LOGIN / USE_MOCK_ANALYZER 상태를 재검토해야 합니다.
 
 /* ============================================================
    여기 아래는 수정하지 않아도 됩니다.
@@ -1076,15 +1084,19 @@ const RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
 const RANK_THRESHOLDS = [0, 100, 300, 700, 1500, 3000, 6000];
 const RANK_BONUS = { F: 1.0, E: 1.2, D: 1.5, C: 2.0, B: 2.5, A: 3.0, S: 4.0 };
 
-let PLAYER = {
-  level: 1,
-  charExp: 0,
-  charNextExp: 100,
-  charPrevExp: 0,
-  stats: { STR: 0, INT: 0, WIS: 0, DEX: 0, AGI: 0, ART: 0 },
-  skills: {},
-  records: []
-};
+function createInitialPlayerState() {
+  return {
+    level: 1,
+    charExp: 0,
+    charNextExp: 100,
+    charPrevExp: 0,
+    stats: { STR: 0, INT: 0, WIS: 0, DEX: 0, AGI: 0, ART: 0 },
+    skills: {},
+    records: []
+  };
+}
+
+let PLAYER = createInitialPlayerState();
 
 let USER = null;          // { name, email, picture, accessToken, expires }
 let DRIVE_FILE_ID = null; // Drive 파일 ID (이미 있으면)
@@ -1447,8 +1459,8 @@ function updateSyncIndicator(state) {
 const SKILL_LIST_FOR_AI = Object.entries(SKILLS).map(([id, s]) => `${id}(${s.name})`).join(', ');
 
 async function callGeminiAnalyze(text) {
-  if (GEMINI_API_KEY === "여기에_GEMINI_API_KEY_입력") {
-    throw new Error('Gemini API 키가 설정되지 않았어요');
+  if (!GEMINI_API_KEY) {
+    throw new Error('Gemini API는 v0.1.7에서 연결하지 않습니다. v0.2에서 서버리스 함수로 처리할 예정입니다.');
   }
 
   const prompt = `다음 사용자 일과 기록에서 "어떤 활동을 했는지"와 "몇 분 동안 했는지"를 추출해서 JSON으로 답해줘.
@@ -1498,8 +1510,6 @@ async function callGeminiAnalyze(text) {
   const parsed = JSON.parse(jsonMatch[0]);
   return parsed;
 }
-
-const USE_MOCK_ANALYZER = true;
 
 async function analyzeRecord(text) {
   if (USE_MOCK_ANALYZER) return analyzeRecordMock(text);
@@ -2216,6 +2226,38 @@ if (DEV_SKIP_LOGIN) {
   tryInitGoogleAuth();
 }
 
+function resetTestData() {
+  if (SAVE_TIMER) {
+    clearTimeout(SAVE_TIMER);
+    SAVE_TIMER = null;
+  }
+  try { localStorage.removeItem(LOCAL_KEY); } catch (e) {}
+  const fresh = createInitialPlayerState();
+  for (const key of Object.keys(PLAYER)) delete PLAYER[key];
+  Object.assign(PLAYER, fresh);
+  recalcStats();
+  recalcCharLevel();
+  renderAll();
+  updateSyncIndicator('saved');
+  console.log('reset complete');
+  return PLAYER;
+}
+
+function getLifeRpgStatus() {
+  return {
+    APP_VERSION,
+    AI_ANALYSIS_ENGINE_VERSION,
+    DEV_SKIP_LOGIN,
+    USE_MOCK_ANALYZER,
+    AP_MINUTES,
+    records_count: PLAYER.records.length,
+    charExp: PLAYER.charExp,
+    INT_stat: PLAYER.stats.INT || 0,
+    insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
+    gemini_api_connected: false
+  };
+}
+
 // 디버그 콘솔 노출
 window.LIFE_RPG_TEST = {
   runAll() {
@@ -2382,10 +2424,23 @@ window.LIFE_RPG_TEST = {
     console.table(rows);
     console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_TEST: ALL PASS' : 'LIFE_RPG_TEST: FAIL');
     return rows;
+  },
+
+  resetData() {
+    return resetTestData();
+  },
+
+  status() {
+    const status = getLifeRpgStatus();
+    console.table([status]);
+    return status;
   }
 };
 
+window.LIFE_RPG_STATUS = getLifeRpgStatus;
+
 window.LIFE_RPG = {
+  APP_VERSION,
   PLAYER,
   SKILLS,
   STATS,
@@ -2395,7 +2450,10 @@ window.LIFE_RPG = {
   analyzeRecord,
   analyzeRecordMock,
   enterDevMode,
+  resetTestData,
+  getLifeRpgStatus,
   DEV_SKIP_LOGIN,
+  USE_MOCK_ANALYZER,
   AP_MINUTES,
   AI_ANALYSIS_ENGINE_VERSION,
   COMMON_ANALYSIS_SCHEMA,
