@@ -955,7 +955,7 @@ body {
    v0.1.7 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.1.7';
+const APP_VERSION = 'v0.2.0-worker-test';
 
 // 절대 index.html에 실제 Gemini API 키를 넣지 말 것.
 // Gemini 연결은 v0.2에서 서버리스 함수를 통해 처리할 예정입니다.
@@ -968,7 +968,8 @@ const OAUTH_CLIENT_ID = "79667510857-seaed2m9b59cepstd3el7c4eipfsvd4m.apps.googl
 const DEV_SKIP_LOGIN = true;
 
 // USE_MOCK_ANALYZER: 실제 Gemini가 아니라 Mock 분석기 사용
-const USE_MOCK_ANALYZER = true;
+const USE_MOCK_ANALYZER = false;
+const SERVER_ANALYZE_URL = "https://life-rpg-analyze-worker.leaderhope7.workers.dev/analyze";
 
 // 실제 배포/실사용 전에는 DEV_SKIP_LOGIN / USE_MOCK_ANALYZER 상태를 재검토해야 합니다.
 
@@ -1511,9 +1512,26 @@ async function callGeminiAnalyze(text) {
   return parsed;
 }
 
+async function callServerAnalyze(text) {
+  const response = await fetch(SERVER_ANALYZE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ text })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`서버 분석 실패: ${response.status} ${errorText}`);
+  }
+
+  return await response.json();
+}
+
 async function analyzeRecord(text) {
   if (USE_MOCK_ANALYZER) return analyzeRecordMock(text);
-  return callGeminiAnalyze(text);
+  return callServerAnalyze(text);
 }
 
 function parseMockMinutes(text) {
@@ -2249,12 +2267,16 @@ function getLifeRpgStatus() {
     AI_ANALYSIS_ENGINE_VERSION,
     DEV_SKIP_LOGIN,
     USE_MOCK_ANALYZER,
-    AP_MINUTES,
+  SERVER_ANALYZE_URL,
+  AP_MINUTES,
     records_count: PLAYER.records.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
-    gemini_api_connected: false
+    gemini_api_connected: false,
+    SERVER_ANALYZE_URL,
+    serverAnalyzeEnabled: USE_MOCK_ANALYZER === false,
+    geminiDirectCall: false
   };
 }
 
@@ -2448,12 +2470,14 @@ window.LIFE_RPG = {
   addRecord,
   addAnalyzedRecord,
   analyzeRecord,
+  callServerAnalyze,
   analyzeRecordMock,
   enterDevMode,
   resetTestData,
   getLifeRpgStatus,
   DEV_SKIP_LOGIN,
   USE_MOCK_ANALYZER,
+  SERVER_ANALYZE_URL,
   AP_MINUTES,
   AI_ANALYSIS_ENGINE_VERSION,
   COMMON_ANALYSIS_SCHEMA,
@@ -2465,3 +2489,5 @@ window.LIFE_RPG = {
 </script>
 </body>
 </html>
+
+
