@@ -829,6 +829,9 @@ body {
       </svg>
       <span>Google 계정으로 로그인</span>
     </button>
+    <button class="google-signin-btn" type="button" onclick="enterDevMode()">
+      <span>개발 모드로 들어가기</span>
+    </button>
     <div class="login-status" id="loginStatus"></div>
     <div style="font-size: 11px; color: var(--brown-light); margin-top: 16px; line-height: 1.6;">
       ※ 로그인 시 본인의 Google Drive에<br/>
@@ -953,10 +956,13 @@ body {
    ============================================================ */
 
 // 1) Gemini API 키 (메모장의 [Gemini API] 키)
-const GEMINI_API_KEY = "AIzaSyDFZ2dWzbCDKl1VcNDogWQLmg79mUugx0I";
+const GEMINI_API_KEY = "여기에_GEMINI_API_KEY_입력";
 
 // 2) OAuth 클라이언트 ID (메모장의 [OAuth 2.0] 클라이언트 ID)
 const OAUTH_CLIENT_ID = "79667510857-seaed2m9b59cepstd3el7c4eipfsvd4m.apps.googleusercontent.com";
+
+// 개발 테스트 모드: true이면 Google 로그인/Drive 없이 앱으로 바로 들어갑니다.
+const DEV_SKIP_LOGIN = true;
 
 /* ============================================================
    여기 아래는 수정하지 않아도 됩니다.
@@ -966,6 +972,7 @@ const OAUTH_CLIENT_ID = "79667510857-seaed2m9b59cepstd3el7c4eipfsvd4m.apps.googl
 const DRIVE_FILE_NAME = "life-rpg-data.json";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const GEMINI_MODEL = "gemini-2.0-flash";
+const AP_MINUTES = 60;
 
 /* ============================================
    STEP 1: 데이터 구조
@@ -994,7 +1001,70 @@ const SKILLS = {
   craft:    { name: '도구작업', stat: 'DEX', icon: '🔧' },
   task:     { name: '일처리', stat: 'AGI', icon: '✅' },
   art:      { name: '창작',   stat: 'ART', icon: '🎨' },
-  music:    { name: '음악감상', stat: 'ART', icon: '🎵' }
+  music:    { name: '음악감상', stat: 'ART', icon: '🎵' },
+  insight_language: { name: '통찰의 언어', stat: 'INT', icon: '📘' }
+};
+
+/* ============================================
+   AI 기록 분석 엔진 v0.1 체크포인트
+   - 공통 채점 양식
+   - 통찰의 언어 룰셋 v0.1
+   ============================================ */
+
+const AI_ANALYSIS_ENGINE_VERSION = 'v0.1';
+
+const COMMON_ANALYSIS_SCHEMA = {
+  is_applicable: 'boolean',
+  skill_tree: 'string',
+  skill_id: 'string',
+  stat: 'string',
+  summary: 'string',
+  activity_text: 'string',
+  source_title: 'string|null',
+  minutes: 'number|null',
+  estimated_minutes: 'null',
+  ap: 'number|null',
+  depth: '1|2|3|4|null',
+  depth_name: 'string|null',
+  components: 'string[]',
+  skill_exp: 'number',
+  stat_exp: 'number',
+  char_exp: 'number',
+  confidence: 'high|medium|low',
+  evidence: 'string',
+  needs_review: 'boolean',
+  review_reason: 'string'
+};
+
+const INSIGHT_LANGUAGE_RULES = {
+  1: {
+    depthName: '읽기',
+    skillExp: 20,
+    statExp: 5,
+    charExp: 3,
+    keywords: ['읽', '독서', '책', '문서', '자료', '기사', '보고서', '글', '매뉴얼']
+  },
+  2: {
+    depthName: '흔적',
+    skillExp: 40,
+    statExp: 10,
+    charExp: 8,
+    keywords: ['밑줄', '표시', '메모', '체크', '문장 기록', '필기']
+  },
+  3: {
+    depthName: '정리',
+    skillExp: 70,
+    statExp: 20,
+    charExp: 15,
+    keywords: ['요약', '정리', '핵심', '구조화', '표로', '비교', '분류']
+  },
+  4: {
+    depthName: '자기화',
+    skillExp: 100,
+    statExp: 35,
+    charExp: 25,
+    keywords: ['내 생각', '질문', '적용', '업무', '삶', '프로젝트', '기록일지', '다음 행동', '계획', '관점']
+  }
 };
 
 const RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
@@ -1184,6 +1254,29 @@ async function onLoginSuccess() {
   updateSyncIndicator('saved');
 }
 
+function enterDevMode() {
+  USER = {
+    name: '성현',
+    email: 'dev@local.test',
+    picture: '',
+    accessToken: null,
+    expires: Date.now() + 24 * 60 * 60 * 1000
+  };
+
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.add('show');
+
+  document.getElementById('userImg').src = USER.picture;
+  document.getElementById('userName').textContent = USER.name;
+  document.getElementById('charName').textContent = USER.name;
+  document.getElementById('umName').textContent = USER.name;
+
+  recalcStats();
+  recalcCharLevel();
+  renderAll();
+  updateSyncIndicator('saved');
+}
+
 function signOut() {
   if (USER && USER.accessToken && typeof google !== 'undefined') {
     google.accounts.oauth2.revoke(USER.accessToken, () => {});
@@ -1262,6 +1355,11 @@ async function loadFromDrive() {
 }
 
 async function saveToDrive() {
+  if (DEV_SKIP_LOGIN) {
+    saveLocal();
+    return;
+  }
+
   if (!USER || !USER.accessToken) return;
   if (!GAPI_READY) await initGapi();
   setAccessToken();
@@ -1312,6 +1410,13 @@ function scheduleSave() {
 
 async function manualSync() {
   closeUserMenu();
+  if (DEV_SKIP_LOGIN) {
+    saveLocal();
+    updateSyncIndicator('saved');
+    showToast('개발 모드: 로컬 저장 완료', 'success');
+    return;
+  }
+
   updateSyncIndicator('syncing');
   try {
     await saveToDrive();
@@ -1389,6 +1494,112 @@ async function callGeminiAnalyze(text) {
   return parsed;
 }
 
+const USE_MOCK_ANALYZER = true;
+
+async function analyzeRecord(text) {
+  if (USE_MOCK_ANALYZER) return analyzeRecordMock(text);
+  return callGeminiAnalyze(text);
+}
+
+function parseMockMinutes(text) {
+  const hourMinuteMatch = text.match(/(\d+(?:\.\d+)?)\s*시간\s*(\d+)\s*분/);
+  if (hourMinuteMatch) {
+    return Math.round(Number(hourMinuteMatch[1]) * 60 + Number(hourMinuteMatch[2]));
+  }
+
+  const hourMatch = text.match(/(\d+(?:\.\d+)?)\s*시간/);
+  if (hourMatch) {
+    return Math.round(Number(hourMatch[1]) * 60);
+  }
+
+  const minuteMatch = text.match(/(\d+)\s*분/);
+  if (minuteMatch) {
+    return Number(minuteMatch[1]);
+  }
+
+  return null;
+}
+
+function getMatchedInsightKeywords(text, depth) {
+  return INSIGHT_LANGUAGE_RULES[depth].keywords.filter(keyword => text.includes(keyword));
+}
+
+function analyzeRecordMock(text) {
+  const activityText = String(text || '').trim();
+  const minutes = parseMockMinutes(activityText);
+  const matchedByDepth = {};
+  const matchedDepths = [];
+
+  for (const depth of [1, 2, 3, 4]) {
+    const matchedKeywords = getMatchedInsightKeywords(activityText, depth);
+    matchedByDepth[depth] = matchedKeywords;
+    if (matchedKeywords.length > 0) matchedDepths.push(depth);
+  }
+
+  const isApplicable = matchedDepths.includes(1);
+  const reviewReasons = [];
+
+  if (!isApplicable) {
+    return {
+      is_applicable: false,
+      skill_tree: '통찰의 언어',
+      skill_id: 'insight_language',
+      stat: 'INT',
+      summary: '통찰의 언어 활동으로 보기 어려워요.',
+      activity_text: activityText,
+      source_title: null,
+      minutes: null,
+      estimated_minutes: null,
+      ap: null,
+      depth: null,
+      depth_name: null,
+      components: [],
+      skill_exp: 0,
+      stat_exp: 0,
+      char_exp: 0,
+      confidence: 'low',
+      evidence: '책, 독서, 읽기, 문서, 자료, 기사, 보고서, 글, 매뉴얼 관련 표현을 찾지 못했어요.',
+      needs_review: true,
+      review_reason: '통찰의 언어 적용 대상인지 확인이 필요해요.'
+    };
+  }
+
+  if (minutes === null) reviewReasons.push('시간이 명확하지 않아요.');
+
+  const depth = Math.max(...matchedDepths);
+  const rule = INSIGHT_LANGUAGE_RULES[depth];
+  const components = matchedDepths
+    .sort((a, b) => a - b)
+    .map(d => INSIGHT_LANGUAGE_RULES[d].depthName);
+  const matchedKeywordText = matchedDepths
+    .map(d => `${INSIGHT_LANGUAGE_RULES[d].depthName}: ${matchedByDepth[d].join(', ')}`)
+    .join(' / ');
+
+  return {
+    is_applicable: true,
+    skill_tree: '통찰의 언어',
+    skill_id: 'insight_language',
+    stat: 'INT',
+    summary: `통찰의 언어 ${depth}단계 ${rule.depthName} 활동으로 판정했어요.`,
+    activity_text: activityText,
+    source_title: null,
+    minutes: minutes,
+    estimated_minutes: null,
+    // 현재 기준: 1 AP = 60분
+    ap: minutes === null ? null : Math.round((minutes / AP_MINUTES) * 100) / 100,
+    depth: depth,
+    depth_name: rule.depthName,
+    components: components,
+    skill_exp: rule.skillExp,
+    stat_exp: rule.statExp,
+    char_exp: rule.charExp,
+    confidence: minutes === null ? 'medium' : 'high',
+    evidence: `가장 깊은 단계는 ${depth}단계 ${rule.depthName}입니다. 근거 키워드: ${matchedKeywordText}.`,
+    needs_review: reviewReasons.length > 0,
+    review_reason: reviewReasons.join(' ')
+  };
+}
+
 /* ============================================
    기록 추가 + EXP 계산
    ============================================ */
@@ -1418,9 +1629,6 @@ function addRecord(skillId, minutes, mode = 'quick', memo = null) {
   skState.rank = RANKS[Math.max(0, newRankIdx)];
   const rankedUp = skState.rank !== beforeRank;
 
-  recalcStats();
-  recalcCharLevel();
-
   const record = {
     id: 'r' + Date.now(),
     date: new Date().toISOString(),
@@ -1435,23 +1643,122 @@ function addRecord(skillId, minutes, mode = 'quick', memo = null) {
   PLAYER.records.unshift(record);
   if (PLAYER.records.length > 500) PLAYER.records = PLAYER.records.slice(0, 500);
 
+  recalcStats();
+  recalcCharLevel();
   scheduleSave();
   return { record, earnedExp, rankedUp, newRank: skState.rank };
 }
 
+function addAnalyzedRecord(analysis) {
+  if (!analysis || !analysis.is_applicable) {
+    showToast('저장할 수 있는 분석 결과가 없어요', 'error');
+    return null;
+  }
+
+  const skillId = analysis.skill_id;
+  const skill = SKILLS[skillId];
+  if (!skill) {
+    showToast('알 수 없는 스킬이에요', 'error');
+    return null;
+  }
+
+  const skState = ensureSkill(skillId);
+  const skillExp = Number(analysis.skill_exp) || 0;
+  const beforeRank = skState.rank;
+  skState.exp += skillExp;
+  const rankIdx = RANK_THRESHOLDS.findIndex(t => skState.exp < t);
+  const newRankIdx = rankIdx === -1 ? RANKS.length - 1 : rankIdx - 1;
+  skState.rank = RANKS[Math.max(0, newRankIdx)];
+  const rankedUp = skState.rank !== beforeRank;
+
+  const record = {
+    id: 'r' + Date.now(),
+    date: new Date().toISOString(),
+    skillId: 'insight_language',
+    skillName: '통찰의 언어',
+    stat: 'INT',
+    minutes: typeof analysis.minutes === 'number' ? analysis.minutes : null,
+    ap: typeof analysis.ap === 'number' ? analysis.ap : null,
+    depth: typeof analysis.depth === 'number' ? analysis.depth : null,
+    depthName: analysis.depth_name || null,
+    components: Array.isArray(analysis.components) ? analysis.components.slice() : [],
+    skillExp: skillExp,
+    statExp: Number(analysis.stat_exp) || 0,
+    charExp: Number(analysis.char_exp) || 0,
+    mode: 'detail',
+    memo: analysis.activity_text || '',
+    evidence: analysis.evidence || '',
+    needsReview: !!analysis.needs_review
+  };
+
+  PLAYER.records.unshift(record);
+  if (PLAYER.records.length > 500) PLAYER.records = PLAYER.records.slice(0, 500);
+
+  recalcStats();
+  recalcCharLevel();
+  scheduleSave();
+  return {
+    record,
+    earnedExp: skillExp,
+    skillExp,
+    statExp: record.statExp,
+    charExp: record.charExp,
+    rankedUp,
+    newRank: skState.rank
+  };
+}
+
 function recalcStats() {
   const newStats = { STR: 0, INT: 0, WIS: 0, DEX: 0, AGI: 0, ART: 0 };
-  for (const [id, st] of Object.entries(PLAYER.skills)) {
-    const sk = SKILLS[id];
-    if (sk) newStats[sk.stat] += Math.floor(st.exp / 100);
+  const quickExpBySkill = {};
+  let usedRecordStats = false;
+
+  for (const r of PLAYER.records || []) {
+    if (typeof r.statExp === 'number' && r.stat && newStats[r.stat] !== undefined) {
+      newStats[r.stat] += r.statExp;
+      usedRecordStats = true;
+    } else if (typeof r.earnedExp === 'number' && r.skillId && SKILLS[r.skillId]) {
+      quickExpBySkill[r.skillId] = (quickExpBySkill[r.skillId] || 0) + r.earnedExp;
+      usedRecordStats = true;
+    }
   }
+
+  if (usedRecordStats) {
+    for (const [id, exp] of Object.entries(quickExpBySkill)) {
+      const sk = SKILLS[id];
+      if (sk) newStats[sk.stat] += Math.floor(exp / 100);
+    }
+  } else {
+    for (const [id, st] of Object.entries(PLAYER.skills)) {
+      const sk = SKILLS[id];
+      if (sk) newStats[sk.stat] += Math.floor(st.exp / 100);
+    }
+  }
+
   PLAYER.stats = newStats;
 }
 
 function recalcCharLevel() {
-  let total = 0;
-  for (const st of Object.values(PLAYER.skills)) total += st.exp;
-  PLAYER.charExp = Math.floor(total / 10);
+  let totalCharExp = 0;
+  let usedRecordExp = false;
+
+  for (const r of PLAYER.records || []) {
+    if (typeof r.charExp === 'number') {
+      totalCharExp += r.charExp;
+      usedRecordExp = true;
+    } else if (typeof r.earnedExp === 'number') {
+      totalCharExp += Math.floor(r.earnedExp / 10);
+      usedRecordExp = true;
+    }
+  }
+
+  if (!usedRecordExp) {
+    let total = 0;
+    for (const st of Object.values(PLAYER.skills)) total += st.exp;
+    totalCharExp = Math.floor(total / 10);
+  }
+
+  PLAYER.charExp = totalCharExp;
 
   let lv = 1;
   while (lv * (lv + 1) * 50 <= PLAYER.charExp) lv++;
@@ -1661,6 +1968,42 @@ function escapeHtml(s) {
 
 let pendingAnalysis = null;
 
+function formatAnalysisValue(value, suffix = '') {
+  return value === null || value === undefined || value === '' ? '알 수 없음' : `${value}${suffix}`;
+}
+
+function renderAnalysisPreview(analysis, title = '💡 이렇게 분석했어요!') {
+  const skill = SKILLS[analysis.skill_id] || SKILLS.insight_language;
+  const depthLabel = analysis.depth ? `${analysis.depth}단계 ${analysis.depth_name}` : '해당 없음';
+  const reviewLabel = analysis.needs_review
+    ? `필요${analysis.review_reason ? ` (${escapeHtml(analysis.review_reason)})` : ''}`
+    : '불필요';
+  const components = Array.isArray(analysis.components) && analysis.components.length > 0
+    ? analysis.components.join(', ')
+    : '없음';
+
+  return `
+    ${title}
+    ${analysis.summary ? `<div style="font-size:12px; color:#A07847; margin-top:4px;">${escapeHtml(analysis.summary)}</div>` : ''}
+    <div class="ai-result">
+      <div class="row"><span class="k">스킬트리</span><span class="v">${skill.icon} ${escapeHtml(analysis.skill_tree || skill.name)}</span></div>
+      <div class="row"><span class="k">도달 깊이</span><span class="v">${escapeHtml(depthLabel)}</span></div>
+      <div class="row"><span class="k">AP</span><span class="v">${formatAnalysisValue(analysis.ap)}</span></div>
+      <div class="row"><span class="k">스킬 EXP</span><span class="v">+${analysis.skill_exp || 0}</span></div>
+      <div class="row"><span class="k">${analysis.stat || 'INT'} EXP</span><span class="v">+${analysis.stat_exp || 0}</span></div>
+      <div class="row"><span class="k">캐릭터 EXP</span><span class="v">+${analysis.char_exp || 0}</span></div>
+      <div class="row"><span class="k">구성요소</span><span class="v">${escapeHtml(components)}</span></div>
+      <div class="row"><span class="k">판정 근거</span><span class="v">${escapeHtml(analysis.evidence || '')}</span></div>
+      <div class="row"><span class="k">검토 필요</span><span class="v">${reviewLabel}</span></div>
+    </div>
+    <div class="confirm-row">
+      <button class="confirm-yes" onclick="confirmAnalysis()">✅ 맞아요</button>
+      <button class="confirm-edit" onclick="editAnalysis()">✏️ 시간 수정</button>
+      <button class="confirm-no" onclick="cancelAnalysis()">취소</button>
+    </div>
+  `;
+}
+
 async function handleSend() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
@@ -1675,40 +2018,20 @@ async function handleSend() {
   appendTyping();
 
   try {
-    const result = await callGeminiAnalyze(text);
+    const result = await analyzeRecord(text);
     removeTyping();
 
-    if (!result.skill_id || result.skill_id === 'unknown' || !SKILLS[result.skill_id]) {
+    if (!result.is_applicable || !result.skill_id || result.skill_id === 'unknown' || !SKILLS[result.skill_id]) {
       appendChat(`
-        🤔 어떤 활동인지 잘 모르겠어요.<br/>
-        ${result.comment ? escapeHtml(result.comment) + '<br/>' : ''}
-        스킬 키워드를 포함해서 다시 적어주실래요?
+        🤔 이번 mock 판정기는 <strong>통찰의 언어</strong>만 분석해요.<br/>
+        ${result.summary ? escapeHtml(result.summary) + '<br/>' : ''}
+        <small style="color:#A07847;">${escapeHtml(result.evidence || '책/읽기/문서 관련 표현을 포함해서 다시 적어주세요.')}</small>
       `, 'ai');
       return;
     }
 
-    pendingAnalysis = {
-      skillId: result.skill_id,
-      minutes: parseInt(result.minutes) || 30,
-      originalText: text
-    };
-    const sk = SKILLS[result.skill_id];
-    const previewExp = estimateExp(result.skill_id, pendingAnalysis.minutes);
-    appendChat(`
-      💡 이렇게 분석했어요!
-      ${result.comment ? `<div style="font-size:12px; color:#A07847; margin-top:4px;">"${escapeHtml(result.comment)}"</div>` : ''}
-      <div class="ai-result">
-        <div class="row"><span class="k">활동</span><span class="v">${sk.icon} ${sk.name}</span></div>
-        <div class="row"><span class="k">시간</span><span class="v">${pendingAnalysis.minutes}분</span></div>
-        <div class="row"><span class="k">스탯</span><span class="v">${sk.stat} ${STATS[sk.stat].name}</span></div>
-        <div class="row"><span class="k">예상 EXP</span><span class="v">+${previewExp}</span></div>
-      </div>
-      <div class="confirm-row">
-        <button class="confirm-yes" onclick="confirmAnalysis()">✅ 맞아요</button>
-        <button class="confirm-edit" onclick="editAnalysis()">✏️ 수정</button>
-        <button class="confirm-no" onclick="cancelAnalysis()">취소</button>
-      </div>
-    `, 'ai');
+    pendingAnalysis = result;
+    appendChat(renderAnalysisPreview(result), 'ai');
   } catch (err) {
     removeTyping();
     console.error(err);
@@ -1728,22 +2051,24 @@ function estimateExp(skillId, minutes) {
 
 function confirmAnalysis() {
   if (!pendingAnalysis) return;
-  const { skillId, minutes, originalText } = pendingAnalysis;
-  const result = addRecord(skillId, minutes, 'detail', originalText);
+  const analysis = pendingAnalysis;
+  const result = addAnalyzedRecord(analysis);
   pendingAnalysis = null;
   if (result) {
     appendChat(`
-      ✨ 기록 완료! <strong>${SKILLS[skillId].name} +${result.earnedExp} EXP</strong>
+      ✨ 기록 완료! <strong>${SKILLS.insight_language.name} +${result.skillExp} 스킬 EXP</strong><br/>
+      <small>INT +${result.statExp} EXP · 캐릭터 +${result.charExp} EXP</small>
       ${result.rankedUp ? `<br/>🎉 랭크업! → <strong>${result.newRank}</strong>` : ''}
     `, 'ai');
     renderAll();
-    animateStatBump(SKILLS[skillId].stat);
+    animateStatBump('INT');
   }
 }
 
 function editAnalysis() {
   if (!pendingAnalysis) return;
-  const newMin = prompt(`시간(분)을 수정하세요. 현재: ${pendingAnalysis.minutes}분`, pendingAnalysis.minutes);
+  const currentMinutes = pendingAnalysis.minutes === null ? '' : pendingAnalysis.minutes;
+  const newMin = prompt(`시간(분)을 수정하세요. 현재: ${currentMinutes || '알 수 없음'}`, currentMinutes);
   if (newMin === null) return;
   const n = parseInt(newMin);
   if (isNaN(n) || n < 1 || n > 1440) {
@@ -1751,20 +2076,12 @@ function editAnalysis() {
     return;
   }
   pendingAnalysis.minutes = n;
-  const sk = SKILLS[pendingAnalysis.skillId];
-  const previewExp = estimateExp(pendingAnalysis.skillId, n);
-  appendChat(`
-    수정했어요!
-    <div class="ai-result">
-      <div class="row"><span class="k">활동</span><span class="v">${sk.icon} ${sk.name}</span></div>
-      <div class="row"><span class="k">시간</span><span class="v">${n}분</span></div>
-      <div class="row"><span class="k">예상 EXP</span><span class="v">+${previewExp}</span></div>
-    </div>
-    <div class="confirm-row">
-      <button class="confirm-yes" onclick="confirmAnalysis()">✅ 맞아요</button>
-      <button class="confirm-no" onclick="cancelAnalysis()">취소</button>
-    </div>
-  `, 'ai');
+  // 현재 기준: 1 AP = 60분
+  pendingAnalysis.ap = Math.round((n / AP_MINUTES) * 100) / 100;
+  pendingAnalysis.needs_review = false;
+  pendingAnalysis.review_reason = '';
+  pendingAnalysis.confidence = 'high';
+  appendChat(renderAnalysisPreview(pendingAnalysis, '수정했어요!'), 'ai');
 }
 
 function cancelAnalysis() {
@@ -1831,11 +2148,102 @@ loadUser();
 recalcStats();
 recalcCharLevel();
 
-// Google 라이브러리 로드 시도
-tryInitGoogleAuth();
+if (DEV_SKIP_LOGIN) {
+  enterDevMode();
+} else {
+  // Google 라이브러리 로드 시도
+  tryInitGoogleAuth();
+}
 
 // 디버그 콘솔 노출
-window.LIFE_RPG = { PLAYER, SKILLS, STATS, USER, addRecord, saveToDrive, loadFromDrive };
+window.LIFE_RPG_TEST = {
+  runAll() {
+    const cases = [
+      {
+        text: '트렌드 코리아를 20분 읽었다.',
+        expected: 'depth 1, skill_exp 20',
+        pass: result => result.depth === 1 && result.skill_exp === 20
+      },
+      {
+        text: '트렌드 코리아를 읽고 중요한 부분에 밑줄을 쳤다.',
+        expected: 'depth 2, skill_exp 40',
+        pass: result => result.depth === 2 && result.skill_exp === 40
+      },
+      {
+        text: '트렌드 코리아를 읽고 핵심 내용을 요약했다.',
+        expected: 'depth 3, skill_exp 70',
+        pass: result => result.depth === 3 && result.skill_exp === 70
+      },
+      {
+        text: '책을 읽고 인상 깊었다.',
+        expected: 'depth must not be 4',
+        pass: result => result.depth !== 4
+      },
+      {
+        text: '책을 읽고 내 기록일지 시스템에 적용할 아이디어를 적었다.',
+        expected: 'depth 4, skill_exp 100',
+        pass: result => result.depth === 4 && result.skill_exp === 100
+      },
+      {
+        text: '책을 읽고 좋았다.',
+        expected: 'depth must not be 4',
+        pass: result => result.depth !== 4
+      },
+      {
+        text: '자료를 정리했다.',
+        expected: 'applicable, needs_review true',
+        pass: result => result.is_applicable === true && result.needs_review === true
+      },
+      {
+        text: '트렌드 코리아를 1시간 30분 읽고 내 업무에 적용할 점을 적었다.',
+        expected: 'depth 4, skill_exp 100, ap 1.5',
+        pass: result => result.depth === 4 && result.skill_exp === 100 && result.ap === 1.5
+      }
+    ];
+
+    const rows = cases.map((item, index) => {
+      const result = analyzeRecordMock(item.text);
+      const passed = item.pass(result);
+      return {
+        no: index + 1,
+        result: passed ? 'PASS' : 'FAIL',
+        text: item.text,
+        expected: item.expected,
+        depth: result.depth,
+        depth_name: result.depth_name,
+        skill_exp: result.skill_exp,
+        stat_exp: result.stat_exp,
+        char_exp: result.char_exp,
+        minutes: result.minutes,
+        ap: result.ap,
+        needs_review: result.needs_review
+      };
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_TEST: ALL PASS' : 'LIFE_RPG_TEST: FAIL');
+    return rows;
+  }
+};
+
+window.LIFE_RPG = {
+  PLAYER,
+  SKILLS,
+  STATS,
+  USER,
+  addRecord,
+  addAnalyzedRecord,
+  analyzeRecord,
+  analyzeRecordMock,
+  enterDevMode,
+  DEV_SKIP_LOGIN,
+  AP_MINUTES,
+  AI_ANALYSIS_ENGINE_VERSION,
+  COMMON_ANALYSIS_SCHEMA,
+  INSIGHT_LANGUAGE_RULES,
+  saveToDrive,
+  loadFromDrive
+};
 
 </script>
 </body>
