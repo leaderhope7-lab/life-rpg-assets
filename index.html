@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.4-A-raw-log-detail-delete';
+const APP_VERSION = 'v0.4-B-needs-review-supplement';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -3236,6 +3236,37 @@ function createRawLogDraft(text) {
   };
 }
 
+function getNeedsReviewRoutes(rawLog) {
+  const routerResult = rawLog?.analysis?.routing_result || rawLog?.analysis?.router_result;
+  const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+  return routes.filter(route => route.route_status === 'needs_review');
+}
+
+function hasNeedsReviewRoutes(rawLog) {
+  return getNeedsReviewRoutes(rawLog).length > 0;
+}
+
+function getPrimaryReviewQuestion(rawLog) {
+  const route = getNeedsReviewRoutes(rawLog).find(item => item.review_question);
+  return route?.review_question || '조금 더 구체적으로 적어줄 수 있나요?';
+}
+
+function createSupplementedRawLog(rawLog, supplementText) {
+  const trimmed = String(supplementText || '').trim();
+  const originalText = String(rawLog?.raw_text || '').trim();
+  const combinedText = `${originalText} ${trimmed}`.trim();
+  const nextRawLog = createRawLogDraft(combinedText);
+  nextRawLog.supplement = {
+    original_raw_log_id: rawLog?.id || null,
+    original_raw_text: originalText,
+    supplement_text: trimmed,
+    combined_text: combinedText,
+    supplemented_at: new Date().toISOString(),
+    version: 'needs_review_supplement_v0.1'
+  };
+  return nextRawLog;
+}
+
 function getWeekId(value) {
   const d = new Date(value);
   if (isNaN(d.getTime())) return '';
@@ -3542,6 +3573,38 @@ function formatMockAnalysisRows(mockResults) {
   `;
 }
 
+function formatSupplementRows(log) {
+  if (!log?.supplement) {
+    return `<div class="row"><span class="k">원문</span><span class="v">${escapeHtml(log.raw_text)}</span></div>`;
+  }
+
+  return `
+    <div class="row"><span class="k">원문</span><span class="v">${escapeHtml(log.supplement.original_raw_text || '')}</span></div>
+    <div class="row"><span class="k">보충</span><span class="v">${escapeHtml(log.supplement.supplement_text || '')}</span></div>
+    <div class="row"><span class="k">재분석 문장</span><span class="v">${escapeHtml(log.supplement.combined_text || log.raw_text || '')}</span></div>
+  `;
+}
+
+function renderRawLogPreviewButtons(log, mockResults) {
+  const needsReview = hasNeedsReviewRoutes(log);
+  const hasMockResults = Array.isArray(mockResults) && mockResults.length > 0;
+
+  if (needsReview && !hasMockResults) {
+    return `
+      <button class="confirm-edit" onclick="supplementPendingRawLog()">보충하기</button>
+      <button class="confirm-yes" onclick="savePendingRawLog()">저장하기</button>
+      <button class="confirm-no" onclick="discardPendingRawLog()">저장 안 함</button>
+    `;
+  }
+
+  return `
+    ${needsReview ? '<button class="confirm-edit" onclick="supplementPendingRawLog()">보충하기</button>' : ''}
+    <button class="confirm-yes" onclick="savePendingRawLog()">저장하기</button>
+    <button class="confirm-edit" onclick="editPendingRawLog()">수정하기</button>
+    <button class="confirm-no" onclick="discardPendingRawLog()">저장 안 함</button>
+  `;
+}
+
 function renderRawLogAnalysisPreview(log) {
   const routerResult = log.analysis?.routing_result || log.analysis?.router_result;
   const mockResults = log.analysis?.mock_analysis_results || [];
@@ -3557,12 +3620,10 @@ function renderRawLogAnalysisPreview(log) {
       <div class="row"><span class="k">라우터 요약</span><span class="v">${escapeHtml(routerResult?.router_comment || '라우팅 결과 없음')}</span></div>
       ${formatRoutingResultRows(routerResult)}
       ${formatMockAnalysisRows(mockResults)}
-      <div class="row"><span class="k">원문</span><span class="v">${escapeHtml(log.raw_text)}</span></div>
+      ${formatSupplementRows(log)}
     </div>
     <div class="confirm-row">
-      <button class="confirm-yes" onclick="savePendingRawLog()">저장하기</button>
-      <button class="confirm-edit" onclick="editPendingRawLog()">수정하기</button>
-      <button class="confirm-no" onclick="discardPendingRawLog()">저장 안 함</button>
+      ${renderRawLogPreviewButtons(log, mockResults)}
     </div>
   `;
 }
@@ -3641,6 +3702,25 @@ async function handleSend() {
   } finally {
     sendBtn.disabled = false;
   }
+}
+
+function supplementPendingRawLog() {
+  if (!pendingRawLog) return;
+  if (!hasNeedsReviewRoutes(pendingRawLog)) {
+    showToast('보충이 필요한 기록이 아니에요.', 'error');
+    return;
+  }
+
+  const question = getPrimaryReviewQuestion(pendingRawLog);
+  const supplementText = window.prompt(question);
+  if (supplementText === null) return;
+
+  const trimmed = supplementText.trim();
+  if (!trimmed) return;
+
+  pendingRawLog = createSupplementedRawLog(pendingRawLog, trimmed);
+  appendChat('보충 내용을 반영해서 다시 분석했어요.', 'ai');
+  appendChat(renderRawLogAnalysisPreview(pendingRawLog), 'ai');
 }
 
 function estimateExp(skillId, minutes) {
@@ -4297,6 +4377,70 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  needsReviewSupplementTest() {
+    const rows = [];
+
+    const buildSupplementCase = (originalText, supplementText, expectedSkillId) => {
+      const rawLog = createRawLogDraft(originalText);
+      const supplementedRawLog = createSupplementedRawLog(rawLog, supplementText);
+      const routes = supplementedRawLog.analysis.routing_result.routing_results;
+      const mockResults = supplementedRawLog.analysis.mock_analysis_results || [];
+      return {
+        rawLog,
+        supplementedRawLog,
+        row: {
+          case: `${originalText} + ${supplementText}`,
+          result: hasNeedsReviewRoutes(rawLog)
+            && rawLog.analysis.mock_analysis_results.length === 0
+            && routes.some(route => route.skill_id === expectedSkillId)
+            && mockResults.some(mock => mock.skill_id === expectedSkillId && (Number(mock.skill_exp) || 0) > 0)
+            && supplementedRawLog.supplement?.original_raw_text === originalText
+            && supplementedRawLog.supplement?.supplement_text === supplementText ? 'PASS' : 'FAIL',
+          initialNeedsReview: hasNeedsReviewRoutes(rawLog),
+          initialMockCount: rawLog.analysis.mock_analysis_results.length,
+          expectedSkillId,
+          supplementedRoutes: routes.map(route => route.skill_id || route.route_status).join(' + '),
+          mockAnalyses: mockResults.map(mock => `${mock.skill_id}:${mock.skill_exp}`).join(' + '),
+          supplementVersion: supplementedRawLog.supplement?.version || ''
+        }
+      };
+    };
+
+    const strengthCase = buildSupplementCase('운동했다.', '푸시업 3세트 했다.', 'strength_proof');
+    rows.push(strengthCase.row);
+
+    resetTestData();
+    const analysisResult = createTemporaryAnalysisResult(strengthCase.supplementedRawLog);
+    applyMockAnalysisResultsToPlayer(strengthCase.supplementedRawLog, analysisResult);
+    RAW_LOGS.unshift(strengthCase.supplementedRawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    rows.push({
+      case: 'supplemented strength save applies growth',
+      result: PLAYER.records.length >= 1
+        && (PLAYER.skills.strength_proof?.exp || 0) > 0
+        && (PLAYER.stats.STR || 0) > 0
+        && PLAYER.charExp > 0
+        && analysisResult.status === 'confirmed' ? 'PASS' : 'FAIL',
+      records: PLAYER.records.length,
+      strengthExp: PLAYER.skills.strength_proof?.exp || 0,
+      STR: PLAYER.stats.STR || 0,
+      charExp: PLAYER.charExp,
+      analysisStatus: analysisResult.status
+    });
+
+    const fuelCase = buildSupplementCase('밥 먹었다.', '닭가슴살 2팩 먹었다.', 'fuel_charge');
+    rows.push(fuelCase.row);
+
+    const recoveryCase = buildSupplementCase('잤다.', '7시간 잤다.', 'recovery_night');
+    rows.push(recoveryCase.row);
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_NEEDS_REVIEW_SUPPLEMENT_TEST: ALL PASS' : 'LIFE_RPG_NEEDS_REVIEW_SUPPLEMENT_TEST: FAIL');
+    return rows;
+  },
+
   mergeRouteTest() {
     const rows = [];
 
@@ -4404,6 +4548,11 @@ window.LIFE_RPG = {
   deleteRawLogCascade,
   rebuildSkillProgressFromRecords,
   calculateRankFromExp,
+  hasNeedsReviewRoutes,
+  getNeedsReviewRoutes,
+  getPrimaryReviewQuestion,
+  createSupplementedRawLog,
+  supplementPendingRawLog,
   analyzeRecord,
   routeRecordMock,
   mergeDuplicateActiveRoutes,
