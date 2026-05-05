@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.7-B-fuel-charge-record-engine';
+const APP_VERSION = 'v0.7-C-recovery-night-record-engine';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -1219,6 +1219,7 @@ const ANALYSIS_RESULTS_KEY = 'lifeRpg_analysis_results_v1';
 const REPORT_SNAPSHOTS_KEY = 'lifeRpg_report_snapshots_v1';
 const RUNNING_RECORDS_KEY = 'lifeRpg_running_records_v1';
 const FUEL_RECORDS_KEY = 'lifeRpg_fuel_records_v1';
+const SLEEP_RECORDS_KEY = 'lifeRpg_sleep_records_v1';
 const APP_DATA_SCHEMA_VERSION = 'life_rpg_mvp_storage_v1';
 const MAX_REPORT_SNAPSHOTS = 100;
 const RUNNING_DISTANCE_BUCKETS = [3, 5, 10, 15, 20];
@@ -1227,6 +1228,7 @@ let ANALYSIS_RESULTS = [];
 let REPORT_SNAPSHOTS = [];
 let RUNNING_RECORDS = [];
 let FUEL_RECORDS = [];
+let SLEEP_RECORDS = [];
 
 /* ============================================
    로컬 저장 (캐시 역할)
@@ -1347,6 +1349,25 @@ function loadFuelRecords() {
   }
 }
 
+function saveSleepRecords() {
+  try {
+    localStorage.setItem(SLEEP_RECORDS_KEY, JSON.stringify({ sleep_records: SLEEP_RECORDS }));
+  } catch (e) {}
+}
+
+function loadSleepRecords() {
+  try {
+    const s = localStorage.getItem(SLEEP_RECORDS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceSleepRecords(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.sleep_records) ? parsed.sleep_records : []));
+  } catch (e) {
+    replaceSleepRecords([]);
+  }
+}
+
 function replacePlayerData(data) {
   const next = Object.assign(createInitialPlayerState(), data || {});
   for (const key of Object.keys(PLAYER)) delete PLAYER[key];
@@ -1378,6 +1399,11 @@ function replaceFuelRecords(records) {
   if (Array.isArray(records)) FUEL_RECORDS.push(...records);
 }
 
+function replaceSleepRecords(records) {
+  SLEEP_RECORDS.length = 0;
+  if (Array.isArray(records)) SLEEP_RECORDS.push(...records);
+}
+
 function createAppDataSnapshot() {
   return {
     schema_version: APP_DATA_SCHEMA_VERSION,
@@ -1387,20 +1413,22 @@ function createAppDataSnapshot() {
     analysis_results: ANALYSIS_RESULTS,
     report_snapshots: REPORT_SNAPSHOTS,
     running_records: RUNNING_RECORDS,
-    fuel_records: FUEL_RECORDS
+    fuel_records: FUEL_RECORDS,
+    sleep_records: SLEEP_RECORDS
   };
 }
 
 function applyAppDataSnapshot(data) {
   if (!data || typeof data !== 'object') return;
 
-  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots) || Array.isArray(data.running_records) || Array.isArray(data.fuel_records)) {
+  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots) || Array.isArray(data.running_records) || Array.isArray(data.fuel_records) || Array.isArray(data.sleep_records)) {
     if (data.player && typeof data.player === 'object') replacePlayerData(data.player);
     if (Array.isArray(data.raw_logs)) replaceRawLogs(data.raw_logs);
     if (Array.isArray(data.analysis_results)) replaceAnalysisResults(data.analysis_results);
     replaceReportSnapshots(Array.isArray(data.report_snapshots) ? data.report_snapshots : []);
     replaceRunningRecords(Array.isArray(data.running_records) ? data.running_records : []);
     replaceFuelRecords(Array.isArray(data.fuel_records) ? data.fuel_records : []);
+    replaceSleepRecords(Array.isArray(data.sleep_records) ? data.sleep_records : []);
     return;
   }
 
@@ -1408,6 +1436,7 @@ function applyAppDataSnapshot(data) {
   replaceReportSnapshots([]);
   replaceRunningRecords([]);
   replaceFuelRecords([]);
+  replaceSleepRecords([]);
   replacePlayerData(data);
 }
 
@@ -1418,6 +1447,7 @@ function saveAllLocal() {
   saveReportSnapshots();
   saveRunningRecords();
   saveFuelRecords();
+  saveSleepRecords();
 }
 
 function loadAllLocal() {
@@ -1427,6 +1457,7 @@ function loadAllLocal() {
   loadReportSnapshots();
   loadRunningRecords();
   loadFuelRecords();
+  loadSleepRecords();
 }
 
 /* ============================================
@@ -4903,6 +4934,305 @@ function renderFuelMonthlyReportText(report) {
   ].join('\n');
 }
 
+function createSleepRecordId() {
+  const now = new Date();
+  const datePart = getDateId(now).replace(/-/g, '');
+  const timePart = [
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+  const randomPart = Math.random().toString(36).slice(2, 8);
+  return `sleep_${datePart}_${timePart}_${randomPart}`;
+}
+
+function parseSleepDurationMinutes(text) {
+  const source = String(text || '');
+  if (!/(잠|잤|수면|낮잠|숙면|누웠|일어났)/.test(source)) return null;
+  let total = 0;
+  let found = false;
+  const hour = source.match(/(\d+(?:\.\d+)?)\s*시간/);
+  const minute = source.match(/(\d+(?:\.\d+)?)\s*분/);
+
+  if (hour) {
+    total += Math.round(Number(hour[1]) * 60);
+    found = true;
+  }
+  if (minute) {
+    total += Math.round(Number(minute[1]));
+    found = true;
+  }
+  return found ? total : null;
+}
+
+function parseKoreanClockMinutes(raw, meridiem = '') {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const text = String(raw).trim();
+  let hour = 0;
+  let minute = 0;
+  const colon = text.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
+  if (colon) {
+    hour = Number(colon[1]);
+    minute = Number(colon[2]);
+  } else {
+    const simple = text.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?/);
+    if (!simple) return null;
+    hour = Number(simple[1]);
+    minute = simple[2] ? Number(simple[2]) : 0;
+  }
+
+  const marker = String(meridiem || '');
+  if (marker.includes('밤') && hour === 12) hour = 0;
+  else if ((marker.includes('오후') || marker.includes('저녁') || marker.includes('밤')) && hour < 12) hour += 12;
+  if ((marker.includes('오전') || marker.includes('아침') || marker.includes('새벽')) && hour === 12) hour = 0;
+  if (marker.includes('밤') && hour === 24) hour = 0;
+  hour = ((hour % 24) + 24) % 24;
+  return hour * 60 + minute;
+}
+
+function parseSleepTimeRange(text) {
+  const source = String(text || '');
+  const empty = {
+    bedtime_text: '',
+    wake_time_text: '',
+    bedtime_minutes: null,
+    wake_minutes: null,
+    estimated_sleep_minutes: null
+  };
+
+  const timePattern = '((?:밤|아침|오전|오후|새벽|저녁)?\\s*\\d{1,2}(?::\\d{1,2}|\\s*시(?:\\s*\\d{1,2}\\s*분)?))';
+  const regex = new RegExp(`${timePattern}\\s*(?:에\\s*)?(?:자고|잤고|잠들고|누웠고|자서|잤다가|잠들어서)[\\s\\S]{0,30}?${timePattern}\\s*(?:에\\s*)?(?:일어|기상|깼)`);
+  const match = source.match(regex);
+  if (!match) return empty;
+
+  const bedtimeText = match[1].trim();
+  const wakeText = match[2].trim();
+  const bedtimeMarker = (bedtimeText.match(/밤|아침|오전|오후|새벽|저녁/) || [''])[0];
+  const wakeMarker = (wakeText.match(/밤|아침|오전|오후|새벽|저녁/) || [''])[0];
+  const bedtimeMinutes = parseKoreanClockMinutes(bedtimeText, bedtimeMarker);
+  const wakeMinutes = parseKoreanClockMinutes(wakeText, wakeMarker);
+  let estimated = null;
+  if (bedtimeMinutes !== null && wakeMinutes !== null) {
+    estimated = wakeMinutes - bedtimeMinutes;
+    if (estimated <= 0) estimated += 24 * 60;
+  }
+
+  return {
+    bedtime_text: bedtimeText,
+    wake_time_text: wakeText,
+    bedtime_minutes: bedtimeMinutes,
+    wake_minutes: wakeMinutes,
+    estimated_sleep_minutes: estimated
+  };
+}
+
+function parseNapInfo(text) {
+  const source = String(text || '');
+  const isNap = source.includes('낮잠');
+  if (!isNap) return { is_nap: false, nap_minutes: 0 };
+  return {
+    is_nap: true,
+    nap_minutes: parseSleepDurationMinutes(source) || 0
+  };
+}
+
+function parseSleepQuality(text) {
+  const source = String(text || '');
+  if (/잘 잤|푹 잤|개운|숙면/.test(source)) {
+    return { sleep_quality: 'good', quality_score: 80 };
+  }
+  if (/못 잤|뒤척|피곤|설쳤|악몽/.test(source)) {
+    return { sleep_quality: 'bad', quality_score: 20 };
+  }
+  if (/보통|그냥 잤/.test(source)) {
+    return { sleep_quality: 'normal', quality_score: 50 };
+  }
+  return { sleep_quality: 'unknown', quality_score: null };
+}
+
+function findRecoveryNightMockAnalysis(rawLog, analysisResult) {
+  const candidates = [];
+  if (Array.isArray(rawLog?.analysis?.mock_analysis_results)) {
+    candidates.push(...rawLog.analysis.mock_analysis_results);
+  }
+  if (Array.isArray(analysisResult?.metrics?.mock_analysis_results)) {
+    candidates.push(...analysisResult.metrics.mock_analysis_results);
+  }
+  if (analysisResult?.skill_id === 'recovery_night') candidates.push(analysisResult);
+  return candidates.find(item => item?.skill_id === 'recovery_night') || null;
+}
+
+function hasRecoveryNightAnalysis(rawLog, analysisResult) {
+  if (findRecoveryNightMockAnalysis(rawLog, analysisResult)) return true;
+
+  const routerResult = rawLog?.analysis?.routing_result || rawLog?.analysis?.router_result;
+  const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+  if (routes.some(route => route.route_status === 'active_skill' && route.skill_id === 'recovery_night')) return true;
+
+  return (PLAYER.records || []).some(record => record.rawLogId === rawLog?.id && record.skillId === 'recovery_night');
+}
+
+function createSleepRecordFromRawLog(rawLog, analysisResult) {
+  if (!hasRecoveryNightAnalysis(rawLog, analysisResult)) return null;
+
+  const sourceText = [rawLog?.raw_text, rawLog?.text, rawLog?.activity_text, analysisResult?.activity_text]
+    .find(value => typeof value === 'string' && value.trim());
+  if (!sourceText) return null;
+
+  const durationMinutes = parseSleepDurationMinutes(sourceText);
+  const timeRange = parseSleepTimeRange(sourceText);
+  const napInfo = parseNapInfo(sourceText);
+  const quality = parseSleepQuality(sourceText);
+  const sleepMinutes = durationMinutes
+    ?? timeRange.estimated_sleep_minutes
+    ?? (napInfo.is_nap ? napInfo.nap_minutes : null);
+  if (sleepMinutes === null && !timeRange.bedtime_text && quality.sleep_quality === 'unknown' && !napInfo.is_nap) return null;
+
+  const recoveryMock = findRecoveryNightMockAnalysis(rawLog, analysisResult);
+  const playerRecord = (PLAYER.records || []).find(record => record.rawLogId === rawLog?.id && record.skillId === 'recovery_night') || null;
+  const dateSource = rawLog?.saved_at || rawLog?.date || rawLog?.created_at || new Date().toISOString();
+  const dateId = getDateId(dateSource) || getTodayId();
+  const weekId = rawLog?.week_id || getWeekId(dateId);
+  const monthId = rawLog?.month_id || getMonthId(dateId);
+
+  return {
+    id: createSleepRecordId(),
+    version: 'sleep_record_v0.1',
+    raw_log_id: rawLog?.id || null,
+    analysis_result_id: analysisResult?.id || null,
+    player_record_id: playerRecord?.id || null,
+    source: 'detail_mock',
+    source_text: sourceText,
+    memo: sourceText,
+    date: dateId,
+    date_id: dateId,
+    week_id: weekId,
+    month_id: monthId,
+    skill_id: 'recovery_night',
+    skill_name: SKILLS.recovery_night?.name || '회복의 밤',
+    stat: 'STR',
+    sleep_minutes: sleepMinutes,
+    sleep_hours: sleepMinutes === null ? null : round2(sleepMinutes / 60),
+    bedtime_text: timeRange.bedtime_text,
+    wake_time_text: timeRange.wake_time_text,
+    is_nap: napInfo.is_nap,
+    nap_minutes: napInfo.nap_minutes,
+    sleep_quality: quality.sleep_quality,
+    quality_score: quality.quality_score,
+    has_duration: sleepMinutes !== null,
+    has_time_range: timeRange.bedtime_minutes !== null && timeRange.wake_minutes !== null,
+    has_quality: quality.sleep_quality !== 'unknown',
+    skill_exp: Number(recoveryMock?.skill_exp ?? playerRecord?.skillExp ?? analysisResult?.skill_exp) || 0,
+    stat_exp: Number(recoveryMock?.stat_exp ?? playerRecord?.statExp ?? analysisResult?.stat_exp) || 0,
+    char_exp: Number(recoveryMock?.character_exp ?? playerRecord?.charExp ?? analysisResult?.character_exp) || 0,
+    created_at: new Date().toISOString()
+  };
+}
+
+function persistSleepRecords() {
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function saveSleepRecordFromRawLog(rawLog, analysisResult) {
+  const record = createSleepRecordFromRawLog(rawLog, analysisResult);
+  if (!record) return null;
+  const existing = SLEEP_RECORDS.find(item =>
+    item.raw_log_id === record.raw_log_id && item.skill_id === 'recovery_night'
+  );
+  if (existing) return existing;
+  SLEEP_RECORDS.unshift(record);
+  persistSleepRecords();
+  return record;
+}
+
+function getSleepRecords(filter = {}) {
+  let records = SLEEP_RECORDS.slice();
+  if (filter.date_id) records = records.filter(record => record.date_id === filter.date_id);
+  if (filter.week_id) records = records.filter(record => record.week_id === filter.week_id);
+  if (filter.month_id) records = records.filter(record => record.month_id === filter.month_id);
+  if (typeof filter.is_nap === 'boolean') records = records.filter(record => record.is_nap === filter.is_nap);
+  if (filter.sleep_quality) records = records.filter(record => record.sleep_quality === filter.sleep_quality);
+  const limit = Number(filter.limit);
+  if (Number.isFinite(limit) && limit > 0) records = records.slice(0, limit);
+  return records;
+}
+
+function createSleepMonthlyReport(monthId = getCurrentMonthId()) {
+  const monthRecords = getSleepRecords({ month_id: monthId });
+  const napRecords = monthRecords.filter(record => record.is_nap);
+  const nightRecords = monthRecords.filter(record => !record.is_nap);
+  const totalSleepMinutes = nightRecords.reduce((sum, record) => sum + (Number(record.sleep_minutes) || 0), 0);
+  const totalNapMinutes = napRecords.reduce((sum, record) => sum + (Number(record.nap_minutes || record.sleep_minutes) || 0), 0);
+  const qualityCounts = { good: 0, normal: 0, bad: 0, unknown: 0 };
+  monthRecords.forEach(record => {
+    const key = qualityCounts[record.sleep_quality] !== undefined ? record.sleep_quality : 'unknown';
+    qualityCounts[key]++;
+  });
+  const bestSleepRecord = nightRecords.slice()
+    .sort((a, b) => (Number(b.sleep_minutes) || 0) - (Number(a.sleep_minutes) || 0))[0] || null;
+  const latestRecord = monthRecords[0] || null;
+  const averageSleepMinutes = nightRecords.length ? Math.round(totalSleepMinutes / nightRecords.length) : 0;
+
+  let summaryText = '이번 달 회복의 밤 기록이 아직 없어요.';
+  if (monthRecords.length > 0) {
+    summaryText = `이번 달 수면 기록 ${monthRecords.length}회, 평균 수면 ${formatDuration(averageSleepMinutes * 60)}을 기록했어요.`;
+    if (napRecords.length > 0) summaryText += ` 낮잠 기록 ${napRecords.length}회가 포함되어 있어요.`;
+    if (qualityCounts.bad > 0) summaryText += ' 수면 질이 낮은 기록이 있어요.';
+  }
+
+  return {
+    month_id: monthId,
+    records_count: monthRecords.length,
+    night_sleep_records_count: nightRecords.length,
+    nap_records_count: napRecords.length,
+    total_sleep_minutes: totalSleepMinutes,
+    total_nap_minutes: totalNapMinutes,
+    average_sleep_minutes: averageSleepMinutes,
+    good_sleep_count: qualityCounts.good,
+    normal_sleep_count: qualityCounts.normal,
+    bad_sleep_count: qualityCounts.bad,
+    unknown_sleep_count: qualityCounts.unknown,
+    best_sleep_record: bestSleepRecord,
+    latest_record: latestRecord,
+    sleep_quality_counts: qualityCounts,
+    summary_text: summaryText
+  };
+}
+
+function renderSleepMonthlyReportText(report) {
+  const quality = report.sleep_quality_counts || {};
+  const representative = report.best_sleep_record?.memo || report.latest_record?.memo || '기록 없음';
+  return [
+    '회복의 밤 월간 리포트',
+    `월: ${report.month_id}`,
+    '',
+    `총 수면 기록: ${report.records_count}회`,
+    `밤 수면 기록: ${report.night_sleep_records_count}회`,
+    `낮잠 기록: ${report.nap_records_count}회`,
+    '',
+    `총 수면 시간: ${formatDuration(report.total_sleep_minutes * 60)}`,
+    `평균 수면 시간: ${formatDuration(report.average_sleep_minutes * 60)}`,
+    `총 낮잠 시간: ${formatDuration(report.total_nap_minutes * 60)}`,
+    '',
+    '수면 질:',
+    `좋음 ${quality.good || 0}회`,
+    `보통 ${quality.normal || 0}회`,
+    `나쁨 ${quality.bad || 0}회`,
+    `미확인 ${quality.unknown || 0}회`,
+    '',
+    '대표 수면 기록:',
+    representative,
+    '',
+    '요약:',
+    report.summary_text
+  ].join('\n');
+}
+
 function createTemporaryAnalysisResult(rawLog) {
   const now = new Date().toISOString();
   return {
@@ -5089,7 +5419,7 @@ function closeRawLogDetail() {
 
 function deleteRawLogCascade(rawLogId) {
   if (!rawLogId) {
-    return { deletedRawLogs: 0, deletedAnalysisResults: 0, deletedRecords: 0, deletedRunningRecords: 0, deletedFuelRecords: 0 };
+    return { deletedRawLogs: 0, deletedAnalysisResults: 0, deletedRecords: 0, deletedRunningRecords: 0, deletedFuelRecords: 0, deletedSleepRecords: 0 };
   }
 
   const beforeRawLogs = RAW_LOGS.length;
@@ -5097,6 +5427,7 @@ function deleteRawLogCascade(rawLogId) {
   const beforeRecords = (PLAYER.records || []).length;
   const beforeRunningRecords = RUNNING_RECORDS.length;
   const beforeFuelRecords = FUEL_RECORDS.length;
+  const beforeSleepRecords = SLEEP_RECORDS.length;
 
   for (let i = RAW_LOGS.length - 1; i >= 0; i--) {
     if (RAW_LOGS[i]?.id === rawLogId) RAW_LOGS.splice(i, 1);
@@ -5116,6 +5447,10 @@ function deleteRawLogCascade(rawLogId) {
     if (FUEL_RECORDS[i]?.raw_log_id === rawLogId) FUEL_RECORDS.splice(i, 1);
   }
 
+  for (let i = SLEEP_RECORDS.length - 1; i >= 0; i--) {
+    if (SLEEP_RECORDS[i]?.raw_log_id === rawLogId) SLEEP_RECORDS.splice(i, 1);
+  }
+
   rebuildSkillProgressFromRecords();
   recalcStats();
   recalcCharLevel();
@@ -5125,7 +5460,8 @@ function deleteRawLogCascade(rawLogId) {
     deletedAnalysisResults: beforeAnalysisResults - ANALYSIS_RESULTS.length,
     deletedRecords: beforeRecords - PLAYER.records.length,
     deletedRunningRecords: beforeRunningRecords - RUNNING_RECORDS.length,
-    deletedFuelRecords: beforeFuelRecords - FUEL_RECORDS.length
+    deletedFuelRecords: beforeFuelRecords - FUEL_RECORDS.length,
+    deletedSleepRecords: beforeSleepRecords - SLEEP_RECORDS.length
   };
 }
 
@@ -5432,6 +5768,7 @@ function savePendingRawLog() {
   if (ANALYSIS_RESULTS.length > 500) ANALYSIS_RESULTS.splice(500);
   saveRunningRecordFromRawLog(log, analysisResult);
   saveFuelRecordFromRawLog(log, analysisResult);
+  saveSleepRecordFromRawLog(log, analysisResult);
   recalcStats();
   recalcCharLevel();
   saveAllLocal();
@@ -5541,12 +5878,14 @@ function resetTestData() {
   try { localStorage.removeItem(REPORT_SNAPSHOTS_KEY); } catch (e) {}
   try { localStorage.removeItem(RUNNING_RECORDS_KEY); } catch (e) {}
   try { localStorage.removeItem(FUEL_RECORDS_KEY); } catch (e) {}
+  try { localStorage.removeItem(SLEEP_RECORDS_KEY); } catch (e) {}
   replacePlayerData(createInitialPlayerState());
   replaceRawLogs([]);
   replaceAnalysisResults([]);
   replaceReportSnapshots([]);
   replaceRunningRecords([]);
   replaceFuelRecords([]);
+  replaceSleepRecords([]);
   pendingRawLog = null;
   recalcStats();
   recalcCharLevel();
@@ -5571,6 +5910,7 @@ function getLifeRpgStatus() {
     report_snapshots_count: REPORT_SNAPSHOTS.length,
     running_records_count: RUNNING_RECORDS.length,
     fuel_records_count: FUEL_RECORDS.length,
+    sleep_records_count: SLEEP_RECORDS.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
@@ -7026,6 +7366,157 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  recoveryNightTest() {
+    const rows = [];
+    const rangeA = parseSleepTimeRange('밤 12시에 자고 아침 7시에 일어났다');
+    const rangeB = parseSleepTimeRange('23시에 자고 6시에 일어났다');
+
+    rows.push({
+      case: 'sleep duration parsing',
+      result: parseSleepDurationMinutes('7시간 잤다') === 420
+        && parseSleepDurationMinutes('6시간 30분 잤다') === 390
+        && parseSleepDurationMinutes('낮잠 30분 잤다') === 30
+        && parseSleepDurationMinutes('운동했다') === null ? 'PASS' : 'FAIL',
+      sevenHours: parseSleepDurationMinutes('7시간 잤다'),
+      sixThirty: parseSleepDurationMinutes('6시간 30분 잤다'),
+      napThirty: parseSleepDurationMinutes('낮잠 30분 잤다'),
+      none: parseSleepDurationMinutes('운동했다')
+    });
+
+    rows.push({
+      case: 'nap and sleep quality parsing',
+      result: parseNapInfo('낮잠 30분 잤다').is_nap === true
+        && parseNapInfo('7시간 잤다').is_nap === false
+        && parseSleepQuality('푹 잤다').sleep_quality === 'good'
+        && parseSleepQuality('잠을 설쳤다').sleep_quality === 'bad' ? 'PASS' : 'FAIL',
+      nap: parseNapInfo('낮잠 30분 잤다'),
+      nonNap: parseNapInfo('7시간 잤다'),
+      good: parseSleepQuality('푹 잤다'),
+      bad: parseSleepQuality('잠을 설쳤다')
+    });
+
+    rows.push({
+      case: 'sleep time range parsing',
+      result: Math.abs((rangeA.estimated_sleep_minutes || 0) - 420) <= 5
+        && Math.abs((rangeB.estimated_sleep_minutes || 0) - 420) <= 5 ? 'PASS' : 'FAIL',
+      rangeA,
+      rangeB
+    });
+
+    resetTestData();
+    replaceSleepRecords([]);
+    let rawLog = createRawLogDraft('7시간 잤다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    let sleepRecord = saveSleepRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'save B sleep detail record',
+      result: sleepRecord
+        && SLEEP_RECORDS.length === 1
+        && sleepRecord.sleep_minutes === 420
+        && sleepRecord.sleep_hours === 7
+        && sleepRecord.skill_id === 'recovery_night' ? 'PASS' : 'FAIL',
+      sleepCount: SLEEP_RECORDS.length,
+      sleepMinutes: sleepRecord?.sleep_minutes,
+      sleepHours: sleepRecord?.sleep_hours,
+      skillId: sleepRecord?.skill_id
+    });
+
+    saveSleepRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'prevent duplicate sleep detail record',
+      result: SLEEP_RECORDS.length === 1 ? 'PASS' : 'FAIL',
+      sleepCount: SLEEP_RECORDS.length
+    });
+
+    resetTestData();
+    replaceSleepRecords([]);
+    pendingRawLog = createRawLogDraft('7시간 잤다.');
+    savePendingRawLog();
+    rows.push({
+      case: 'savePendingRawLog auto creates sleep detail record',
+      result: SLEEP_RECORDS.length === 1
+        && RAW_LOGS.length === 1
+        && ANALYSIS_RESULTS.length === 1
+        && SLEEP_RECORDS[0].sleep_minutes === 420 ? 'PASS' : 'FAIL',
+      sleepCount: SLEEP_RECORDS.length,
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      sleepMinutes: SLEEP_RECORDS[0]?.sleep_minutes
+    });
+
+    resetTestData();
+    replaceSleepRecords([]);
+    rawLog = createRawLogDraft('트렌드 코리아를 20분 읽고 요약했다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    sleepRecord = saveSleepRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'non recovery route skips sleep detail record',
+      result: sleepRecord === null && SLEEP_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      sleepRecord,
+      sleepCount: SLEEP_RECORDS.length
+    });
+
+    resetTestData();
+    replaceSleepRecords([]);
+    rawLog = createRawLogDraft('7시간 잤다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    saveSleepRecordFromRawLog(rawLog, analysisResult);
+
+    const napRawLog = createRawLogDraft('낮잠 30분 잤다.');
+    const napAnalysisResult = createTemporaryAnalysisResult(napRawLog);
+    applyMockAnalysisResultsToPlayer(napRawLog, napAnalysisResult);
+    RAW_LOGS.unshift(napRawLog);
+    ANALYSIS_RESULTS.unshift(napAnalysisResult);
+    saveSleepRecordFromRawLog(napRawLog, napAnalysisResult);
+
+    const sleepReport = createSleepMonthlyReport(getCurrentMonthId());
+    rows.push({
+      case: 'sleep monthly report',
+      result: sleepReport.records_count === 2
+        && sleepReport.night_sleep_records_count >= 1
+        && sleepReport.nap_records_count >= 1
+        && sleepReport.total_sleep_minutes >= 420
+        && sleepReport.total_nap_minutes >= 30
+        && sleepReport.average_sleep_minutes > 0
+        && /수면|회복/.test(sleepReport.summary_text) ? 'PASS' : 'FAIL',
+      recordsCount: sleepReport.records_count,
+      nightCount: sleepReport.night_sleep_records_count,
+      napCount: sleepReport.nap_records_count,
+      totalSleep: sleepReport.total_sleep_minutes,
+      totalNap: sleepReport.total_nap_minutes,
+      average: sleepReport.average_sleep_minutes,
+      summary: sleepReport.summary_text
+    });
+
+    resetTestData();
+    replaceSleepRecords([]);
+    rawLog = createRawLogDraft('7시간 잤다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    saveSleepRecordFromRawLog(rawLog, analysisResult);
+    const beforeDeleteSleepCount = SLEEP_RECORDS.length;
+    deleteRawLogCascade(rawLog.id);
+    rows.push({
+      case: 'delete raw log removes sleep detail record',
+      result: beforeDeleteSleepCount === 1 && SLEEP_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      before: beforeDeleteSleepCount,
+      after: SLEEP_RECORDS.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_RECOVERY_NIGHT_TEST: ALL PASS' : 'LIFE_RPG_RECOVERY_NIGHT_TEST: FAIL');
+    return rows;
+  },
+
   reportSnapshotTest() {
     const rows = [];
 
@@ -7323,6 +7814,17 @@ window.LIFE_RPG = {
   getFuelRecords,
   createFuelMonthlyReport,
   renderFuelMonthlyReportText,
+  createSleepRecordId,
+  parseSleepDurationMinutes,
+  parseSleepTimeRange,
+  parseNapInfo,
+  parseSleepQuality,
+  hasRecoveryNightAnalysis,
+  createSleepRecordFromRawLog,
+  saveSleepRecordFromRawLog,
+  getSleepRecords,
+  createSleepMonthlyReport,
+  renderSleepMonthlyReportText,
   analyzeRecord,
   routeRecordMock,
   mergeDuplicateActiveRoutes,
@@ -7351,6 +7853,8 @@ window.LIFE_RPG = {
   RUNNING_DISTANCE_BUCKETS,
   FUEL_RECORDS,
   FUEL_RECORDS_KEY,
+  SLEEP_RECORDS,
+  SLEEP_RECORDS_KEY,
   APP_DATA_SCHEMA_VERSION,
   createAppDataSnapshot,
   RAW_LOG_MVP_MODE,
