@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.6-B-report-snapshot-storage';
+const APP_VERSION = 'v0.7-B-fuel-charge-record-engine';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -1217,11 +1217,16 @@ const USER_KEY = 'lifeRpg_user_v2';
 const RAW_LOGS_KEY = 'lifeRpg_raw_logs_v1';
 const ANALYSIS_RESULTS_KEY = 'lifeRpg_analysis_results_v1';
 const REPORT_SNAPSHOTS_KEY = 'lifeRpg_report_snapshots_v1';
+const RUNNING_RECORDS_KEY = 'lifeRpg_running_records_v1';
+const FUEL_RECORDS_KEY = 'lifeRpg_fuel_records_v1';
 const APP_DATA_SCHEMA_VERSION = 'life_rpg_mvp_storage_v1';
 const MAX_REPORT_SNAPSHOTS = 100;
+const RUNNING_DISTANCE_BUCKETS = [3, 5, 10, 15, 20];
 let RAW_LOGS = [];
 let ANALYSIS_RESULTS = [];
 let REPORT_SNAPSHOTS = [];
+let RUNNING_RECORDS = [];
+let FUEL_RECORDS = [];
 
 /* ============================================
    로컬 저장 (캐시 역할)
@@ -1304,6 +1309,44 @@ function loadReportSnapshots() {
   }
 }
 
+function saveRunningRecords() {
+  try {
+    localStorage.setItem(RUNNING_RECORDS_KEY, JSON.stringify({ running_records: RUNNING_RECORDS }));
+  } catch (e) {}
+}
+
+function loadRunningRecords() {
+  try {
+    const s = localStorage.getItem(RUNNING_RECORDS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceRunningRecords(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.running_records) ? parsed.running_records : []));
+  } catch (e) {
+    replaceRunningRecords([]);
+  }
+}
+
+function saveFuelRecords() {
+  try {
+    localStorage.setItem(FUEL_RECORDS_KEY, JSON.stringify({ fuel_records: FUEL_RECORDS }));
+  } catch (e) {}
+}
+
+function loadFuelRecords() {
+  try {
+    const s = localStorage.getItem(FUEL_RECORDS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceFuelRecords(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.fuel_records) ? parsed.fuel_records : []));
+  } catch (e) {
+    replaceFuelRecords([]);
+  }
+}
+
 function replacePlayerData(data) {
   const next = Object.assign(createInitialPlayerState(), data || {});
   for (const key of Object.keys(PLAYER)) delete PLAYER[key];
@@ -1325,6 +1368,16 @@ function replaceReportSnapshots(snapshots) {
   if (Array.isArray(snapshots)) REPORT_SNAPSHOTS.push(...snapshots);
 }
 
+function replaceRunningRecords(records) {
+  RUNNING_RECORDS.length = 0;
+  if (Array.isArray(records)) RUNNING_RECORDS.push(...records);
+}
+
+function replaceFuelRecords(records) {
+  FUEL_RECORDS.length = 0;
+  if (Array.isArray(records)) FUEL_RECORDS.push(...records);
+}
+
 function createAppDataSnapshot() {
   return {
     schema_version: APP_DATA_SCHEMA_VERSION,
@@ -1332,23 +1385,29 @@ function createAppDataSnapshot() {
     player: PLAYER,
     raw_logs: RAW_LOGS,
     analysis_results: ANALYSIS_RESULTS,
-    report_snapshots: REPORT_SNAPSHOTS
+    report_snapshots: REPORT_SNAPSHOTS,
+    running_records: RUNNING_RECORDS,
+    fuel_records: FUEL_RECORDS
   };
 }
 
 function applyAppDataSnapshot(data) {
   if (!data || typeof data !== 'object') return;
 
-  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots)) {
+  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots) || Array.isArray(data.running_records) || Array.isArray(data.fuel_records)) {
     if (data.player && typeof data.player === 'object') replacePlayerData(data.player);
     if (Array.isArray(data.raw_logs)) replaceRawLogs(data.raw_logs);
     if (Array.isArray(data.analysis_results)) replaceAnalysisResults(data.analysis_results);
     replaceReportSnapshots(Array.isArray(data.report_snapshots) ? data.report_snapshots : []);
+    replaceRunningRecords(Array.isArray(data.running_records) ? data.running_records : []);
+    replaceFuelRecords(Array.isArray(data.fuel_records) ? data.fuel_records : []);
     return;
   }
 
   // 이전 버전 Drive 파일은 PLAYER 객체만 저장되어 있었으므로 그대로 복원합니다.
   replaceReportSnapshots([]);
+  replaceRunningRecords([]);
+  replaceFuelRecords([]);
   replacePlayerData(data);
 }
 
@@ -1357,6 +1416,8 @@ function saveAllLocal() {
   saveRawLogs();
   saveAnalysisResults();
   saveReportSnapshots();
+  saveRunningRecords();
+  saveFuelRecords();
 }
 
 function loadAllLocal() {
@@ -1364,6 +1425,8 @@ function loadAllLocal() {
   loadRawLogs();
   loadAnalysisResults();
   loadReportSnapshots();
+  loadRunningRecords();
+  loadFuelRecords();
 }
 
 /* ============================================
@@ -4228,6 +4291,618 @@ function renderReportSnapshotText(snapshot) {
   ].join('\n');
 }
 
+function createRunningRecordId() {
+  const now = new Date();
+  const datePart = getDateId(now).replace(/-/g, '');
+  const timePart = [
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+  const randomPart = Math.random().toString(36).slice(2, 8);
+  return `running_${datePart}_${timePart}_${randomPart}`;
+}
+
+function parseRunningDistance(text) {
+  const source = String(text || '');
+  const match = source.match(/(\d+(?:\.\d+)?)\s*(?:k\s*m|키로|킬로)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function parseRunningDurationSeconds(text) {
+  const source = String(text || '');
+  let total = 0;
+  let found = false;
+  const hour = source.match(/(\d+(?:\.\d+)?)\s*시간/);
+  const minute = source.match(/(\d+(?:\.\d+)?)\s*분/);
+  const second = source.match(/(\d+(?:\.\d+)?)\s*초/);
+
+  if (hour) {
+    total += Math.round(Number(hour[1]) * 3600);
+    found = true;
+  }
+  if (minute) {
+    total += Math.round(Number(minute[1]) * 60);
+    found = true;
+  }
+  if (second) {
+    total += Math.round(Number(second[1]));
+    found = true;
+  }
+
+  return found ? total : null;
+}
+
+function getRunningDistanceBucket(distanceKm) {
+  const distance = Number(distanceKm);
+  if (!Number.isFinite(distance)) return null;
+  const bucket = RUNNING_DISTANCE_BUCKETS.find(item => Math.abs(distance - item) <= 0.25);
+  return bucket || null;
+}
+
+function calculatePaceSecPerKm(distanceKm, durationSeconds) {
+  const distance = Number(distanceKm);
+  const duration = Number(durationSeconds);
+  if (!Number.isFinite(distance) || !Number.isFinite(duration) || distance <= 0 || duration <= 0) return null;
+  return Math.round(duration / distance);
+}
+
+function formatDuration(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value <= 0) return '기록 없음';
+  const total = Math.round(value);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainSeconds = total % 60;
+  const parts = [];
+  if (hours > 0) parts.push(`${hours}시간`);
+  if (minutes > 0) parts.push(`${minutes}분`);
+  if (remainSeconds > 0 || parts.length === 0) parts.push(`${remainSeconds}초`);
+  return parts.join(' ');
+}
+
+function formatPace(paceSecPerKm) {
+  const value = Number(paceSecPerKm);
+  if (!Number.isFinite(value) || value <= 0) return '기록 없음';
+  const total = Math.round(value);
+  const minutes = Math.floor(total / 60);
+  const seconds = String(total % 60).padStart(2, '0');
+  return `${minutes}'${seconds}"/km`;
+}
+
+function findRunningProofMockAnalysis(rawLog, analysisResult) {
+  const candidates = [];
+  if (Array.isArray(rawLog?.analysis?.mock_analysis_results)) {
+    candidates.push(...rawLog.analysis.mock_analysis_results);
+  }
+  if (Array.isArray(analysisResult?.metrics?.mock_analysis_results)) {
+    candidates.push(...analysisResult.metrics.mock_analysis_results);
+  }
+  if (analysisResult?.skill_id === 'running_proof') candidates.push(analysisResult);
+  return candidates.find(item => item?.skill_id === 'running_proof') || null;
+}
+
+function hasRunningProofAnalysis(rawLog, analysisResult) {
+  if (findRunningProofMockAnalysis(rawLog, analysisResult)) return true;
+
+  const routerResult = rawLog?.analysis?.routing_result || rawLog?.analysis?.router_result;
+  const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+  if (routes.some(route => route.route_status === 'active_skill' && route.skill_id === 'running_proof')) return true;
+
+  return (PLAYER.records || []).some(record => record.rawLogId === rawLog?.id && record.skillId === 'running_proof');
+}
+
+function createRunningRecordFromRawLog(rawLog, analysisResult) {
+  if (!hasRunningProofAnalysis(rawLog, analysisResult)) return null;
+
+  const sourceText = [rawLog?.raw_text, rawLog?.text, rawLog?.activity_text, analysisResult?.activity_text]
+    .find(value => typeof value === 'string' && value.trim());
+  if (!sourceText) return null;
+
+  const distanceKm = parseRunningDistance(sourceText);
+  if (distanceKm === null) return null;
+
+  const durationSeconds = parseRunningDurationSeconds(sourceText);
+  const distanceBucketKm = getRunningDistanceBucket(distanceKm);
+  const paceSecPerKm = calculatePaceSecPerKm(distanceKm, durationSeconds);
+  const runningMock = findRunningProofMockAnalysis(rawLog, analysisResult);
+  const playerRecord = (PLAYER.records || []).find(record => record.rawLogId === rawLog?.id && record.skillId === 'running_proof') || null;
+  const dateSource = rawLog?.saved_at || rawLog?.date || rawLog?.created_at || new Date().toISOString();
+  const dateId = getDateId(dateSource) || getTodayId();
+  const weekId = rawLog?.week_id || getWeekId(dateId);
+  const monthId = rawLog?.month_id || getMonthId(dateId);
+
+  return {
+    id: createRunningRecordId(),
+    version: 'running_record_v0.1',
+    raw_log_id: rawLog?.id || null,
+    analysis_result_id: analysisResult?.id || null,
+    player_record_id: playerRecord?.id || null,
+    source: 'detail_mock',
+    source_text: sourceText,
+    memo: sourceText,
+    date: dateId,
+    date_id: dateId,
+    week_id: weekId,
+    month_id: monthId,
+    skill_id: 'running_proof',
+    skill_name: SKILLS.running_proof?.name || '런닝의 증명',
+    stat: 'STR',
+    distance_km: distanceKm,
+    distance_bucket_km: distanceBucketKm,
+    duration_seconds: durationSeconds,
+    pace_sec_per_km: paceSecPerKm,
+    skill_exp: Number(runningMock?.skill_exp ?? playerRecord?.skillExp ?? analysisResult?.skill_exp) || 0,
+    stat_exp: Number(runningMock?.stat_exp ?? playerRecord?.statExp ?? analysisResult?.stat_exp) || 0,
+    char_exp: Number(runningMock?.character_exp ?? playerRecord?.charExp ?? analysisResult?.character_exp) || 0,
+    created_at: new Date().toISOString()
+  };
+}
+
+function persistRunningRecords() {
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function saveRunningRecordFromRawLog(rawLog, analysisResult) {
+  const record = createRunningRecordFromRawLog(rawLog, analysisResult);
+  if (!record) return null;
+  const existing = RUNNING_RECORDS.find(item =>
+    item.raw_log_id === record.raw_log_id && item.skill_id === 'running_proof'
+  );
+  if (existing) return existing;
+  RUNNING_RECORDS.unshift(record);
+  persistRunningRecords();
+  return record;
+}
+
+function getRunningRecords(filter = {}) {
+  let records = RUNNING_RECORDS.slice();
+  if (filter.date_id) records = records.filter(record => record.date_id === filter.date_id);
+  if (filter.week_id) records = records.filter(record => record.week_id === filter.week_id);
+  if (filter.month_id) records = records.filter(record => record.month_id === filter.month_id);
+  if (filter.distance_bucket_km !== undefined && filter.distance_bucket_km !== null) {
+    const bucket = Number(filter.distance_bucket_km);
+    records = records.filter(record => Number(record.distance_bucket_km) === bucket);
+  }
+  const limit = Number(filter.limit);
+  if (Number.isFinite(limit) && limit > 0) records = records.slice(0, limit);
+  return records;
+}
+
+function sortRunningRecordsByPace(records) {
+  return records.slice().sort((a, b) => {
+    const aPace = Number(a.pace_sec_per_km);
+    const bPace = Number(b.pace_sec_per_km);
+    const aHasPace = Number.isFinite(aPace) && aPace > 0;
+    const bHasPace = Number.isFinite(bPace) && bPace > 0;
+    if (aHasPace && bHasPace) return aPace - bPace;
+    if (aHasPace) return -1;
+    if (bHasPace) return 1;
+    const aDuration = Number(a.duration_seconds);
+    const bDuration = Number(b.duration_seconds);
+    if (Number.isFinite(aDuration) && Number.isFinite(bDuration)) return aDuration - bDuration;
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+}
+
+function getRunningTopRecords(distanceBucketKm, limit = 3) {
+  const bucket = Number(distanceBucketKm);
+  const records = RUNNING_RECORDS.filter(record => Number(record.distance_bucket_km) === bucket);
+  return sortRunningRecordsByPace(records).slice(0, limit);
+}
+
+function formatKm(value) {
+  const number = Number(value) || 0;
+  return Number.isInteger(number) ? String(number) : String(round2(number));
+}
+
+function createRunningMonthlyReport(monthId = getCurrentMonthId()) {
+  const monthRecords = getRunningRecords({ month_id: monthId });
+  const totalDistanceKm = round2(monthRecords.reduce((sum, record) => sum + (Number(record.distance_km) || 0), 0));
+  const totalDurationSeconds = monthRecords.reduce((sum, record) => sum + (Number(record.duration_seconds) || 0), 0);
+  const averagePaceSecPerKm = calculatePaceSecPerKm(totalDistanceKm, totalDurationSeconds);
+  const distanceBuckets = {};
+
+  RUNNING_DISTANCE_BUCKETS.forEach(bucket => {
+    const bucketRecords = monthRecords.filter(record => Number(record.distance_bucket_km) === bucket);
+    const topRecords = sortRunningRecordsByPace(bucketRecords).slice(0, 3);
+    distanceBuckets[bucket] = {
+      records_count: bucketRecords.length,
+      best_record: topRecords[0] || null,
+      top_records: topRecords
+    };
+  });
+
+  const sortedMonthlyRecords = sortRunningRecordsByPace(monthRecords);
+  const bestRecord = sortedMonthlyRecords[0] || null;
+  const latestRecord = monthRecords[0] || null;
+  let summaryText = '이번 달 러닝 기록이 아직 없어요.';
+  if (monthRecords.length > 0) {
+    summaryText = `이번 달 러닝 ${monthRecords.length}회, 총 ${formatKm(totalDistanceKm)}km를 기록했어요.`;
+    if (bestRecord) {
+      const bestDistance = bestRecord.distance_bucket_km || bestRecord.distance_km;
+      const bestDuration = bestRecord.duration_seconds ? ` ${formatDuration(bestRecord.duration_seconds)}` : '';
+      summaryText += ` 최고 기록은 ${formatKm(bestDistance)}km${bestDuration}입니다.`;
+    }
+  }
+
+  return {
+    month_id: monthId,
+    records_count: monthRecords.length,
+    total_distance_km: totalDistanceKm,
+    total_duration_seconds: totalDurationSeconds,
+    average_pace_sec_per_km: averagePaceSecPerKm,
+    distance_buckets: distanceBuckets,
+    best_record: bestRecord,
+    latest_record: latestRecord,
+    summary_text: summaryText
+  };
+}
+
+function renderRunningMonthlyReportText(report) {
+  const bucketLines = RUNNING_DISTANCE_BUCKETS.map(bucket => {
+    const data = report.distance_buckets?.[bucket];
+    if (!data || !data.top_records.length) return `${bucket}km: 기록 없음`;
+    const lines = data.top_records.map((record, index) =>
+      `${index + 1}위 ${formatDuration(record.duration_seconds)} / ${formatPace(record.pace_sec_per_km)}`
+    );
+    return `${bucket}km:\n${lines.join('\n')}`;
+  }).join('\n');
+
+  return [
+    '런닝의 증명 월간 리포트',
+    `월: ${report.month_id}`,
+    '',
+    `총 러닝 기록: ${report.records_count}회`,
+    `총 거리: ${formatKm(report.total_distance_km)}km`,
+    `총 시간: ${formatDuration(report.total_duration_seconds)}`,
+    `평균 페이스: ${formatPace(report.average_pace_sec_per_km)}`,
+    '',
+    '거리별 TOP:',
+    bucketLines,
+    '',
+    '요약:',
+    report.summary_text
+  ].join('\n');
+}
+
+function createFuelRecordId() {
+  const now = new Date();
+  const datePart = getDateId(now).replace(/-/g, '');
+  const timePart = [
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+  const randomPart = Math.random().toString(36).slice(2, 8);
+  return `fuel_${datePart}_${timePart}_${randomPart}`;
+}
+
+function parseKoreanQuantity(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const text = String(value).trim();
+  const number = Number(text);
+  if (Number.isFinite(number)) return number;
+  const map = {
+    한: 1, 하나: 1, 두: 2, 둘: 2, 세: 3, 셋: 3, 네: 4, 넷: 4,
+    다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10
+  };
+  return map[text] || null;
+}
+
+function extractFuelQuantity(text, keyword, unitPattern = '개|팩|잔|병|캔|모|인분|회|컵') {
+  const source = String(text || '');
+  const key = escapeRegex(keyword).replace(/\\\s+/g, '\\s+');
+  const quantityPattern = '(\\d+(?:\\.\\d+)?|한|하나|두|둘|세|셋|네|넷|다섯|여섯|일곱|여덟|아홉|열)';
+  const after = source.match(new RegExp(`${key}\\s*${quantityPattern}\\s*(${unitPattern})?`));
+  if (after) {
+    return {
+      quantity: parseKoreanQuantity(after[1]) || 1,
+      unit: after[2] || ''
+    };
+  }
+  const before = source.match(new RegExp(`${quantityPattern}\\s*(${unitPattern})?\\s*${key}`));
+  if (before) {
+    return {
+      quantity: parseKoreanQuantity(before[1]) || 1,
+      unit: before[2] || ''
+    };
+  }
+  return source.includes(keyword) ? { quantity: 1, unit: '' } : null;
+}
+
+function createFuelFoodItem(name, quantityInfo, defaultUnit, proteinPerUnit) {
+  const quantity = quantityInfo?.quantity || 1;
+  const unit = quantityInfo?.unit || defaultUnit;
+  return {
+    name,
+    quantity,
+    unit,
+    estimated_protein_g: Math.round(quantity * proteinPerUnit)
+  };
+}
+
+function parseFuelFoodItems(text) {
+  const source = String(text || '');
+  const items = [];
+  const rules = [
+    { name: '닭가슴살', keywords: ['닭가슴살'], unit: '팩', protein: 25 },
+    { name: '계란', keywords: ['계란', '달걀'], unit: '개', protein: 6 },
+    { name: '프로틴', keywords: ['프로틴'], unit: '잔', protein: 25 },
+    { name: '단백질 쉐이크', keywords: ['단백질 쉐이크', '단백질쉐이크'], unit: '잔', protein: 25 },
+    { name: '고기', keywords: ['고기', '육류', '돼지고기', '소고기', '닭고기'], unit: '회', protein: 20 }
+  ];
+
+  rules.forEach(rule => {
+    const keyword = rule.keywords.find(item => source.includes(item));
+    if (!keyword) return;
+    const quantityInfo = extractFuelQuantity(source, keyword);
+    items.push(createFuelFoodItem(rule.name, quantityInfo, rule.unit, rule.protein));
+  });
+
+  const mealKeywords = [
+    { name: '밥', keyword: '밥' },
+    { name: '식사', keyword: '식사' },
+    { name: '아침', keyword: '아침' },
+    { name: '점심', keyword: '점심' },
+    { name: '저녁', keyword: '저녁' }
+  ];
+  mealKeywords.forEach(rule => {
+    if (!source.includes(rule.keyword)) return;
+    if (items.some(item => item.name === rule.name)) return;
+    items.push({
+      name: rule.name,
+      quantity: 1,
+      unit: '회',
+      estimated_protein_g: 0
+    });
+  });
+
+  return items;
+}
+
+function parseFuelWaterMl(text) {
+  const source = String(text || '');
+  if (!source.includes('물')) return 0;
+  let total = 0;
+
+  const mlPattern = /물[^0-9가-힣]*(\d+(?:\.\d+)?)\s*m\s*l/ig;
+  let match;
+  while ((match = mlPattern.exec(source)) !== null) {
+    total += Math.round(Number(match[1]));
+  }
+
+  const literPattern = /물[^0-9가-힣]*(\d+(?:\.\d+)?)\s*(?:l|리터)/ig;
+  while ((match = literPattern.exec(source)) !== null) {
+    total += Math.round(Number(match[1]) * 1000);
+  }
+
+  const cupPattern = /물\s*(\d+(?:\.\d+)?|한|하나|두|둘|세|셋|네|넷)\s*컵/g;
+  while ((match = cupPattern.exec(source)) !== null) {
+    total += Math.round((parseKoreanQuantity(match[1]) || 1) * 200);
+  }
+
+  if (total > 0) return total;
+  if (/물\s*마/.test(source) || /물을\s*마/.test(source)) return 0;
+  return 0;
+}
+
+function parseMealType(text) {
+  const source = String(text || '');
+  if (source.includes('아침')) return 'breakfast';
+  if (source.includes('점심')) return 'lunch';
+  if (source.includes('저녁')) return 'dinner';
+  if (source.includes('간식')) return 'snack';
+  if (source.includes('닭가슴살') || source.includes('프로틴') || source.includes('단백질')) return 'protein';
+  if (source.includes('물') && parseFuelFoodItems(source).length === 0) return 'water';
+  return 'unknown';
+}
+
+function findFuelChargeMockAnalysis(rawLog, analysisResult) {
+  const candidates = [];
+  if (Array.isArray(rawLog?.analysis?.mock_analysis_results)) {
+    candidates.push(...rawLog.analysis.mock_analysis_results);
+  }
+  if (Array.isArray(analysisResult?.metrics?.mock_analysis_results)) {
+    candidates.push(...analysisResult.metrics.mock_analysis_results);
+  }
+  if (analysisResult?.skill_id === 'fuel_charge') candidates.push(analysisResult);
+  return candidates.find(item => item?.skill_id === 'fuel_charge') || null;
+}
+
+function hasFuelChargeAnalysis(rawLog, analysisResult) {
+  if (findFuelChargeMockAnalysis(rawLog, analysisResult)) return true;
+
+  const routerResult = rawLog?.analysis?.routing_result || rawLog?.analysis?.router_result;
+  const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+  if (routes.some(route => route.route_status === 'active_skill' && route.skill_id === 'fuel_charge')) return true;
+
+  return (PLAYER.records || []).some(record => record.rawLogId === rawLog?.id && record.skillId === 'fuel_charge');
+}
+
+function createFuelRecordFromRawLog(rawLog, analysisResult) {
+  if (!hasFuelChargeAnalysis(rawLog, analysisResult)) return null;
+
+  const sourceText = [rawLog?.raw_text, rawLog?.text, rawLog?.activity_text, analysisResult?.activity_text]
+    .find(value => typeof value === 'string' && value.trim());
+  if (!sourceText) return null;
+
+  const foodItems = parseFuelFoodItems(sourceText);
+  const proteinG = foodItems.reduce((sum, item) => sum + (Number(item.estimated_protein_g) || 0), 0);
+  const waterMl = parseFuelWaterMl(sourceText);
+  const mealType = parseMealType(sourceText);
+  if (!foodItems.length && waterMl <= 0 && mealType === 'unknown') return null;
+
+  const fuelMock = findFuelChargeMockAnalysis(rawLog, analysisResult);
+  const playerRecord = (PLAYER.records || []).find(record => record.rawLogId === rawLog?.id && record.skillId === 'fuel_charge') || null;
+  const dateSource = rawLog?.saved_at || rawLog?.date || rawLog?.created_at || new Date().toISOString();
+  const dateId = getDateId(dateSource) || getTodayId();
+  const weekId = rawLog?.week_id || getWeekId(dateId);
+  const monthId = rawLog?.month_id || getMonthId(dateId);
+
+  return {
+    id: createFuelRecordId(),
+    version: 'fuel_record_v0.1',
+    raw_log_id: rawLog?.id || null,
+    analysis_result_id: analysisResult?.id || null,
+    player_record_id: playerRecord?.id || null,
+    source: 'detail_mock',
+    source_text: sourceText,
+    memo: sourceText,
+    date: dateId,
+    date_id: dateId,
+    week_id: weekId,
+    month_id: monthId,
+    skill_id: 'fuel_charge',
+    skill_name: SKILLS.fuel_charge?.name || '연료 충전',
+    stat: 'STR',
+    food_items: foodItems,
+    protein_g: proteinG,
+    water_ml: waterMl,
+    meal_type: mealType,
+    has_protein: proteinG > 0,
+    has_water: waterMl > 0,
+    has_meal: foodItems.length > 0 || ['breakfast', 'lunch', 'dinner', 'snack', 'protein'].includes(mealType),
+    skill_exp: Number(fuelMock?.skill_exp ?? playerRecord?.skillExp ?? analysisResult?.skill_exp) || 0,
+    stat_exp: Number(fuelMock?.stat_exp ?? playerRecord?.statExp ?? analysisResult?.stat_exp) || 0,
+    char_exp: Number(fuelMock?.character_exp ?? playerRecord?.charExp ?? analysisResult?.character_exp) || 0,
+    created_at: new Date().toISOString()
+  };
+}
+
+function persistFuelRecords() {
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function saveFuelRecordFromRawLog(rawLog, analysisResult) {
+  const record = createFuelRecordFromRawLog(rawLog, analysisResult);
+  if (!record) return null;
+  const existing = FUEL_RECORDS.find(item =>
+    item.raw_log_id === record.raw_log_id && item.skill_id === 'fuel_charge'
+  );
+  if (existing) return existing;
+  FUEL_RECORDS.unshift(record);
+  persistFuelRecords();
+  return record;
+}
+
+function getFuelRecords(filter = {}) {
+  let records = FUEL_RECORDS.slice();
+  if (filter.date_id) records = records.filter(record => record.date_id === filter.date_id);
+  if (filter.week_id) records = records.filter(record => record.week_id === filter.week_id);
+  if (filter.month_id) records = records.filter(record => record.month_id === filter.month_id);
+  if (filter.meal_type) records = records.filter(record => record.meal_type === filter.meal_type);
+  if (filter.has_protein === true) records = records.filter(record => record.has_protein === true);
+  if (filter.has_water === true) records = records.filter(record => record.has_water === true);
+  const limit = Number(filter.limit);
+  if (Number.isFinite(limit) && limit > 0) records = records.slice(0, limit);
+  return records;
+}
+
+function createFuelMonthlyReport(monthId = getCurrentMonthId()) {
+  const monthRecords = getFuelRecords({ month_id: monthId });
+  const totalProteinG = monthRecords.reduce((sum, record) => sum + (Number(record.protein_g) || 0), 0);
+  const totalWaterMl = monthRecords.reduce((sum, record) => sum + (Number(record.water_ml) || 0), 0);
+  const mealTypeCounts = {
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0,
+    snack: 0,
+    protein: 0,
+    water: 0,
+    unknown: 0
+  };
+  const foodMap = new Map();
+
+  monthRecords.forEach(record => {
+    const mealType = mealTypeCounts[record.meal_type] !== undefined ? record.meal_type : 'unknown';
+    mealTypeCounts[mealType]++;
+    (record.food_items || []).forEach(item => {
+      if (!foodMap.has(item.name)) {
+        foodMap.set(item.name, { name: item.name, count: 0, protein_g: 0 });
+      }
+      const entry = foodMap.get(item.name);
+      entry.count += Number(item.quantity) || 1;
+      entry.protein_g += Number(item.estimated_protein_g) || 0;
+    });
+  });
+
+  const topFoodItems = [...foodMap.values()]
+    .sort((a, b) => b.count - a.count || b.protein_g - a.protein_g)
+    .slice(0, 5);
+  const proteinRecords = monthRecords.filter(record => record.has_protein);
+  const waterRecords = monthRecords.filter(record => record.has_water);
+  const mealRecords = monthRecords.filter(record => record.has_meal);
+  const bestProteinRecord = monthRecords.slice()
+    .sort((a, b) => (Number(b.protein_g) || 0) - (Number(a.protein_g) || 0))[0] || null;
+  const latestRecord = monthRecords[0] || null;
+  let summaryText = '이번 달 연료 충전 기록이 아직 없어요.';
+  if (monthRecords.length > 0) {
+    summaryText = `이번 달 연료 충전 ${monthRecords.length}회, 단백질 약 ${totalProteinG}g, 물 ${totalWaterMl}ml를 기록했어요.`;
+  }
+
+  return {
+    month_id: monthId,
+    records_count: monthRecords.length,
+    meal_records_count: mealRecords.length,
+    protein_records_count: proteinRecords.length,
+    water_records_count: waterRecords.length,
+    total_protein_g: totalProteinG,
+    total_water_ml: totalWaterMl,
+    average_protein_g_per_record: monthRecords.length ? round2(totalProteinG / monthRecords.length) : 0,
+    average_water_ml_per_record: monthRecords.length ? Math.round(totalWaterMl / monthRecords.length) : 0,
+    top_food_items: topFoodItems,
+    meal_type_counts: mealTypeCounts,
+    best_protein_record: bestProteinRecord,
+    latest_record: latestRecord,
+    summary_text: summaryText
+  };
+}
+
+function renderFuelMonthlyReportText(report) {
+  const foodLines = report.top_food_items.length
+    ? report.top_food_items.map(item => `- ${item.name} ${item.count}회 / 단백질 약 ${item.protein_g}g`).join('\n')
+    : '기록 없음';
+  const meal = report.meal_type_counts || {};
+
+  return [
+    '연료 충전 월간 리포트',
+    `월: ${report.month_id}`,
+    '',
+    `총 연료 기록: ${report.records_count}회`,
+    `식사 기록: ${report.meal_records_count}회`,
+    `단백질 기록: ${report.protein_records_count}회`,
+    `물 기록: ${report.water_records_count}회`,
+    '',
+    `총 단백질: 약 ${report.total_protein_g}g`,
+    `총 물 섭취: ${report.total_water_ml}ml`,
+    '',
+    '자주 나온 음식:',
+    foodLines,
+    '',
+    '식사 유형:',
+    `아침 ${meal.breakfast || 0}회`,
+    `점심 ${meal.lunch || 0}회`,
+    `저녁 ${meal.dinner || 0}회`,
+    `간식 ${meal.snack || 0}회`,
+    `단백질 ${meal.protein || 0}회`,
+    `물 ${meal.water || 0}회`,
+    '',
+    '요약:',
+    report.summary_text
+  ].join('\n');
+}
+
 function createTemporaryAnalysisResult(rawLog) {
   const now = new Date().toISOString();
   return {
@@ -4414,12 +5089,14 @@ function closeRawLogDetail() {
 
 function deleteRawLogCascade(rawLogId) {
   if (!rawLogId) {
-    return { deletedRawLogs: 0, deletedAnalysisResults: 0, deletedRecords: 0 };
+    return { deletedRawLogs: 0, deletedAnalysisResults: 0, deletedRecords: 0, deletedRunningRecords: 0, deletedFuelRecords: 0 };
   }
 
   const beforeRawLogs = RAW_LOGS.length;
   const beforeAnalysisResults = ANALYSIS_RESULTS.length;
   const beforeRecords = (PLAYER.records || []).length;
+  const beforeRunningRecords = RUNNING_RECORDS.length;
+  const beforeFuelRecords = FUEL_RECORDS.length;
 
   for (let i = RAW_LOGS.length - 1; i >= 0; i--) {
     if (RAW_LOGS[i]?.id === rawLogId) RAW_LOGS.splice(i, 1);
@@ -4431,6 +5108,14 @@ function deleteRawLogCascade(rawLogId) {
 
   PLAYER.records = (PLAYER.records || []).filter(record => record.rawLogId !== rawLogId);
 
+  for (let i = RUNNING_RECORDS.length - 1; i >= 0; i--) {
+    if (RUNNING_RECORDS[i]?.raw_log_id === rawLogId) RUNNING_RECORDS.splice(i, 1);
+  }
+
+  for (let i = FUEL_RECORDS.length - 1; i >= 0; i--) {
+    if (FUEL_RECORDS[i]?.raw_log_id === rawLogId) FUEL_RECORDS.splice(i, 1);
+  }
+
   rebuildSkillProgressFromRecords();
   recalcStats();
   recalcCharLevel();
@@ -4438,7 +5123,9 @@ function deleteRawLogCascade(rawLogId) {
   return {
     deletedRawLogs: beforeRawLogs - RAW_LOGS.length,
     deletedAnalysisResults: beforeAnalysisResults - ANALYSIS_RESULTS.length,
-    deletedRecords: beforeRecords - PLAYER.records.length
+    deletedRecords: beforeRecords - PLAYER.records.length,
+    deletedRunningRecords: beforeRunningRecords - RUNNING_RECORDS.length,
+    deletedFuelRecords: beforeFuelRecords - FUEL_RECORDS.length
   };
 }
 
@@ -4743,6 +5430,8 @@ function savePendingRawLog() {
   if (RAW_LOGS.length > 500) RAW_LOGS.splice(500);
   ANALYSIS_RESULTS.unshift(analysisResult);
   if (ANALYSIS_RESULTS.length > 500) ANALYSIS_RESULTS.splice(500);
+  saveRunningRecordFromRawLog(log, analysisResult);
+  saveFuelRecordFromRawLog(log, analysisResult);
   recalcStats();
   recalcCharLevel();
   saveAllLocal();
@@ -4850,10 +5539,14 @@ function resetTestData() {
   try { localStorage.removeItem(RAW_LOGS_KEY); } catch (e) {}
   try { localStorage.removeItem(ANALYSIS_RESULTS_KEY); } catch (e) {}
   try { localStorage.removeItem(REPORT_SNAPSHOTS_KEY); } catch (e) {}
+  try { localStorage.removeItem(RUNNING_RECORDS_KEY); } catch (e) {}
+  try { localStorage.removeItem(FUEL_RECORDS_KEY); } catch (e) {}
   replacePlayerData(createInitialPlayerState());
   replaceRawLogs([]);
   replaceAnalysisResults([]);
   replaceReportSnapshots([]);
+  replaceRunningRecords([]);
+  replaceFuelRecords([]);
   pendingRawLog = null;
   recalcStats();
   recalcCharLevel();
@@ -4876,6 +5569,8 @@ function getLifeRpgStatus() {
     raw_logs_count: RAW_LOGS.length,
     analysis_results_count: ANALYSIS_RESULTS.length,
     report_snapshots_count: REPORT_SNAPSHOTS.length,
+    running_records_count: RUNNING_RECORDS.length,
+    fuel_records_count: FUEL_RECORDS.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
@@ -5995,6 +6690,342 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  runningProofTest() {
+    const rows = [];
+    const monthId = getCurrentMonthId();
+
+    rows.push({
+      case: 'distance parsing',
+      result: parseRunningDistance('5km 뛰었다') === 5
+        && parseRunningDistance('5.5km 달렸다') === 5.5
+        && parseRunningDistance('10 km 러닝했다') === 10
+        && parseRunningDistance('운동했다') === null ? 'PASS' : 'FAIL',
+      fiveKm: parseRunningDistance('5km 뛰었다'),
+      decimalKm: parseRunningDistance('5.5km 달렸다'),
+      spacedKm: parseRunningDistance('10 km 러닝했다'),
+      none: parseRunningDistance('운동했다')
+    });
+
+    rows.push({
+      case: 'duration and pace parsing',
+      result: parseRunningDurationSeconds('32분 10초 뛰었다') === 1930
+        && parseRunningDurationSeconds('1시간 5분 뛰었다') === 3900
+        && calculatePaceSecPerKm(5, 1930) === 386
+        && formatDuration(1930).includes('32분')
+        && formatPace(386).includes("6'26") ? 'PASS' : 'FAIL',
+      durationA: parseRunningDurationSeconds('32분 10초 뛰었다'),
+      durationB: parseRunningDurationSeconds('1시간 5분 뛰었다'),
+      pace: calculatePaceSecPerKm(5, 1930),
+      durationText: formatDuration(1930),
+      paceText: formatPace(386)
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    let rawLog = createRawLogDraft('5km 32분 10초 뛰고 닭가슴살 2팩 먹었다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    let runningRecord = saveRunningRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'save B running detail record',
+      result: runningRecord
+        && RUNNING_RECORDS.length === 1
+        && runningRecord.distance_km === 5
+        && runningRecord.duration_seconds === 1930
+        && runningRecord.pace_sec_per_km === 386
+        && runningRecord.distance_bucket_km === 5 ? 'PASS' : 'FAIL',
+      runningCount: RUNNING_RECORDS.length,
+      distance: runningRecord?.distance_km,
+      duration: runningRecord?.duration_seconds,
+      pace: runningRecord?.pace_sec_per_km,
+      bucket: runningRecord?.distance_bucket_km
+    });
+
+    saveRunningRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'prevent duplicate running detail record',
+      result: RUNNING_RECORDS.length === 1 ? 'PASS' : 'FAIL',
+      runningCount: RUNNING_RECORDS.length
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    pendingRawLog = createRawLogDraft('5km 32분 10초 뛰었다.');
+    savePendingRawLog();
+    rows.push({
+      case: 'savePendingRawLog auto creates running detail record',
+      result: RUNNING_RECORDS.length === 1
+        && RAW_LOGS.length === 1
+        && ANALYSIS_RESULTS.length === 1
+        && RUNNING_RECORDS[0].distance_km === 5
+        && RUNNING_RECORDS[0].duration_seconds === 1930 ? 'PASS' : 'FAIL',
+      runningCount: RUNNING_RECORDS.length,
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      distance: RUNNING_RECORDS[0]?.distance_km,
+      duration: RUNNING_RECORDS[0]?.duration_seconds
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    rawLog = createRawLogDraft('러닝했다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    runningRecord = saveRunningRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'no distance skips running detail record',
+      result: runningRecord === null && RUNNING_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      runningRecord,
+      runningCount: RUNNING_RECORDS.length
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    const makeRunningRecord = (durationSeconds, suffix) => ({
+      id: `running_test_${suffix}`,
+      version: 'running_record_v0.1',
+      raw_log_id: `raw_test_${suffix}`,
+      analysis_result_id: `analysis_test_${suffix}`,
+      player_record_id: null,
+      source: 'test',
+      source_text: `5km ${formatDuration(durationSeconds)} 뛰었다.`,
+      memo: `5km ${formatDuration(durationSeconds)} 뛰었다.`,
+      date: getTodayId(),
+      date_id: getTodayId(),
+      week_id: getCurrentWeekId(),
+      month_id: monthId,
+      skill_id: 'running_proof',
+      skill_name: '런닝의 증명',
+      stat: 'STR',
+      distance_km: 5,
+      distance_bucket_km: 5,
+      duration_seconds: durationSeconds,
+      pace_sec_per_km: calculatePaceSecPerKm(5, durationSeconds),
+      skill_exp: 100,
+      stat_exp: 32,
+      char_exp: 24,
+      created_at: new Date(Date.now() + Number(suffix)).toISOString()
+    });
+    RUNNING_RECORDS.unshift(makeRunningRecord(2100, 1));
+    RUNNING_RECORDS.unshift(makeRunningRecord(1920, 2));
+    RUNNING_RECORDS.unshift(makeRunningRecord(2400, 3));
+    let top = getRunningTopRecords(5, 3);
+    rows.push({
+      case: 'top running records sort',
+      result: top.length === 3
+        && top[0].duration_seconds === 1920
+        && top[0].pace_sec_per_km <= top[1].pace_sec_per_km ? 'PASS' : 'FAIL',
+      topCount: top.length,
+      firstDuration: top[0]?.duration_seconds,
+      firstPace: top[0]?.pace_sec_per_km
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    RUNNING_RECORDS.unshift(makeRunningRecord(1920, 4));
+    RUNNING_RECORDS.unshift(makeRunningRecord(2100, 5));
+    const monthlyReport = createRunningMonthlyReport(monthId);
+    rows.push({
+      case: 'running monthly report',
+      result: monthlyReport.records_count === 2
+        && monthlyReport.total_distance_km === 10
+        && monthlyReport.distance_buckets[5].records_count === 2
+        && monthlyReport.distance_buckets[5].top_records.length === 2
+        && !!monthlyReport.best_record
+        && monthlyReport.summary_text.includes('러닝') ? 'PASS' : 'FAIL',
+      recordsCount: monthlyReport.records_count,
+      totalDistance: monthlyReport.total_distance_km,
+      bucket5Count: monthlyReport.distance_buckets[5].records_count,
+      top5Count: monthlyReport.distance_buckets[5].top_records.length,
+      summary: monthlyReport.summary_text
+    });
+
+    resetTestData();
+    replaceRunningRecords([]);
+    rawLog = createRawLogDraft('5km 32분 10초 뛰었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    saveRunningRecordFromRawLog(rawLog, analysisResult);
+    const beforeDeleteRunningCount = RUNNING_RECORDS.length;
+    deleteRawLogCascade(rawLog.id);
+    rows.push({
+      case: 'delete raw log removes running detail record',
+      result: beforeDeleteRunningCount === 1 && RUNNING_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      before: beforeDeleteRunningCount,
+      after: RUNNING_RECORDS.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_RUNNING_PROOF_TEST: ALL PASS' : 'LIFE_RPG_RUNNING_PROOF_TEST: FAIL');
+    return rows;
+  },
+
+  fuelChargeTest() {
+    const rows = [];
+    const proteinSum = items => items.reduce((sum, item) => sum + (Number(item.estimated_protein_g) || 0), 0);
+
+    const chickenItems = parseFuelFoodItems('닭가슴살 2팩 먹었다');
+    const eggItems = parseFuelFoodItems('계란 2개 먹었다');
+    const proteinItems = parseFuelFoodItems('프로틴 1잔 마셨다');
+    const mealItems = parseFuelFoodItems('밥 먹었다');
+    rows.push({
+      case: 'food and protein parsing',
+      result: proteinSum(chickenItems) >= 50
+        && proteinSum(eggItems) >= 12
+        && proteinSum(proteinItems) >= 25
+        && mealItems.length > 0 ? 'PASS' : 'FAIL',
+      chickenProtein: proteinSum(chickenItems),
+      eggProtein: proteinSum(eggItems),
+      proteinDrink: proteinSum(proteinItems),
+      mealItems: mealItems.map(item => item.name).join(' + ')
+    });
+
+    rows.push({
+      case: 'water parsing',
+      result: parseFuelWaterMl('물 500ml 마셨다') === 500
+        && parseFuelWaterMl('물 1L 마셨다') === 1000
+        && parseFuelWaterMl('물 한 컵 마셨다') === 200
+        && parseFuelWaterMl('물 두 컵 마셨다') === 400 ? 'PASS' : 'FAIL',
+      ml500: parseFuelWaterMl('물 500ml 마셨다'),
+      liter1: parseFuelWaterMl('물 1L 마셨다'),
+      oneCup: parseFuelWaterMl('물 한 컵 마셨다'),
+      twoCups: parseFuelWaterMl('물 두 컵 마셨다')
+    });
+
+    rows.push({
+      case: 'meal type parsing',
+      result: parseMealType('아침 먹었다') === 'breakfast'
+        && parseMealType('점심 먹었다') === 'lunch'
+        && parseMealType('저녁 먹었다') === 'dinner'
+        && parseMealType('닭가슴살 2팩 먹었다') === 'protein' ? 'PASS' : 'FAIL',
+      breakfast: parseMealType('아침 먹었다'),
+      lunch: parseMealType('점심 먹었다'),
+      dinner: parseMealType('저녁 먹었다'),
+      protein: parseMealType('닭가슴살 2팩 먹었다')
+    });
+
+    resetTestData();
+    replaceFuelRecords([]);
+    let rawLog = createRawLogDraft('닭가슴살 2팩 먹고 물 1L 마셨다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    let fuelRecord = saveFuelRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'save B fuel detail record',
+      result: fuelRecord
+        && FUEL_RECORDS.length === 1
+        && fuelRecord.protein_g >= 50
+        && fuelRecord.water_ml === 1000
+        && fuelRecord.has_protein === true
+        && fuelRecord.has_water === true ? 'PASS' : 'FAIL',
+      fuelCount: FUEL_RECORDS.length,
+      proteinG: fuelRecord?.protein_g,
+      waterMl: fuelRecord?.water_ml,
+      hasProtein: fuelRecord?.has_protein,
+      hasWater: fuelRecord?.has_water
+    });
+
+    saveFuelRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'prevent duplicate fuel detail record',
+      result: FUEL_RECORDS.length === 1 ? 'PASS' : 'FAIL',
+      fuelCount: FUEL_RECORDS.length
+    });
+
+    resetTestData();
+    replaceFuelRecords([]);
+    pendingRawLog = createRawLogDraft('닭가슴살 2팩 먹고 물 1L 마셨다.');
+    savePendingRawLog();
+    rows.push({
+      case: 'savePendingRawLog auto creates fuel detail record',
+      result: FUEL_RECORDS.length === 1
+        && RAW_LOGS.length === 1
+        && ANALYSIS_RESULTS.length === 1
+        && FUEL_RECORDS[0].protein_g >= 50
+        && FUEL_RECORDS[0].water_ml === 1000 ? 'PASS' : 'FAIL',
+      fuelCount: FUEL_RECORDS.length,
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      proteinG: FUEL_RECORDS[0]?.protein_g,
+      waterMl: FUEL_RECORDS[0]?.water_ml
+    });
+
+    resetTestData();
+    replaceFuelRecords([]);
+    rawLog = createRawLogDraft('트렌드 코리아를 20분 읽고 요약했다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    fuelRecord = saveFuelRecordFromRawLog(rawLog, analysisResult);
+    rows.push({
+      case: 'non fuel route skips fuel detail record',
+      result: fuelRecord === null && FUEL_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      fuelRecord,
+      fuelCount: FUEL_RECORDS.length
+    });
+
+    resetTestData();
+    replaceFuelRecords([]);
+    rawLog = createRawLogDraft('닭가슴살 2팩 먹고 물 1L 마셨다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    saveFuelRecordFromRawLog(rawLog, analysisResult);
+
+    const eggRawLog = createRawLogDraft('계란 2개 먹었다.');
+    const eggAnalysisResult = createTemporaryAnalysisResult(eggRawLog);
+    applyMockAnalysisResultsToPlayer(eggRawLog, eggAnalysisResult);
+    RAW_LOGS.unshift(eggRawLog);
+    ANALYSIS_RESULTS.unshift(eggAnalysisResult);
+    saveFuelRecordFromRawLog(eggRawLog, eggAnalysisResult);
+
+    const fuelReport = createFuelMonthlyReport(getCurrentMonthId());
+    rows.push({
+      case: 'fuel monthly report',
+      result: fuelReport.records_count === 2
+        && fuelReport.total_protein_g >= 62
+        && fuelReport.total_water_ml >= 1000
+        && fuelReport.protein_records_count >= 2
+        && fuelReport.water_records_count >= 1
+        && fuelReport.top_food_items.some(item => item.name === '닭가슴살')
+        && fuelReport.summary_text.includes('연료') ? 'PASS' : 'FAIL',
+      recordsCount: fuelReport.records_count,
+      totalProtein: fuelReport.total_protein_g,
+      totalWater: fuelReport.total_water_ml,
+      proteinRecords: fuelReport.protein_records_count,
+      waterRecords: fuelReport.water_records_count,
+      topFoods: fuelReport.top_food_items.map(item => item.name).join(' + '),
+      summary: fuelReport.summary_text
+    });
+
+    resetTestData();
+    replaceFuelRecords([]);
+    rawLog = createRawLogDraft('닭가슴살 2팩 먹었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    saveFuelRecordFromRawLog(rawLog, analysisResult);
+    const beforeDeleteFuelCount = FUEL_RECORDS.length;
+    deleteRawLogCascade(rawLog.id);
+    rows.push({
+      case: 'delete raw log removes fuel detail record',
+      result: beforeDeleteFuelCount === 1 && FUEL_RECORDS.length === 0 ? 'PASS' : 'FAIL',
+      before: beforeDeleteFuelCount,
+      after: FUEL_RECORDS.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_FUEL_CHARGE_TEST: ALL PASS' : 'LIFE_RPG_FUEL_CHARGE_TEST: FAIL');
+    return rows;
+  },
+
   reportSnapshotTest() {
     const rows = [];
 
@@ -6268,6 +7299,30 @@ window.LIFE_RPG = {
   deleteReportSnapshot,
   clearReportSnapshots,
   renderReportSnapshotText,
+  createRunningRecordId,
+  parseRunningDistance,
+  parseRunningDurationSeconds,
+  getRunningDistanceBucket,
+  calculatePaceSecPerKm,
+  formatDuration,
+  formatPace,
+  hasRunningProofAnalysis,
+  createRunningRecordFromRawLog,
+  saveRunningRecordFromRawLog,
+  getRunningRecords,
+  getRunningTopRecords,
+  createRunningMonthlyReport,
+  renderRunningMonthlyReportText,
+  createFuelRecordId,
+  parseFuelFoodItems,
+  parseFuelWaterMl,
+  parseMealType,
+  hasFuelChargeAnalysis,
+  createFuelRecordFromRawLog,
+  saveFuelRecordFromRawLog,
+  getFuelRecords,
+  createFuelMonthlyReport,
+  renderFuelMonthlyReportText,
   analyzeRecord,
   routeRecordMock,
   mergeDuplicateActiveRoutes,
@@ -6291,6 +7346,11 @@ window.LIFE_RPG = {
   REPORT_SNAPSHOTS,
   REPORT_SNAPSHOTS_KEY,
   MAX_REPORT_SNAPSHOTS,
+  RUNNING_RECORDS,
+  RUNNING_RECORDS_KEY,
+  RUNNING_DISTANCE_BUCKETS,
+  FUEL_RECORDS,
+  FUEL_RECORDS_KEY,
   APP_DATA_SCHEMA_VERSION,
   createAppDataSnapshot,
   RAW_LOG_MVP_MODE,
