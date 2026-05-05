@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.4-C-daily-report-engine';
+const APP_VERSION = 'v0.5-A-weekly-report-engine';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -3487,6 +3487,240 @@ function renderDailyReportText(report) {
   ].join('\n');
 }
 
+function getCurrentWeekId() {
+  return getWeekId(new Date());
+}
+
+function getWeekRangeByWeekId(weekId) {
+  const match = String(weekId || '').match(/^(\d{4})-W(\d{2})$/);
+  if (!match) {
+    return { week_id: weekId || '', start_date: '', end_date: '' };
+  }
+
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay() || 7;
+  const monday = new Date(year, 0, 4 - jan4Day + 1 + ((week - 1) * 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  return {
+    week_id: weekId,
+    start_date: getDateId(monday),
+    end_date: getDateId(sunday)
+  };
+}
+
+function isDateIdInRange(dateId, startDate, endDate) {
+  return !!dateId && !!startDate && !!endDate && dateId >= startDate && dateId <= endDate;
+}
+
+function dateMatchesReportWeek(item, weekId, range, fields) {
+  if (item?.week_id === weekId) return true;
+  return fields.some(field => {
+    const dateId = getDateId(item?.[field]);
+    return isDateIdInRange(dateId, range.start_date, range.end_date);
+  });
+}
+
+function createEmptyWeeklyReport(weekId, range) {
+  return {
+    week_id: weekId,
+    start_date: range.start_date,
+    end_date: range.end_date,
+    raw_logs_count: 0,
+    b_type_logs_count: 0,
+    applied_records_count: 0,
+    quick_records_count: 0,
+    detail_records_count: 0,
+    active_days_count: 0,
+    active_dates: [],
+    total_skill_exp: 0,
+    total_stat_exp: 0,
+    total_char_exp: 0,
+    stats_exp: { STR: 0, INT: 0, WIS: 0, DEX: 0, AGI: 0, ART: 0 },
+    skills: [],
+    top_stat: null,
+    top_skill: null,
+    needs_review_count: 0,
+    future_skill_candidate_count: 0,
+    unassigned_count: 0,
+    confirmed_analysis_count: 0,
+    pending_analysis_count: 0,
+    representative_records: [],
+    summary_text: '이번 주는 아직 성장 기록이 없어요.'
+  };
+}
+
+function createWeeklyReport(weekId = getCurrentWeekId()) {
+  const targetWeekId = weekId || getCurrentWeekId();
+  const range = getWeekRangeByWeekId(targetWeekId);
+  const report = createEmptyWeeklyReport(targetWeekId, range);
+  const skillsMap = new Map();
+  const activeDateSet = new Set();
+  const representativeCandidates = [];
+
+  const rawLogsForWeek = RAW_LOGS.filter(log =>
+    dateMatchesReportWeek(log, targetWeekId, range, ['date', 'saved_at', 'created_at'])
+  );
+  report.raw_logs_count = rawLogsForWeek.length;
+
+  for (const rawLog of rawLogsForWeek) {
+    if (rawLog.input_type === 'B' || rawLog.type === 'B') report.b_type_logs_count++;
+
+    const routerResult = rawLog.analysis?.routing_result || rawLog.analysis?.router_result;
+    const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+    for (const route of routes) {
+      if (route.route_status === 'needs_review') report.needs_review_count++;
+      if (route.route_status === 'future_skill_candidate') report.future_skill_candidate_count++;
+      if (route.route_status === 'unassigned') report.unassigned_count++;
+    }
+  }
+
+  const analysisResultsForWeek = ANALYSIS_RESULTS.filter(analysis =>
+    dateMatchesReportWeek(analysis, targetWeekId, range, ['date', 'updated_at', 'created_at'])
+  );
+  for (const analysis of analysisResultsForWeek) {
+    if (analysis.status === 'confirmed') report.confirmed_analysis_count++;
+    if (analysis.status === 'pending') report.pending_analysis_count++;
+    if (analysis.status === 'needs_review') report.needs_review_count++;
+  }
+
+  const recordsForWeek = (PLAYER.records || []).filter(record =>
+    isDateIdInRange(getDateId(record.date), range.start_date, range.end_date)
+  );
+  report.applied_records_count = recordsForWeek.length;
+
+  for (const record of recordsForWeek) {
+    const recordDateId = getDateId(record.date);
+    if (recordDateId) activeDateSet.add(recordDateId);
+
+    const skillExp = getRecordSkillExp(record);
+    const statExp = getRecordStatExp(record);
+    const charExp = getRecordCharExp(record);
+    const skill = SKILLS[record.skillId];
+    const stat = record.stat || skill?.stat || null;
+
+    if (record.mode === 'quick') report.quick_records_count++;
+    if (record.mode === 'detail_mock' || record.rawLogId) report.detail_records_count++;
+
+    report.total_skill_exp += skillExp;
+    report.total_stat_exp += statExp;
+    report.total_char_exp += charExp;
+    if (stat && report.stats_exp[stat] !== undefined) report.stats_exp[stat] += statExp;
+
+    if (record.skillId && skill) {
+      if (!skillsMap.has(record.skillId)) {
+        skillsMap.set(record.skillId, {
+          skill_id: record.skillId,
+          skill_name: skill.name,
+          stat: skill.stat,
+          exp: 0,
+          records_count: 0
+        });
+      }
+      const skillRow = skillsMap.get(record.skillId);
+      skillRow.exp += skillExp;
+      skillRow.records_count += 1;
+    }
+
+    representativeCandidates.push({
+      record,
+      skill,
+      dateId: recordDateId,
+      skillExp,
+      charExp,
+      timestamp: new Date(record.date).getTime() || 0
+    });
+  }
+
+  report.active_dates = [...activeDateSet].sort();
+  report.active_days_count = report.active_dates.length;
+  report.skills = [...skillsMap.values()].sort((a, b) => b.exp - a.exp);
+  report.top_skill = report.skills[0] || null;
+
+  const topStatEntry = Object.entries(report.stats_exp)
+    .sort((a, b) => b[1] - a[1])
+    .find(([, exp]) => exp > 0);
+  if (topStatEntry) {
+    report.top_stat = {
+      stat: topStatEntry[0],
+      stat_name: STATS[topStatEntry[0]]?.name || topStatEntry[0],
+      exp: topStatEntry[1]
+    };
+  }
+
+  representativeCandidates.sort((a, b) => {
+    if (b.charExp !== a.charExp) return b.charExp - a.charExp;
+    if (b.skillExp !== a.skillExp) return b.skillExp - a.skillExp;
+    return b.timestamp - a.timestamp;
+  });
+  report.representative_records = representativeCandidates.slice(0, 3).map(item => ({
+    id: item.record.id,
+    date: item.dateId,
+    skill_id: item.record.skillId || null,
+    skill_name: item.skill?.name || item.record.skillName || '미분류 기록',
+    memo: item.record.memo || item.record.summary || '',
+    exp: item.skillExp,
+    mode: item.record.mode || null
+  }));
+
+  if (report.applied_records_count > 0 || report.raw_logs_count > 0) {
+    report.summary_text = `이번 주는 ${report.active_days_count}일 활동했고, 기록 ${report.applied_records_count}개, 캐릭터 EXP +${report.total_char_exp}를 얻었습니다.`;
+    if (report.top_stat) {
+      report.summary_text += ` 가장 많이 성장한 스탯은 ${report.top_stat.stat} ${report.top_stat.stat_name}입니다.`;
+    }
+    if (report.needs_review_count > 0) {
+      report.summary_text += ` 보충이 필요한 기록 ${report.needs_review_count}개가 있어요.`;
+    }
+  }
+
+  return report;
+}
+
+function renderWeeklyReportText(report) {
+  const skillLines = report.skills.length
+    ? report.skills.map(item => `- ${item.skill_name} +${item.exp}`).join('\n')
+    : '- 사용한 스킬 없음';
+  const representativeLines = report.representative_records.length
+    ? report.representative_records.map(item => `- ${item.memo || item.skill_name}`).join('\n')
+    : '- 대표 기록 없음';
+  const topStatText = report.top_stat
+    ? `${report.top_stat.stat} ${report.top_stat.stat_name} +${report.top_stat.exp}`
+    : '아직 없음';
+
+  return [
+    '이번 주 리포트',
+    `기간: ${report.start_date} ~ ${report.end_date}`,
+    '',
+    `활동일: ${report.active_days_count}일`,
+    `총 B형 기록: ${report.b_type_logs_count}개`,
+    `성장 반영 기록: ${report.applied_records_count}개`,
+    `빠른 기록: ${report.quick_records_count}개`,
+    '',
+    '획득 EXP:',
+    `캐릭터 +${report.total_char_exp}`,
+    `스킬 +${report.total_skill_exp}`,
+    `스탯 +${report.total_stat_exp}`,
+    '',
+    '가장 많이 성장한 스탯:',
+    topStatText,
+    '',
+    '사용한 스킬:',
+    skillLines,
+    '',
+    `보충 필요: ${report.needs_review_count}개`,
+    `향후 후보: ${report.future_skill_candidate_count}개`,
+    `미분류: ${report.unassigned_count}개`,
+    '',
+    '대표 기록:',
+    representativeLines,
+    '',
+    report.summary_text
+  ].join('\n');
+}
+
 function createTemporaryAnalysisResult(rawLog) {
   const now = new Date().toISOString();
   return {
@@ -4764,6 +4998,166 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  weeklyReportTest() {
+    const rows = [];
+    const weekId = getCurrentWeekId();
+
+    resetTestData();
+    let report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'empty weekly report',
+      result: report.raw_logs_count === 0
+        && report.applied_records_count === 0
+        && report.total_char_exp === 0
+        && report.active_days_count === 0
+        && /아직|없어요/.test(report.summary_text) ? 'PASS' : 'FAIL',
+      rawLogs: report.raw_logs_count,
+      appliedRecords: report.applied_records_count,
+      totalCharExp: report.total_char_exp,
+      activeDays: report.active_days_count,
+      summary: report.summary_text
+    });
+
+    resetTestData();
+    addRecord('running_proof', 30, 'quick');
+    if (SAVE_TIMER) {
+      clearTimeout(SAVE_TIMER);
+      SAVE_TIMER = null;
+    }
+    report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'quick record only',
+      result: report.quick_records_count === 1
+        && report.applied_records_count === 1
+        && report.active_days_count === 1
+        && report.total_skill_exp > 0
+        && report.total_char_exp > 0
+        && report.skills.some(item => item.skill_id === 'running_proof') ? 'PASS' : 'FAIL',
+      quickRecords: report.quick_records_count,
+      appliedRecords: report.applied_records_count,
+      activeDays: report.active_days_count,
+      totalSkillExp: report.total_skill_exp,
+      totalCharExp: report.total_char_exp,
+      skills: report.skills.map(item => item.skill_id).join(' + ')
+    });
+
+    resetTestData();
+    let rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'B active raw log report',
+      result: report.b_type_logs_count === 1
+        && report.detail_records_count >= 2
+        && report.total_skill_exp > 0
+        && report.total_stat_exp > 0
+        && report.total_char_exp > 0
+        && report.skills.some(item => item.skill_id === 'running_proof')
+        && report.skills.some(item => item.skill_id === 'fuel_charge')
+        && report.confirmed_analysis_count === 1
+        && !!report.top_stat
+        && report.representative_records.length > 0 ? 'PASS' : 'FAIL',
+      bTypeLogs: report.b_type_logs_count,
+      detailRecords: report.detail_records_count,
+      totalSkillExp: report.total_skill_exp,
+      totalStatExp: report.total_stat_exp,
+      totalCharExp: report.total_char_exp,
+      confirmedAnalysis: report.confirmed_analysis_count,
+      topStat: report.top_stat?.stat || '',
+      representatives: report.representative_records.length,
+      skills: report.skills.map(item => item.skill_id).join(' + ')
+    });
+
+    resetTestData();
+    rawLog = createRawLogDraft('운동했다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'needs_review raw log report',
+      result: report.b_type_logs_count === 1
+        && report.needs_review_count > 0
+        && report.applied_records_count === 0
+        && report.total_skill_exp === 0 ? 'PASS' : 'FAIL',
+      bTypeLogs: report.b_type_logs_count,
+      needsReview: report.needs_review_count,
+      appliedRecords: report.applied_records_count,
+      totalSkillExp: report.total_skill_exp
+    });
+
+    resetTestData();
+    rawLog = createRawLogDraft('운동했다.');
+    let supplementedRawLog = createSupplementedRawLog(rawLog, '푸시업 3세트 했다.');
+    analysisResult = createTemporaryAnalysisResult(supplementedRawLog);
+    applyMockAnalysisResultsToPlayer(supplementedRawLog, analysisResult);
+    RAW_LOGS.unshift(supplementedRawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'supplemented raw log report',
+      result: report.b_type_logs_count === 1
+        && report.detail_records_count >= 1
+        && report.total_skill_exp > 0
+        && report.skills.some(item => item.skill_id === 'strength_proof')
+        && report.representative_records.length > 0 ? 'PASS' : 'FAIL',
+      bTypeLogs: report.b_type_logs_count,
+      detailRecords: report.detail_records_count,
+      totalSkillExp: report.total_skill_exp,
+      skills: report.skills.map(item => item.skill_id).join(' + '),
+      representatives: report.representative_records.length
+    });
+
+    resetTestData();
+    addRecord('running_proof', 30, 'quick');
+    if (SAVE_TIMER) {
+      clearTimeout(SAVE_TIMER);
+      SAVE_TIMER = null;
+    }
+    rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+
+    const reviewRawLog = createRawLogDraft('운동했다.');
+    supplementedRawLog = createSupplementedRawLog(reviewRawLog, '푸시업 3세트 했다.');
+    const supplementedAnalysisResult = createTemporaryAnalysisResult(supplementedRawLog);
+    applyMockAnalysisResultsToPlayer(supplementedRawLog, supplementedAnalysisResult);
+    RAW_LOGS.unshift(supplementedRawLog);
+    ANALYSIS_RESULTS.unshift(supplementedAnalysisResult);
+    recalcStats();
+    recalcCharLevel();
+    report = createWeeklyReport(weekId);
+    rows.push({
+      case: 'mixed weekly report',
+      result: report.applied_records_count >= 4
+        && report.b_type_logs_count >= 2
+        && report.quick_records_count === 1
+        && report.detail_records_count >= 3
+        && report.skills.length >= 3
+        && report.total_char_exp > 0
+        && report.active_days_count >= 1 ? 'PASS' : 'FAIL',
+      appliedRecords: report.applied_records_count,
+      bTypeLogs: report.b_type_logs_count,
+      quickRecords: report.quick_records_count,
+      detailRecords: report.detail_records_count,
+      skillsCount: report.skills.length,
+      totalCharExp: report.total_char_exp,
+      activeDays: report.active_days_count
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_WEEKLY_REPORT_TEST: ALL PASS' : 'LIFE_RPG_WEEKLY_REPORT_TEST: FAIL');
+    return rows;
+  },
+
   mergeRouteTest() {
     const rows = [];
 
@@ -4880,6 +5274,10 @@ window.LIFE_RPG = {
   getDateId,
   createDailyReport,
   renderDailyReportText,
+  getCurrentWeekId,
+  getWeekRangeByWeekId,
+  createWeeklyReport,
+  renderWeeklyReportText,
   analyzeRecord,
   routeRecordMock,
   mergeDuplicateActiveRoutes,
