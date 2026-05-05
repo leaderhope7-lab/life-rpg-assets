@@ -352,6 +352,10 @@ body {
 
 .panel.active { display: flex; }
 
+#panelDetail {
+  padding-bottom: 120px;
+}
+
 .section-title {
   font-size: 13px;
   font-weight: bold;
@@ -392,6 +396,11 @@ body {
 
 .recent-chip:hover { transform: translateY(-2px); }
 .recent-chip:active { transform: translateY(0); }
+.recent-chip:disabled {
+  cursor: default;
+  opacity: 0.75;
+  transform: none;
+}
 
 .empty-hint {
   color: var(--brown-light);
@@ -733,6 +742,61 @@ body {
 .send-btn:hover { transform: scale(1.05); }
 .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.raw-log-list {
+  margin-top: 12px;
+  margin-bottom: 96px;
+  padding: 10px;
+  border: 1px solid rgba(208, 162, 74, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.raw-log-list-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brown);
+  margin-bottom: 8px;
+}
+
+.raw-log-empty {
+  font-size: 12px;
+  color: var(--brown-light);
+}
+
+.raw-log-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.raw-log-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--cream-soft);
+  border: 1px solid rgba(208, 162, 74, 0.25);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.raw-log-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(208, 162, 74, 0.7);
+}
+
+.raw-log-meta {
+  font-size: 11px;
+  color: var(--brown-light);
+  margin-bottom: 4px;
+}
+
+.raw-log-text {
+  font-size: 13px;
+  color: var(--brown);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 /* ============================================
    토스트
    ============================================ */
@@ -800,6 +864,34 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+#rawLogDetailModal .user-menu-inner {
+  max-width: 380px;
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+.raw-log-detail-section {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(208, 162, 74, 0.28);
+}
+
+.raw-log-detail-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-dark);
+  margin-bottom: 6px;
+}
+
+.raw-log-detail-line {
+  font-size: 12px;
+  color: var(--brown);
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 @media (max-width: 360px) {
@@ -885,14 +977,18 @@ body {
     <!-- B탭 -->
     <section class="panel" id="panelDetail">
       <div class="chat-area" id="chatArea">
-        <div class="chat-system">오늘의 일과를 자유롭게 적어주세요. AI가 분석해서 기록해 드릴게요. ✨</div>
+        <div class="chat-system">B형 기록을 자유롭게 적어주세요. 지금은 원문 저장 MVP로 모아둘게요. ✨</div>
         <div class="chat-msg ai">
           예시) "오늘 저녁 8시부터 9시까지 독서를 했다. 집중이 잘 됐다."<br/>
           이렇게 적어주시면 됩니다!
         </div>
       </div>
+      <div class="raw-log-list" id="rawLogList">
+        <div class="raw-log-list-title">저장된 B형 기록</div>
+        <div class="raw-log-empty">아직 저장된 B형 기록이 없어요.</div>
+      </div>
       <div class="chat-input-bar">
-        <textarea id="chatInput" rows="1" placeholder="기록을 자유롭게 입력해주세요..."></textarea>
+        <textarea id="chatInput" rows="1" placeholder="B형 기록을 자유롭게 입력해주세요..."></textarea>
         <button class="send-btn" id="sendBtn" onclick="handleSend()">▶</button>
       </div>
     </section>
@@ -945,6 +1041,18 @@ body {
     </div>
   </div>
 
+  <!-- B형 기록 상세 -->
+  <div class="user-menu" id="rawLogDetailModal">
+    <div class="user-menu-inner">
+      <h3>기록 상세</h3>
+      <div id="rawLogDetailContent"></div>
+      <div class="actions">
+        <button class="btn-danger" onclick="deleteSelectedRawLog()">삭제하기</button>
+        <button class="btn-ghost" onclick="closeRawLogDetail()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 토스트 -->
   <div class="toast" id="toast"></div>
 
@@ -955,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.3.0-cloud-run-test';
+const APP_VERSION = 'v0.4-A-raw-log-detail-delete';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -969,6 +1077,7 @@ const DEV_SKIP_LOGIN = true;
 // USE_MOCK_ANALYZER: true이면 Mock 분석기, false이면 SERVER_ANALYZE_URL 서버 분석기 사용
 const USE_MOCK_ANALYZER = false;
 const SERVER_ANALYZE_URL = "https://life-rpg-gemini-analyze-833548758553.asia-northeast3.run.app/analyze";
+const RAW_LOG_MVP_MODE = true;
 
 // 실제 배포/실사용 전에는 DEV_SKIP_LOGIN / USE_MOCK_ANALYZER 상태를 재검토해야 합니다.
 
@@ -995,21 +1104,22 @@ const STATS = {
 };
 
 const SKILLS = {
-  reading:  { name: '독서',   stat: 'INT', icon: '📖' },
-  study:    { name: '공부',   stat: 'INT', icon: '✏️' },
-  coding:   { name: '코딩',   stat: 'INT', icon: '💻' },
-  exercise: { name: '운동',   stat: 'STR', icon: '🏃' },
-  walk:     { name: '걷기',   stat: 'STR', icon: '🚶' },
-  sleep:    { name: '수면',   stat: 'STR', icon: '😴' },
-  meal:     { name: '식단',   stat: 'STR', icon: '🥗' },
-  prayer:   { name: '기도',   stat: 'WIS', icon: '🙏' },
-  bible:    { name: '말씀',   stat: 'WIS', icon: '📜' },
-  meditate: { name: '묵상',   stat: 'WIS', icon: '🧘' },
-  craft:    { name: '도구작업', stat: 'DEX', icon: '🔧' },
-  task:     { name: '일처리', stat: 'AGI', icon: '✅' },
-  art:      { name: '창작',   stat: 'ART', icon: '🎨' },
-  music:    { name: '음악감상', stat: 'ART', icon: '🎵' },
-  insight_language: { name: '통찰의 언어', stat: 'INT', icon: '📘' }
+  insight_language: { name: '통찰의 언어', stat: 'INT', icon: '🧠' },
+  code_craftsman: { name: '코드의 장인', stat: 'INT', icon: '💻' },
+  language_skill: { name: '언어의 기술', stat: 'INT', icon: '🗣' },
+  foreign_language_awakening: { name: '외국어 각성', stat: 'INT', icon: '🌍' },
+  asset_insight: { name: '자산의 안목', stat: 'INT', icon: '💰' },
+  strength_proof: { name: '근력의 증명', stat: 'STR', icon: '💪' },
+  running_proof: { name: '런닝의 증명', stat: 'STR', icon: '🏃' },
+  fuel_charge: { name: '연료 충전', stat: 'STR', icon: '🍱' },
+  recovery_night: { name: '회복의 밤', stat: 'STR', icon: '🌙' }
+};
+
+const FUTURE_SKILL_CANDIDATES = {
+  WIS: ['기도의 숨', '말씀의 등불', '예배의 자리', '감사의 기록', '작은 순종'],
+  DEX: ['정리정돈', '문서 처리', '업무 실행', '도구 활용', '손으로 만드는 작업'],
+  AGI: ['집안일', '생활 루틴', '이동/외출 준비', '시간 관리', '빠른 처리'],
+  ART: ['그림', '디자인', '이미지 생성', 'UI 아트', '글쓰기 창작', '스토리 만들기']
 };
 
 /* ============================================
@@ -1104,6 +1214,11 @@ let GAPI_READY = false;   // gapi.client 초기화 여부
 
 const LOCAL_KEY = 'lifeRpg_local_v2';
 const USER_KEY = 'lifeRpg_user_v2';
+const RAW_LOGS_KEY = 'lifeRpg_raw_logs_v1';
+const ANALYSIS_RESULTS_KEY = 'lifeRpg_analysis_results_v1';
+const APP_DATA_SCHEMA_VERSION = 'life_rpg_mvp_storage_v1';
+let RAW_LOGS = [];
+let ANALYSIS_RESULTS = [];
 
 /* ============================================
    로컬 저장 (캐시 역할)
@@ -1116,7 +1231,7 @@ function saveLocal() {
 function loadLocal() {
   try {
     const s = localStorage.getItem(LOCAL_KEY);
-    if (s) PLAYER = Object.assign(PLAYER, JSON.parse(s));
+    if (s) replacePlayerData(JSON.parse(s));
   } catch (e) {}
 }
 
@@ -1129,6 +1244,94 @@ function loadUser() {
     const s = localStorage.getItem(USER_KEY);
     if (s) USER = JSON.parse(s);
   } catch (e) {}
+}
+
+function saveRawLogs() {
+  try {
+    localStorage.setItem(RAW_LOGS_KEY, JSON.stringify({ raw_logs: RAW_LOGS }));
+  } catch (e) {}
+}
+
+function loadRawLogs() {
+  try {
+    const s = localStorage.getItem(RAW_LOGS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceRawLogs(Array.isArray(parsed) ? parsed : (Array.isArray(parsed.raw_logs) ? parsed.raw_logs : []));
+  } catch (e) {
+    replaceRawLogs([]);
+  }
+}
+
+function saveAnalysisResults() {
+  try {
+    localStorage.setItem(ANALYSIS_RESULTS_KEY, JSON.stringify({ analysis_results: ANALYSIS_RESULTS }));
+  } catch (e) {}
+}
+
+function loadAnalysisResults() {
+  try {
+    const s = localStorage.getItem(ANALYSIS_RESULTS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceAnalysisResults(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.analysis_results) ? parsed.analysis_results : []));
+  } catch (e) {
+    replaceAnalysisResults([]);
+  }
+}
+
+function replacePlayerData(data) {
+  const next = Object.assign(createInitialPlayerState(), data || {});
+  for (const key of Object.keys(PLAYER)) delete PLAYER[key];
+  Object.assign(PLAYER, next);
+}
+
+function replaceRawLogs(logs) {
+  RAW_LOGS.length = 0;
+  if (Array.isArray(logs)) RAW_LOGS.push(...logs);
+}
+
+function replaceAnalysisResults(results) {
+  ANALYSIS_RESULTS.length = 0;
+  if (Array.isArray(results)) ANALYSIS_RESULTS.push(...results);
+}
+
+function createAppDataSnapshot() {
+  return {
+    schema_version: APP_DATA_SCHEMA_VERSION,
+    saved_at: new Date().toISOString(),
+    player: PLAYER,
+    raw_logs: RAW_LOGS,
+    analysis_results: ANALYSIS_RESULTS
+  };
+}
+
+function applyAppDataSnapshot(data) {
+  if (!data || typeof data !== 'object') return;
+
+  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results)) {
+    if (data.player && typeof data.player === 'object') replacePlayerData(data.player);
+    if (Array.isArray(data.raw_logs)) replaceRawLogs(data.raw_logs);
+    if (Array.isArray(data.analysis_results)) replaceAnalysisResults(data.analysis_results);
+    return;
+  }
+
+  // 이전 버전 Drive 파일은 PLAYER 객체만 저장되어 있었으므로 그대로 복원합니다.
+  replacePlayerData(data);
+}
+
+function saveAllLocal() {
+  saveLocal();
+  saveRawLogs();
+  saveAnalysisResults();
+}
+
+function loadAllLocal() {
+  loadLocal();
+  loadRawLogs();
+  loadAnalysisResults();
 }
 
 /* ============================================
@@ -1365,14 +1568,14 @@ async function loadFromDrive() {
     return;
   }
   if (data && typeof data === 'object') {
-    PLAYER = Object.assign(PLAYER, data);
-    saveLocal();
+    applyAppDataSnapshot(data);
+    saveAllLocal();
   }
 }
 
 async function saveToDrive() {
   if (DEV_SKIP_LOGIN) {
-    saveLocal();
+    saveAllLocal();
     return;
   }
 
@@ -1380,7 +1583,7 @@ async function saveToDrive() {
   if (!GAPI_READY) await initGapi();
   setAccessToken();
 
-  const content = JSON.stringify(PLAYER, null, 2);
+  const content = JSON.stringify(createAppDataSnapshot(), null, 2);
   const blob = new Blob([content], { type: 'application/json' });
 
   const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
@@ -1409,7 +1612,7 @@ async function saveToDrive() {
 }
 
 function scheduleSave() {
-  saveLocal();
+  saveAllLocal();
   updateSyncIndicator('syncing');
   if (SAVE_TIMER) clearTimeout(SAVE_TIMER);
   SAVE_TIMER = setTimeout(async () => {
@@ -1427,7 +1630,7 @@ function scheduleSave() {
 async function manualSync() {
   closeUserMenu();
   if (DEV_SKIP_LOGIN) {
-    saveLocal();
+    saveAllLocal();
     updateSyncIndicator('saved');
     showToast('개발 모드: 로컬 저장 완료', 'success');
     return;
@@ -1645,6 +1848,29 @@ function ensureSkill(skillId) {
   return PLAYER.skills[skillId];
 }
 
+function calculateRankFromExp(exp) {
+  const value = Math.max(0, Number(exp) || 0);
+  const rankIdx = RANK_THRESHOLDS.findIndex(t => value < t);
+  const newRankIdx = rankIdx === -1 ? RANKS.length - 1 : rankIdx - 1;
+  return RANKS[Math.max(0, newRankIdx)] || 'F';
+}
+
+function applySkillExp(skillId, skillExp) {
+  if (!SKILLS[skillId]) return null;
+  const skState = ensureSkill(skillId);
+  const expToAdd = Number(skillExp) || 0;
+  const beforeRank = skState.rank;
+  skState.exp += expToAdd;
+  skState.rank = calculateRankFromExp(skState.exp);
+  return {
+    expAdded: expToAdd,
+    totalExp: skState.exp,
+    rankedUp: skState.rank !== beforeRank,
+    beforeRank,
+    newRank: skState.rank
+  };
+}
+
 function addRecord(skillId, minutes, mode = 'quick', memo = null) {
   const skill = SKILLS[skillId];
   if (!skill) {
@@ -1660,9 +1886,7 @@ function addRecord(skillId, minutes, mode = 'quick', memo = null) {
 
   skState.exp += earnedExp;
   const beforeRank = skState.rank;
-  const rankIdx = RANK_THRESHOLDS.findIndex(t => skState.exp < t);
-  const newRankIdx = rankIdx === -1 ? RANKS.length - 1 : rankIdx - 1;
-  skState.rank = RANKS[Math.max(0, newRankIdx)];
+  skState.rank = calculateRankFromExp(skState.exp);
   const rankedUp = skState.rank !== beforeRank;
 
   const record = {
@@ -1698,14 +1922,8 @@ function addAnalyzedRecord(analysis) {
     return null;
   }
 
-  const skState = ensureSkill(skillId);
   const skillExp = Number(analysis.skill_exp) || 0;
-  const beforeRank = skState.rank;
-  skState.exp += skillExp;
-  const rankIdx = RANK_THRESHOLDS.findIndex(t => skState.exp < t);
-  const newRankIdx = rankIdx === -1 ? RANKS.length - 1 : rankIdx - 1;
-  skState.rank = RANKS[Math.max(0, newRankIdx)];
-  const rankedUp = skState.rank !== beforeRank;
+  const skillApplyResult = applySkillExp(skillId, skillExp);
 
   const record = {
     id: 'r' + Date.now(),
@@ -1739,9 +1957,145 @@ function addAnalyzedRecord(analysis) {
     skillExp,
     statExp: record.statExp,
     charExp: record.charExp,
-    rankedUp,
-    newRank: skState.rank
+    rankedUp: !!skillApplyResult?.rankedUp,
+    newRank: skillApplyResult?.newRank || 'F'
   };
+}
+
+function isApplicableMockAnalysis(mock) {
+  return !!mock
+    && mock.route_status === 'active_skill'
+    && !!mock.skill_id
+    && !!SKILLS[mock.skill_id]
+    && (mock.needs_review === false || Number(mock.skill_exp) > 0);
+}
+
+function applyMockAnalysisResultsToPlayer(rawLog, analysisResult) {
+  const now = new Date().toISOString();
+  const mockResults = Array.isArray(rawLog?.analysis?.mock_analysis_results)
+    ? rawLog.analysis.mock_analysis_results
+    : [];
+  const applicableResults = mockResults.filter(isApplicableMockAnalysis);
+  const appliedRecords = [];
+  const rankUps = [];
+
+  let totalAp = 0;
+  let hasAp = false;
+  let totalSkillExp = 0;
+  let totalStatExp = 0;
+  let totalCharacterExp = 0;
+
+  applicableResults.forEach((mock, index) => {
+    const skillApplyResult = applySkillExp(mock.skill_id, Number(mock.skill_exp) || 0);
+    if (!skillApplyResult) return;
+
+    const apValue = typeof mock.ap_spent === 'number' ? mock.ap_spent : null;
+    if (apValue !== null) {
+      totalAp += apValue;
+      hasAp = true;
+    }
+    totalSkillExp += Number(mock.skill_exp) || 0;
+    totalStatExp += Number(mock.stat_exp) || 0;
+    totalCharacterExp += Number(mock.character_exp) || 0;
+
+    if (skillApplyResult.rankedUp) {
+      rankUps.push({
+        skillId: mock.skill_id,
+        skillName: mock.skill_tree,
+        beforeRank: skillApplyResult.beforeRank,
+        newRank: skillApplyResult.newRank
+      });
+    }
+
+    const record = {
+      id: `r${Date.now()}_${index}`,
+      date: now,
+      rawLogId: rawLog.id,
+      analysisResultId: analysisResult.id,
+      skillId: mock.skill_id,
+      skillName: mock.skill_tree,
+      stat: mock.stat,
+      minutes: null,
+      ap: apValue,
+      skillExp: Number(mock.skill_exp) || 0,
+      statExp: Number(mock.stat_exp) || 0,
+      charExp: Number(mock.character_exp) || 0,
+      mode: 'detail_mock',
+      memo: rawLog.raw_text,
+      summary: mock.summary,
+      evidence: Array.isArray(mock.evidence) ? mock.evidence.slice() : [],
+      components: mock.components || {},
+      metrics: mock.metrics || {},
+      needsReview: !!mock.needs_review,
+      skillRuleVersion: mock.skill_rule_version
+    };
+
+    PLAYER.records.unshift(record);
+    appliedRecords.push(record);
+  });
+
+  if (PLAYER.records.length > 500) PLAYER.records.splice(500);
+
+  if (applicableResults.length > 0) {
+    const reviewReasons = applicableResults
+      .filter(mock => mock.needs_review)
+      .map(mock => mock.review_reason || mock.summary)
+      .filter(Boolean);
+
+    analysisResult.status = 'confirmed';
+    analysisResult.ap_spent = hasAp ? round2(totalAp) : null;
+    analysisResult.skill_exp = totalSkillExp;
+    analysisResult.stat_exp = totalStatExp;
+    analysisResult.character_exp = totalCharacterExp;
+    analysisResult.needs_review = reviewReasons.length > 0;
+    analysisResult.review_reason = reviewReasons.length > 0 ? reviewReasons.join(' / ') : null;
+    analysisResult.updated_at = now;
+  } else {
+    analysisResult.status = mockResults.length > 0 ? 'needs_review' : 'pending';
+    analysisResult.ap_spent = 0;
+    analysisResult.skill_exp = 0;
+    analysisResult.stat_exp = 0;
+    analysisResult.character_exp = 0;
+    analysisResult.needs_review = true;
+    analysisResult.review_reason = '성장에 반영할 활성 스킬 분석 후보가 없습니다.';
+    analysisResult.updated_at = now;
+  }
+
+  return {
+    appliedCount: appliedRecords.length,
+    appliedRecords,
+    rankUps,
+    totals: {
+      ap_spent: analysisResult.ap_spent,
+      skill_exp: analysisResult.skill_exp,
+      stat_exp: analysisResult.stat_exp,
+      character_exp: analysisResult.character_exp
+    }
+  };
+}
+
+function rebuildSkillProgressFromRecords() {
+  PLAYER.skills = {};
+
+  for (const r of PLAYER.records || []) {
+    if (!r || !r.skillId || !SKILLS[r.skillId]) continue;
+
+    let expToAdd = 0;
+    if (typeof r.skillExp === 'number') {
+      expToAdd = r.skillExp;
+    } else if (typeof r.earnedExp === 'number') {
+      expToAdd = r.earnedExp;
+    }
+
+    const skState = ensureSkill(r.skillId);
+    skState.exp += Number(expToAdd) || 0;
+  }
+
+  for (const skState of Object.values(PLAYER.skills)) {
+    skState.rank = calculateRankFromExp(skState.exp);
+  }
+
+  return PLAYER.skills;
 }
 
 function recalcStats() {
@@ -1834,9 +2188,10 @@ function renderRecent() {
   const seen = new Set();
   const recent = [];
   for (const r of PLAYER.records) {
-    if (!seen.has(r.skillId) && SKILLS[r.skillId]) {
-      seen.add(r.skillId);
-      recent.push(r.skillId);
+    const id = SKILLS[r.skillId] ? r.skillId : 'unknown_legacy';
+    if (!seen.has(id)) {
+      seen.add(id);
+      recent.push(id);
     }
     if (recent.length >= 5) break;
   }
@@ -1845,9 +2200,23 @@ function renderRecent() {
     return;
   }
   box.innerHTML = recent.map(id => {
+    if (id === 'unknown_legacy') {
+      return '<button class="recent-chip" disabled>🗂 미분류 기록</button>';
+    }
     const sk = SKILLS[id];
     return `<button class="recent-chip" onclick="openQuickForm('${id}')">${sk.icon} ${sk.name}</button>`;
   }).join('');
+}
+
+function renderFutureSkillCandidateHint(statKey) {
+  const candidates = FUTURE_SKILL_CANDIDATES[statKey];
+  if (!candidates || candidates.length === 0) return '';
+  return `
+    <div class="empty-hint">
+      준비 중 · 향후 스킬 후보<br/>
+      ${candidates.map(name => escapeHtml(name)).join(' · ')}
+    </div>
+  `;
 }
 
 function renderStatsGrid() {
@@ -1865,7 +2234,7 @@ function renderStatsGrid() {
         <span class="stat-val">${val}</span>
       </div>
       <div class="skill-list">
-        ${skillsInStat.map(([id, sk]) => {
+        ${skillsInStat.length > 0 ? skillsInStat.map(([id, sk]) => {
           const st = PLAYER.skills[id] || { rank: 'F', exp: 0 };
           return `
             <button class="skill-btn" onclick="event.stopPropagation(); openQuickForm('${id}');">
@@ -1873,7 +2242,7 @@ function renderStatsGrid() {
               <span class="rank">${st.rank}</span>
             </button>
           `;
-        }).join('')}
+        }).join('') : renderFutureSkillCandidateHint(key)}
       </div>
     `;
     card.addEventListener('click', () => {
@@ -1889,6 +2258,7 @@ function renderAll() {
   renderMiniStatus();
   renderRecent();
   renderStatsGrid();
+  renderRawLogList();
   document.getElementById('umStats').textContent =
     `Lv.${PLAYER.level} · 총 기록 ${PLAYER.records.length}개 · 총 EXP ${PLAYER.charExp}`;
 }
@@ -1999,13 +2369,1202 @@ function removeTyping() {
 }
 
 function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 let pendingAnalysis = null;
+let pendingRawLog = null;
+let selectedRawLogId = null;
 
 function formatAnalysisValue(value, suffix = '') {
   return value === null || value === undefined || value === '' ? '알 수 없음' : `${value}${suffix}`;
+}
+
+const ANALYZER_IDS = {
+  insight_language: 'insight_language_v1',
+  code_craftsman: 'code_craftsman_v1',
+  language_skill: 'language_skill_v1',
+  foreign_language_awakening: 'foreign_language_awakening_v1',
+  asset_insight: 'asset_insight_v1',
+  strength_proof: 'strength_proof_v1',
+  running_proof: 'running_proof_v1',
+  fuel_charge: 'fuel_charge_v1',
+  recovery_night: 'recovery_night_v1'
+};
+
+const ROUTER_ACTIVE_RULES = [
+  {
+    skillId: 'foreign_language_awakening',
+    keywords: ['영어', '일본어', '중국어', '외국어', '단어', '숙어', '지문', '문장 해석', '듣기', '따라 읽기', '영어 지문', '영어 기사', 'VOA', 'BBC', '문법', '회화', '토익', '발음']
+  },
+  {
+    skillId: 'code_craftsman',
+    keywords: ['코드', '개발', '구현', '디버깅', '오류', '에러', '버그', 'HTML', 'CSS', 'JavaScript', '자바스크립트', 'React', 'Claude', 'Codex', 'GitHub', 'API', '함수', 'index.html', '수정']
+  },
+  {
+    skillId: 'language_skill',
+    keywords: ['보고 문장', '공문', '설명', '말하기 준비', '민원 응대', '공지문', '카카오톡 안내문', '상사 보고', '표현 다듬기', '문장 정리', '문구', '말하기', '스피치']
+  },
+  {
+    skillId: 'asset_insight',
+    keywords: ['지출', '소비', '구독', '해지', '절약', '저축', '예산', '가계부', '경제 공부', '금융 공부', '투자 공부', '자산 점검', '카드 사용 내역', '자산', '투자', '주식', 'ETF', '코인', '부동산', '재무']
+  },
+  {
+    skillId: 'strength_proof',
+    keywords: ['푸시업', '팔굽혀펴기', '윗몸일으키기', '스쿼트', '플랭크', '덤벨', '벤치', '벤치프레스', '푸시업 바', '세트', '반복', '근력운동', '홈트', '웨이트', '부위 운동', '근력', '헬스']
+  },
+  {
+    skillId: 'running_proof',
+    keywords: ['걷기', '빠르게 걷기', '조깅', '러닝', '런닝', '뛰기', '뛰', '달리기', '달리', '산책', '러닝머신', 'km', 'KM', '킬로', '분 동안 걸음', '3km', '5km', '10km', '완주', '페이스', '기록 갱신', '걸었다']
+  },
+  {
+    skillId: 'fuel_charge',
+    keywords: ['닭가슴살', '단백질바', '단백질 쉐이크', '단백질', '프로틴', '계란', '두부', '참치', '제육볶음', '고기 반찬', '물', '생수', '500ml', 'ml', 'mL', '리터', 'L', '종이컵', '머그컵', '텀블러', '비타민C', '오메가3', '종합비타민', '유산균', '식사', '식당', '집밥', '편의점', '카페', '야식', '식단', '밥', '먹', '마셨', '영양제', '도시락']
+  },
+  {
+    skillId: 'recovery_night',
+    keywords: ['잠', '수면', '잤', '자서', '일어났다', '일어남', '취침', '기상', '일찍 누웠다', '낮잠', '휴식', '쉬었다', '휴대폰 안 보고 잤다', '자기 전 스트레칭', '개운했다', '푹 잤다', '회복', '숙면']
+  },
+  {
+    skillId: 'insight_language',
+    keywords: ['독서', '책', '읽기', '읽', '글', '자료', '문서', '기사', '보고서', '요약', '핵심 정리', '핵심', '이해', '해석', '적용점', '인사이트', '정리', '밑줄', '메모']
+  }
+];
+
+const ROUTER_FUTURE_RULES = {
+  WIS: [
+    { name: '기도의 숨', keywords: ['기도'] },
+    { name: '말씀의 등불', keywords: ['말씀', '성경', '하나님', '신앙'] },
+    { name: '예배의 자리', keywords: ['예배'] },
+    { name: '감사의 기록', keywords: ['감사'] },
+    { name: '작은 순종', keywords: ['순종', '회개', '중보기도'] },
+    { name: '기도의 숨', keywords: ['묵상'] }
+  ],
+  DEX: [
+    { name: '정리정돈', keywords: ['정리', '정리정돈', '정돈', '책상 정리'] },
+    { name: '문서 처리', keywords: ['서류', '파일', '폴더', '양식', '엑셀 정리', '자료 정리'] },
+    { name: '업무 실행', keywords: ['업무 실행'] },
+    { name: '도구 활용', keywords: ['도구 사용', '도구', '툴'] },
+    { name: '손으로 만드는 작업', keywords: ['손으로', '만들기', '수리'] }
+  ],
+  AGI: [
+    { name: '집안일', keywords: ['집안일', '청소', '빨래', '설거지'] },
+    { name: '생활 루틴', keywords: ['생활 루틴', '루틴'] },
+    { name: '이동/외출 준비', keywords: ['이동', '외출', '준비'] },
+    { name: '시간 관리', keywords: ['시간 관리'] },
+    { name: '빠른 처리', keywords: ['빠르게 처리', '빠른 처리', '미뤄둔 일 처리'] }
+  ],
+  ART: [
+    { name: '그림', keywords: ['그림'] },
+    { name: '디자인', keywords: ['디자인', '아이콘', '캐릭터'] },
+    { name: '이미지 생성', keywords: ['이미지 생성', '프롬프트 이미지'] },
+    { name: 'UI 아트', keywords: ['UI 아트'] },
+    { name: '글쓰기 창작', keywords: ['창작 글쓰기', '글쓰기', '창작'] },
+    { name: '스토리 만들기', keywords: ['스토리'] }
+  ]
+};
+
+function splitRouteSegments(text) {
+  return text
+    .split(/\s*(?:,|;|\.|!|\?|그리고|또|및|하고\s+|했고\s+|\s+하고\s+|고\s+)\s*/g)
+    .map(segment => segment.trim())
+    .filter(Boolean);
+}
+
+function hasAnyKeyword(text, keywords) {
+  const lower = text.toLowerCase();
+  return keywords.some(keyword => lower.includes(String(keyword).toLowerCase()));
+}
+
+function buildActiveRoute(segment, skillId, reason, confidence = 0.82) {
+  const skill = SKILLS[skillId];
+  return {
+    route_status: 'active_skill',
+    stat: skill.stat,
+    skill_tree: skill.name,
+    skill_id: skillId,
+    candidate_skill_tree: [],
+    analyzer_id: ANALYZER_IDS[skillId] || null,
+    text_segment: segment,
+    reason,
+    needs_review: false,
+    review_question: null,
+    confidence
+  };
+}
+
+function buildNeedsReviewRoute(segment, stat, candidates, reason, question, confidence = 0.48) {
+  return {
+    route_status: 'needs_review',
+    stat,
+    skill_tree: null,
+    skill_id: null,
+    candidate_skill_tree: candidates,
+    analyzer_id: null,
+    text_segment: segment,
+    reason,
+    needs_review: true,
+    review_question: question,
+    confidence
+  };
+}
+
+function buildFutureRoute(segment, stat, candidates, reason, confidence = 0.72) {
+  return {
+    route_status: 'future_skill_candidate',
+    stat,
+    skill_tree: null,
+    skill_id: null,
+    candidate_skill_tree: candidates,
+    analyzer_id: null,
+    text_segment: segment,
+    reason,
+    needs_review: true,
+    review_question: `${stat} 스킬트리는 아직 준비 중입니다. 후보 기록으로 보관할까요?`,
+    confidence
+  };
+}
+
+function buildUnassignedRoute(segment) {
+  return {
+    route_status: 'unassigned',
+    stat: 'UNKNOWN',
+    skill_tree: null,
+    skill_id: null,
+    candidate_skill_tree: [],
+    analyzer_id: null,
+    text_segment: segment,
+    reason: '현재 라우터 규칙으로는 알맞은 스킬 후보를 찾지 못했습니다.',
+    needs_review: false,
+    review_question: null,
+    confidence: 0.2
+  };
+}
+
+function isShortAmbiguousRecord(segment) {
+  return ['뭔가 했다', '뭔가 했다.', '무언가 했다', '그냥 했다', '했다'].includes(segment.trim());
+}
+
+function hasRecoveryTimeOrDetail(segment) {
+  return /\d+\s*(시간|분|시)/.test(segment)
+    || hasAnyKeyword(segment, ['낮잠', '일찍', '푹', '개운', '휴식', '쉬었다', '스트레칭', '휴대폰 안 보고']);
+}
+
+function isDexOrganizationFalsePositive(segment) {
+  return hasAnyKeyword(segment, [
+    '핵심', '단어', '영어', '외국어', '책', '독서', '읽', '요약',
+    '보고서', '문장', '상사', '민원', '공지문', '카카오톡'
+  ]);
+}
+
+function routeSegmentMock(segment) {
+  if (isShortAmbiguousRecord(segment)) {
+    return buildNeedsReviewRoute(
+      segment,
+      'UNKNOWN',
+      [],
+      '활동 자체가 너무 모호해서 라우팅하기 어렵습니다.',
+      '무엇을 했는지 조금만 더 구체적으로 적어줄 수 있나요?',
+      0.25
+    );
+  }
+
+  if (hasAnyKeyword(segment, ['운동']) && !hasAnyKeyword(segment, ['푸시업', '스쿼트', '플랭크', '덤벨', '근력', '웨이트', '헬스', '세트', 'km', '뛰', '달리', '러닝', '런닝', '조깅'])) {
+    return buildNeedsReviewRoute(
+      segment,
+      'STR',
+      ['근력의 증명', '런닝의 증명'],
+      '운동 표현은 있지만 근력인지 러닝인지 명확하지 않습니다.',
+      '근력운동이었나요, 러닝/걷기였나요?'
+    );
+  }
+
+  if (segment.trim() === '코딩했다' || segment.trim() === '코딩 했다') {
+    return buildNeedsReviewRoute(
+      segment,
+      'INT',
+      ['코드의 장인'],
+      '코딩 표현은 있지만 학습, 구현, 디버깅 중 무엇인지 명확하지 않습니다.',
+      '학습/구현/디버깅 중 어떤 코딩 활동이었나요?'
+    );
+  }
+
+  if (hasAnyKeyword(segment, ['공부'])) {
+    return buildNeedsReviewRoute(
+      segment,
+      'INT',
+      Object.values(SKILLS).filter(skill => skill.stat === 'INT').map(skill => skill.name),
+      '공부 표현만으로는 어떤 INT 스킬인지 확정하기 어렵습니다.',
+      '읽기/코딩/언어/외국어/자산 중 어떤 활동에 가까웠나요?'
+    );
+  }
+
+  if ((segment.trim() === '잤다' || segment.trim() === '잠잤다' || segment.trim() === '수면했다') && !hasRecoveryTimeOrDetail(segment)) {
+    return buildNeedsReviewRoute(
+      segment,
+      'STR',
+      ['회복의 밤'],
+      '수면 표현은 있지만 수면 시간이 명확하지 않습니다.',
+      '몇 시간 잤는지 적어줄 수 있나요?'
+    );
+  }
+
+  if (/^밥\s*먹/.test(segment) || segment === '밥 먹었다') {
+    return buildNeedsReviewRoute(
+      segment,
+      'STR',
+      ['연료 충전'],
+      '식사 표현은 있지만 음식 내용이 부족합니다.',
+      '무엇을 얼마나 먹었는지 적어줄 수 있나요?'
+    );
+  }
+
+  for (const [stat, rules] of Object.entries(ROUTER_FUTURE_RULES)) {
+    if (stat === 'DEX' && isDexOrganizationFalsePositive(segment)) continue;
+    const matched = rules.filter(rule => hasAnyKeyword(segment, rule.keywords)).map(rule => rule.name);
+    if (matched.length > 0) {
+      return buildFutureRoute(
+        segment,
+        stat,
+        FUTURE_SKILL_CANDIDATES[stat] || [...new Set(matched)],
+        `${stat} 미완성 스킬트리 후보 키워드를 찾았습니다. 감지 후보: ${[...new Set(matched)].join(', ')}.`
+      );
+    }
+  }
+
+  for (const rule of ROUTER_ACTIVE_RULES) {
+    if (hasAnyKeyword(segment, rule.keywords)) {
+      const skill = SKILLS[rule.skillId];
+      return buildActiveRoute(segment, rule.skillId, `${skill.name} 관련 키워드를 찾았습니다.`);
+    }
+  }
+
+  return buildUnassignedRoute(segment);
+}
+
+function mergeUniqueText(values, separator = ' / ') {
+  return [...new Set(values.filter(Boolean))].join(separator);
+}
+
+function mergeDuplicateActiveRoutes(routerResult) {
+  const result = {
+    ...routerResult,
+    routing_results: []
+  };
+  const activeBySkillId = new Map();
+
+  for (const route of routerResult.routing_results || []) {
+    if (route.route_status !== 'active_skill' || !route.skill_id) {
+      result.routing_results.push(route);
+      continue;
+    }
+
+    const existing = activeBySkillId.get(route.skill_id);
+    if (!existing) {
+      const merged = {
+        ...route,
+        candidate_skill_tree: Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree.slice() : []
+      };
+      activeBySkillId.set(route.skill_id, merged);
+      result.routing_results.push(merged);
+      continue;
+    }
+
+    existing.text_segment = mergeUniqueText([existing.text_segment, route.text_segment]);
+    existing.reason = mergeUniqueText([existing.reason, route.reason]);
+    existing.confidence = Math.max(Number(existing.confidence) || 0, Number(route.confidence) || 0);
+    existing.needs_review = !!existing.needs_review || !!route.needs_review;
+    existing.review_question = mergeUniqueText([existing.review_question, route.review_question]) || null;
+    existing.candidate_skill_tree = [
+      ...new Set([
+        ...(Array.isArray(existing.candidate_skill_tree) ? existing.candidate_skill_tree : []),
+        ...(Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree : [])
+      ])
+    ];
+  }
+
+  return result;
+}
+
+function buildRouterComment(routingResults) {
+  const activeCount = routingResults.filter(r => r.route_status === 'active_skill').length;
+  const futureCount = routingResults.filter(r => r.route_status === 'future_skill_candidate').length;
+  const reviewCount = routingResults.filter(r => r.route_status === 'needs_review').length;
+  const unassignedCount = routingResults.filter(r => r.route_status === 'unassigned').length;
+  const parts = [];
+
+  if (activeCount) parts.push(`활성 스킬 ${activeCount}개`);
+  if (futureCount) parts.push(`향후 후보 ${futureCount}개`);
+  if (reviewCount) parts.push(`검토 필요 ${reviewCount}개`);
+  if (unassignedCount && !activeCount && !futureCount && !reviewCount) parts.push('분류 어려움');
+
+  if (!parts.length) return '임시 라우터가 분류할 내용을 찾지 못했습니다.';
+  if (parts.length === 1 && parts[0] === '분류 어려움') {
+    return '임시 라우터가 아직 분류하기 어려운 기록으로 보았습니다.';
+  }
+  return `임시 라우터가 기록을 ${parts.join(', ')}로 나누어 보았습니다.`;
+}
+
+function routeRecordMock(text) {
+  const rawText = String(text || '').trim();
+  const segments = splitRouteSegments(rawText);
+  const routingResults = (segments.length ? segments : [rawText])
+    .filter(Boolean)
+    .map(routeSegmentMock);
+  const draftResult = {
+    raw_text: rawText,
+    routing_results: routingResults,
+    has_multiple_routes: routingResults.length > 1,
+    router_comment: buildRouterComment(routingResults)
+  };
+  const mergedResult = mergeDuplicateActiveRoutes(draftResult);
+  mergedResult.has_multiple_routes = mergedResult.routing_results.length > 1;
+  mergedResult.router_comment = buildRouterComment(mergedResult.routing_results);
+  return mergedResult;
+}
+
+function round2(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getRouteText(route) {
+  return route?.text_segment || '';
+}
+
+function getMockConfidence(needsReview, base = 0.82) {
+  return needsReview ? Math.min(base, 0.52) : base;
+}
+
+function createMockAnalysisResult(route, options) {
+  const skill = SKILLS[route.skill_id] || {};
+  return {
+    route_status: 'active_skill',
+    stat: route.stat || skill.stat || null,
+    skill_tree: route.skill_tree || skill.name || null,
+    skill_id: route.skill_id || null,
+    analyzer_id: route.analyzer_id || ANALYZER_IDS[route.skill_id] || null,
+    summary: options.summary,
+    ap_spent: options.ap_spent ?? null,
+    skill_exp: options.skill_exp || 0,
+    stat_exp: options.stat_exp || 0,
+    character_exp: options.character_exp || 0,
+    components: options.components || {},
+    metrics: options.metrics || {},
+    evidence: Array.isArray(options.evidence) ? options.evidence : [options.evidence || route.text_segment || ''],
+    needs_review: !!options.needs_review,
+    review_reason: options.review_reason || null,
+    confidence: options.confidence ?? getMockConfidence(!!options.needs_review),
+    skill_rule_version: options.skill_rule_version
+  };
+}
+
+function extractDistanceKm(text) {
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(?:km|KM|킬로)/);
+  return match ? Number(match[1]) : null;
+}
+
+function getRunningExpByDistance(distanceKm, durationMinutes) {
+  const basis = typeof distanceKm === 'number' ? distanceKm : (typeof durationMinutes === 'number' ? durationMinutes / 10 : null);
+  if (basis === null) return { skill: 0, stat: 0, char: 0 };
+  if (basis < 1 || (typeof durationMinutes === 'number' && durationMinutes < 10)) return { skill: 10, stat: 3, char: 2 };
+  if (basis < 3) return { skill: 25, stat: 8, char: 5 };
+  if (basis < 5) return { skill: 60, stat: 18, char: 12 };
+  if (basis < 10) return { skill: 100, stat: 32, char: 24 };
+  if (basis < 15) return { skill: 170, stat: 55, char: 40 };
+  if (basis < 20) return { skill: 240, stat: 75, char: 55 };
+  return { skill: 320, stat: 100, char: 75 };
+}
+
+function analyzeRunningProofMock(route) {
+  const text = getRouteText(route);
+  const distanceKm = extractDistanceKm(text);
+  let durationMinutes = parseMockMinutes(text);
+  const estimatedDuration = durationMinutes === null && distanceKm !== null;
+  if (estimatedDuration) durationMinutes = Math.round(distanceKm * 10);
+  const pace = distanceKm && durationMinutes ? round2(durationMinutes / distanceKm) : null;
+  const needsReview = distanceKm === null && durationMinutes === null;
+  const exp = needsReview ? { skill: 0, stat: 0, char: 0 } : getRunningExpByDistance(distanceKm, durationMinutes);
+
+  return createMockAnalysisResult(route, {
+    summary: needsReview ? '러닝 후보지만 거리와 시간이 없어 보충이 필요합니다.' : `${distanceKm || durationMinutes + '분'} 러닝/걷기 후보로 분석했습니다.`,
+    ap_spent: durationMinutes === null ? null : round2(durationMinutes / AP_MINUTES),
+    skill_exp: exp.skill,
+    stat_exp: exp.stat,
+    character_exp: exp.char,
+    components: { activity: 'running_or_walking' },
+    metrics: {
+      distance_km: distanceKm,
+      duration_minutes: durationMinutes,
+      estimated_duration: estimatedDuration,
+      pace_min_per_km: pace
+    },
+    evidence: [`${text}에서 거리/시간 러닝 후보를 감지했습니다.`],
+    needs_review: needsReview,
+    review_reason: needsReview ? '거리와 시간이 모두 없어 러닝 분석을 확정하기 어렵습니다.' : null,
+    confidence: needsReview ? 0.45 : 0.85,
+    skill_rule_version: 'running_proof_mock_v0.1'
+  });
+}
+
+function getItemCount(text, keyword, defaultCount = 1) {
+  const key = escapeRegex(keyword);
+  const after = text.match(new RegExp(`${key}\\s*(\\d+(?:\\.\\d+)?)\\s*(?:개|팩|잔|병|캔|모|인분|회)?`));
+  if (after) return Number(after[1]);
+  const before = text.match(new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:개|팩|잔|병|캔|모|인분|회)?\\s*${key}`));
+  if (before) return Number(before[1]);
+  return text.includes(keyword) ? defaultCount : 0;
+}
+
+function getProteinExp(percent) {
+  if (percent < 40) return 0;
+  if (percent < 60) return 20;
+  if (percent < 80) return 40;
+  if (percent < 100) return 70;
+  return 100;
+}
+
+function getWaterExp(liters) {
+  if (liters < 0.5) return 0;
+  if (liters < 1.0) return 10;
+  if (liters < 1.5) return 20;
+  if (liters < 2.0) return 30;
+  return 45;
+}
+
+function estimateWaterLiters(text) {
+  let liters = 0;
+  const mlMatches = [...text.matchAll(/(\d+(?:\.\d+)?)\s*ml\s*(\d+(?:\.\d+)?)?\s*(?:병|잔|컵|회)?/gi)];
+  for (const match of mlMatches) {
+    liters += (Number(match[1]) / 1000) * (match[2] ? Number(match[2]) : 1);
+  }
+
+  const literMatches = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:L|리터)/g)];
+  for (const match of literMatches) {
+    liters += Number(match[1]);
+  }
+
+  liters += getItemCount(text, '종이컵') * 0.18;
+  liters += getItemCount(text, '머그컵') * 0.3;
+  liters += getItemCount(text, '텀블러') * 0.5;
+  return round2(liters);
+}
+
+function analyzeFuelChargeMock(route) {
+  const text = getRouteText(route);
+  const proteinSources = [
+    { keyword: '닭가슴살', grams: 25 },
+    { keyword: '단백질바', grams: 15 },
+    { keyword: '단백질 쉐이크', grams: 25 },
+    { keyword: '계란', grams: 6 },
+    { keyword: '제육볶음', grams: 25 },
+    { keyword: '고기 반찬', grams: 25 },
+    { keyword: '참치', grams: 20 },
+    { keyword: '두부', grams: 20 }
+  ];
+  let proteinGrams = 0;
+  const detectedProtein = [];
+  for (const source of proteinSources) {
+    const count = getItemCount(text, source.keyword);
+    if (count > 0) {
+      proteinGrams += count * source.grams;
+      detectedProtein.push(`${source.keyword} ${count}회`);
+    }
+  }
+
+  const waterLiters = estimateWaterLiters(text);
+  const nutrientKeywords = ['비타민C', '오메가3', '종합비타민', '유산균', '마그네슘', '영양제'];
+  const nutrients = nutrientKeywords.filter(keyword => text.includes(keyword));
+  const mealDetail = hasAnyKeyword(text, ['식당', '집밥', '편의점', '카페', '제육볶음', '닭가슴살', '계란', '참치', '두부', '고기 반찬', '야식']);
+
+  const proteinPercent = round2((proteinGrams / 128) * 100);
+  const proteinExp = getProteinExp(proteinPercent);
+  const waterExp = getWaterExp(waterLiters);
+  const nutrientExp = nutrients.length >= 2 ? 20 : nutrients.length === 1 ? 10 : 0;
+  const mealExp = mealDetail ? 5 : 0;
+  const skillExp = Math.min(160, proteinExp + waterExp + nutrientExp + mealExp);
+  const needsReview = proteinGrams === 0 && waterLiters === 0 && nutrients.length === 0 && !mealDetail;
+
+  return createMockAnalysisResult(route, {
+    summary: needsReview ? '연료 충전 후보지만 음식/물/영양소 정보가 부족합니다.' : '연료 충전 후보로 단백질, 물, 영양소를 임시 추정했습니다.',
+    ap_spent: null,
+    skill_exp: needsReview ? 0 : skillExp,
+    stat_exp: needsReview ? 0 : Math.round(skillExp * 0.3),
+    character_exp: needsReview ? 0 : Math.round(skillExp * 0.22),
+    components: {
+      protein: proteinGrams,
+      water: waterLiters,
+      nutrients
+    },
+    metrics: {
+      protein_grams: proteinGrams,
+      protein_goal_grams: 128,
+      protein_percent: proteinPercent,
+      water_liters: waterLiters,
+      water_goal_liters: 2.0,
+      nutrients,
+      meal_detail: mealDetail
+    },
+    evidence: [`${text}에서 ${detectedProtein.concat(nutrients).join(', ') || '연료 충전'} 표현을 감지했습니다.`],
+    needs_review: needsReview,
+    review_reason: needsReview ? '음식/물/영양소 정보를 거의 추출하지 못했습니다.' : null,
+    confidence: needsReview ? 0.42 : 0.82,
+    skill_rule_version: 'fuel_charge_mock_v0.1'
+  });
+}
+
+function extractSleepHours(text) {
+  const hourMatch = text.match(/(\d+(?:\.\d+)?)\s*시간/);
+  if (hourMatch) return Number(hourMatch[1]);
+  const timeRange = text.match(/(\d{1,2})시에\s*자서\s*(\d{1,2})시에\s*(?:일어났|기상)/);
+  if (timeRange) {
+    const start = Number(timeRange[1]);
+    let end = Number(timeRange[2]);
+    if (end <= start) end += 24;
+    return end - start;
+  }
+  return null;
+}
+
+function getSleepBaseExp(hours) {
+  if (hours === null) return 0;
+  if (hours < 4) return 0;
+  if (hours < 5) return 5;
+  if (hours < 6) return 15;
+  if (hours < 7) return 35;
+  if (hours <= 9) return 70;
+  return 50;
+}
+
+function analyzeRecoveryNightMock(route) {
+  const text = getRouteText(route);
+  const sleepHours = extractSleepHours(text);
+  const napMinutes = text.includes('낮잠') ? parseMockMinutes(text) : null;
+  const sleepQualityGood = hasAnyKeyword(text, ['개운', '푹 잤', '숙면']);
+  const routineCount = ['스트레칭', '휴대폰 안 보고', '회복 루틴'].filter(keyword => text.includes(keyword)).length;
+  let skillExp = getSleepBaseExp(sleepHours);
+  if (text.includes('일찍')) skillExp += 10;
+  if (routineCount >= 2) skillExp += 20;
+  else if (routineCount === 1) skillExp += 10;
+  if (napMinutes !== null && napMinutes >= 10 && napMinutes <= 30) skillExp += 10;
+  else if (napMinutes !== null && napMinutes > 30 && napMinutes <= 60) skillExp += 5;
+  if (hasAnyKeyword(text, ['잤', '수면', '자서', '낮잠'])) skillExp += 5;
+  if (sleepQualityGood) skillExp += 10;
+  skillExp = Math.min(100, skillExp);
+  const needsReview = sleepHours === null && napMinutes === null;
+
+  return createMockAnalysisResult(route, {
+    summary: needsReview ? '회복의 밤 후보지만 수면 시간이 부족합니다.' : '회복의 밤 후보로 수면 시간을 임시 분석했습니다.',
+    ap_spent: null,
+    skill_exp: needsReview ? 0 : skillExp,
+    stat_exp: needsReview ? 0 : Math.round(skillExp * 0.32),
+    character_exp: needsReview ? 0 : Math.round(skillExp * 0.22),
+    components: { sleep: sleepHours, nap: napMinutes, routine_count: routineCount },
+    metrics: {
+      sleep_hours: sleepHours,
+      nap_minutes: napMinutes,
+      sleep_quality_good: sleepQualityGood
+    },
+    evidence: [`${text}에서 수면/회복 표현을 감지했습니다.`],
+    needs_review: needsReview,
+    review_reason: needsReview ? '수면 관련 표현은 있지만 시간 정보가 없습니다.' : null,
+    confidence: needsReview ? 0.45 : 0.84,
+    skill_rule_version: 'recovery_night_mock_v0.1'
+  });
+}
+
+function analyzeStrengthProofMock(route) {
+  const text = getRouteText(route);
+  const sets = Number(text.match(/(\d+)\s*세트/)?.[1] || 0) || null;
+  const reps = Number(text.match(/(\d+)\s*회/)?.[1] || 0) || null;
+  const seconds = Number(text.match(/(\d+)\s*초/)?.[1] || 0) || null;
+  const exerciseKeywords = ['푸시업', '팔굽혀펴기', '스쿼트', '플랭크', '덤벨 숄더 프레스', '원암 덤벨 로우', '윗몸일으키기', '버피', '덤벨'];
+  const exerciseName = exerciseKeywords.find(keyword => text.includes(keyword)) || null;
+  const needsReview = !!exerciseName && !sets && !reps && !seconds;
+  let skillExp = 0;
+  let statExp = 0;
+  let characterExp = 0;
+
+  if (needsReview) {
+    skillExp = 0;
+  } else if (sets && sets >= 3) {
+    skillExp = 90;
+    statExp = 30;
+    characterExp = 20;
+  } else if (sets && sets >= 1) {
+    const countedSets = Math.min(3, sets);
+    skillExp = countedSets * 25;
+    statExp = countedSets * 8;
+    characterExp = countedSets * 5;
+  } else if (exerciseName) {
+    const thresholdMet = (text.includes('푸시업') && reps >= 10)
+      || (text.includes('스쿼트') && reps >= 15)
+      || (text.includes('플랭크') && seconds >= 30)
+      || (text.includes('윗몸일으키기') && reps >= 15)
+      || (text.includes('버피') && reps >= 8)
+      || (text.includes('덤벨') && reps >= 10);
+    skillExp = thresholdMet ? 25 : 5;
+    statExp = thresholdMet ? 8 : 2;
+    characterExp = thresholdMet ? 5 : 1;
+  }
+
+  return createMockAnalysisResult(route, {
+    summary: needsReview ? '근력의 증명 후보지만 횟수/세트 정보가 필요합니다.' : '근력의 증명 후보로 세트/횟수를 임시 분석했습니다.',
+    ap_spent: null,
+    skill_exp: skillExp,
+    stat_exp: statExp,
+    character_exp: characterExp,
+    components: { strength_training: exerciseName },
+    metrics: { sets, reps, seconds, exercise_name: exerciseName },
+    evidence: [`${text}에서 ${exerciseName || '근력운동'} 표현을 감지했습니다.`],
+    needs_review: needsReview,
+    review_reason: needsReview ? '운동명은 있지만 횟수, 초, 세트가 없습니다.' : null,
+    confidence: needsReview ? 0.5 : 0.84,
+    skill_rule_version: 'strength_proof_mock_v0.1'
+  });
+}
+
+function confidenceToNumber(value) {
+  return value === 'high' ? 0.9 : value === 'medium' ? 0.65 : 0.4;
+}
+
+function analyzeInsightLanguageRouteMock(route) {
+  const result = analyzeRecordMock(route.text_segment || '');
+  return createMockAnalysisResult(route, {
+    summary: result.summary || '통찰의 언어 후보로 분석했습니다.',
+    ap_spent: result.ap,
+    skill_exp: result.skill_exp || 0,
+    stat_exp: result.stat_exp || 0,
+    character_exp: result.char_exp || 0,
+    components: {
+      depth: result.depth,
+      depth_name: result.depth_name,
+      components: result.components || []
+    },
+    metrics: {
+      minutes: result.minutes,
+      source_title: result.source_title
+    },
+    evidence: [result.evidence || route.text_segment],
+    needs_review: !!result.needs_review,
+    review_reason: result.review_reason || null,
+    confidence: confidenceToNumber(result.confidence),
+    skill_rule_version: 'insight_language_mock_v0.1'
+  });
+}
+
+function analyzeCodeCraftsmanMock(route) {
+  const text = getRouteText(route);
+  let skillExp = 30;
+  let summary = '코드 학습 후보로 분석했습니다.';
+  let needsReview = false;
+
+  if (text.trim() === '코딩했다' || text.trim() === '코딩 했다') {
+    skillExp = 0;
+    needsReview = true;
+    summary = '코드의 장인 후보지만 활동 내용이 부족합니다.';
+  } else if (hasAnyKeyword(text, ['배포', '프로젝트 완료', '단계 완료'])) {
+    skillExp = 120;
+    summary = '프로젝트 단계 완료/배포 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['오류', '에러', '버그', '디버깅', '해결'])) {
+    skillExp = 90;
+    summary = '오류 해결/디버깅 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['수정', '구현', '고쳤', '적용'])) {
+    skillExp = 70;
+    summary = '코드 수정/구현 후보로 분석했습니다.';
+  }
+
+  return createMockAnalysisResult(route, {
+    summary,
+    ap_spent: null,
+    skill_exp: skillExp,
+    stat_exp: Math.round(skillExp * 0.3),
+    character_exp: Math.round(skillExp * 0.2),
+    components: { code_activity: true },
+    metrics: {},
+    evidence: [`${text}에서 코드 작업 표현을 감지했습니다.`],
+    needs_review: needsReview,
+    review_reason: needsReview ? '학습, 구현, 디버깅 중 어떤 활동인지 구체화가 필요합니다.' : null,
+    confidence: needsReview ? 0.45 : 0.83,
+    skill_rule_version: 'code_craftsman_mock_v0.1'
+  });
+}
+
+function analyzeLanguageSkillMock(route) {
+  const text = getRouteText(route);
+  let skillExp = 25;
+  let summary = '생각 정리 후보로 분석했습니다.';
+  if (hasAnyKeyword(text, ['표현 다듬기', '공문', '민원', '문구'])) {
+    skillExp = 80;
+    summary = '표현 다듬기/공문/민원 응대 문구 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['보고', '전달 준비', '상사'])) {
+    skillExp = 70;
+    summary = '보고/전달 준비 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['작성', '문장', '공지문', '카카오톡 안내문'])) {
+    skillExp = 50;
+    summary = '문장 작성 후보로 분석했습니다.';
+  }
+
+  return createMockAnalysisResult(route, {
+    summary,
+    ap_spent: null,
+    skill_exp: skillExp,
+    stat_exp: Math.round(skillExp * 0.3),
+    character_exp: Math.round(skillExp * 0.2),
+    components: { language_activity: true },
+    metrics: {},
+    evidence: [`${text}에서 언어 표현 활동을 감지했습니다.`],
+    needs_review: false,
+    review_reason: null,
+    confidence: 0.78,
+    skill_rule_version: 'language_skill_mock_v0.1'
+  });
+}
+
+function analyzeForeignLanguageAwakeningMock(route) {
+  const text = getRouteText(route);
+  let skillExp = 25;
+  let summary = '외국어 복습 후보로 분석했습니다.';
+  if (hasAnyKeyword(text, ['문장 쓰기', '말하기', '회화'])) {
+    skillExp = 70;
+    summary = '외국어 문장 쓰기/말하기 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['지문', '해석', '영어 기사', 'VOA', 'BBC', '듣기', '따라 읽기'])) {
+    skillExp = 50;
+    summary = '외국어 지문 읽기/해석/듣기 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['단어', '숙어'])) {
+    skillExp = 30;
+    summary = '외국어 단어/숙어 정리 후보로 분석했습니다.';
+  }
+
+  return createMockAnalysisResult(route, {
+    summary,
+    ap_spent: null,
+    skill_exp: skillExp,
+    stat_exp: Math.round(skillExp * 0.3),
+    character_exp: Math.round(skillExp * 0.2),
+    components: { foreign_language_activity: true },
+    metrics: {},
+    evidence: [`${text}에서 외국어 활동 표현을 감지했습니다.`],
+    needs_review: false,
+    review_reason: null,
+    confidence: 0.8,
+    skill_rule_version: 'foreign_language_awakening_mock_v0.1'
+  });
+}
+
+function analyzeAssetInsightMock(route) {
+  const text = getRouteText(route);
+  let skillExp = 25;
+  let summary = '지출 확인/소비 기록 후보로 분석했습니다.';
+  if (hasAnyKeyword(text, ['저축', '예산'])) {
+    skillExp = 70;
+    summary = '저축/예산 점검 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['구독', '해지', '절약'])) {
+    skillExp = 60;
+    summary = '구독 해지/절약 행동 후보로 분석했습니다.';
+  } else if (hasAnyKeyword(text, ['경제 공부', '금융 공부', '투자 공부'])) {
+    skillExp = 50;
+    summary = '경제/금융/투자 공부 후보로 분석했습니다.';
+  }
+
+  return createMockAnalysisResult(route, {
+    summary,
+    ap_spent: null,
+    skill_exp: skillExp,
+    stat_exp: Math.round(skillExp * 0.3),
+    character_exp: Math.round(skillExp * 0.2),
+    components: { asset_activity: true },
+    metrics: {},
+    evidence: [`${text}에서 자산 관리 표현을 감지했습니다.`],
+    needs_review: false,
+    review_reason: null,
+    confidence: 0.78,
+    skill_rule_version: 'asset_insight_mock_v0.1'
+  });
+}
+
+function analyzeByRouteMock(route) {
+  if (!route || route.route_status !== 'active_skill') return null;
+  const analyzers = {
+    running_proof: analyzeRunningProofMock,
+    fuel_charge: analyzeFuelChargeMock,
+    recovery_night: analyzeRecoveryNightMock,
+    strength_proof: analyzeStrengthProofMock,
+    insight_language: analyzeInsightLanguageRouteMock,
+    code_craftsman: analyzeCodeCraftsmanMock,
+    language_skill: analyzeLanguageSkillMock,
+    foreign_language_awakening: analyzeForeignLanguageAwakeningMock,
+    asset_insight: analyzeAssetInsightMock
+  };
+  const analyzer = analyzers[route.skill_id];
+  return analyzer ? analyzer(route) : null;
+}
+
+function createRawLogDraft(text) {
+  const now = new Date().toISOString();
+  const routerResult = routeRecordMock(text);
+  const mockAnalysisResults = routerResult.routing_results
+    .filter(route => route.route_status === 'active_skill')
+    .map(analyzeByRouteMock)
+    .filter(Boolean);
+  return {
+    id: `raw_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    user_id: USER?.email || 'dev@local.test',
+    date: now.slice(0, 10),
+    week_id: getWeekId(now),
+    month_id: now.slice(0, 7),
+    input_type: 'B',
+    type: 'B',
+    source: 'detail_input',
+    status: 'draft',
+    raw_text: text,
+    created_at: now,
+    updated_at: now,
+    saved_at: null,
+    analysis: {
+      mode: 'temporary',
+      title: '임시 분석 결과',
+      summary: '브라우저 임시 라우터와 Mock 분석기로 만든 임시 분석 후보입니다.',
+      needs_ai_review: true,
+      routing_result: routerResult,
+      router_result: routerResult,
+      mock_analysis_results: mockAnalysisResults
+    }
+  };
+}
+
+function getWeekId(value) {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function createTemporaryAnalysisResult(rawLog) {
+  const now = new Date().toISOString();
+  return {
+    id: `analysis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    raw_log_id: rawLog.id,
+    user_id: rawLog.user_id,
+    date: rawLog.date,
+    week_id: rawLog.week_id,
+    month_id: rawLog.month_id,
+    stat: null,
+    skill_tree: null,
+    type: 'temporary_router_placeholder',
+    summary: '브라우저 임시 라우터와 Mock 분석 결과를 함께 저장했습니다.',
+    ap_spent: 0,
+    skill_exp: 0,
+    stat_exp: 0,
+    character_exp: 0,
+    components: [],
+    metrics: {
+      routing_result: rawLog.analysis?.routing_result || rawLog.analysis?.router_result || null,
+      mock_analysis_results: rawLog.analysis?.mock_analysis_results || []
+    },
+    evidence: rawLog.raw_text,
+    needs_review: true,
+    review_reason: '실제 AI 분석/EXP 확정 반영 전의 임시 분석 결과입니다.',
+    confidence: 0,
+    status: 'pending',
+    skill_rule_version: 'mvp_raw_log_v1',
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function getAnalysisByRawLogId(rawLogId) {
+  return ANALYSIS_RESULTS.find(item => item.raw_log_id === rawLogId);
+}
+
+function formatRawLogDate(value) {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return value;
+  }
+}
+
+function renderRawLogList() {
+  const box = document.getElementById('rawLogList');
+  if (!box) return;
+
+  if (!RAW_LOGS.length) {
+    box.innerHTML = `
+      <div class="raw-log-list-title">저장된 B형 기록</div>
+      <div class="raw-log-empty">아직 저장된 B형 기록이 없어요.</div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="raw-log-list-title">저장된 B형 기록 ${RAW_LOGS.length}개</div>
+    <div class="raw-log-items">
+      ${RAW_LOGS.slice(0, 10).map(log => `
+        <div class="raw-log-item" role="button" tabindex="0" onclick="openRawLogDetail('${escapeHtml(log.id)}')" onkeydown="if(event.key==='Enter'){openRawLogDetail('${escapeHtml(log.id)}')}">
+          <div class="raw-log-meta">B형 기록 · ${escapeHtml(formatRawLogDate(log.saved_at || log.created_at))} · ${escapeHtml(getRawLogStatusLabel(log))}</div>
+          <div class="raw-log-text">${escapeHtml(log.raw_text || '')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getRawLogStatusLabel(log) {
+  const analysis = getAnalysisByRawLogId(log.id);
+  if (!analysis) return log.status || 'saved';
+  if (analysis.status === 'pending') return '임시 분석 대기';
+  if (analysis.status === 'confirmed') return '분석 확정';
+  if (analysis.status === 'rejected') return '분석 제외';
+  if (analysis.status === 'needs_review') return '보충 필요';
+  return analysis.status;
+}
+
+function renderRawLogDetailContent(rawLog, analysisResult, records) {
+  const routingResult = rawLog?.analysis?.routing_result
+    || rawLog?.analysis?.router_result
+    || analysisResult?.metrics?.routing_result
+    || null;
+  const routingRows = Array.isArray(routingResult?.routing_results) ? routingResult.routing_results : [];
+  const mockResults = Array.isArray(rawLog?.analysis?.mock_analysis_results)
+    ? rawLog.analysis.mock_analysis_results
+    : (Array.isArray(analysisResult?.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : []);
+  const appliedRecords = Array.isArray(records) ? records : [];
+
+  const totalSkillExp = appliedRecords.reduce((sum, r) => sum + (Number(r.skillExp) || 0), 0);
+  const totalStatExp = appliedRecords.reduce((sum, r) => sum + (Number(r.statExp) || 0), 0);
+  const totalCharExp = appliedRecords.reduce((sum, r) => sum + (Number(r.charExp) || 0), 0);
+  const totalAp = appliedRecords.reduce((sum, r) => sum + (typeof r.ap === 'number' ? r.ap : 0), 0);
+
+  const routingHtml = routingRows.length
+    ? routingRows.map(route => {
+      const candidates = Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree : [];
+      const label = route.skill_tree
+        || (candidates.length ? `${route.stat || 'UNKNOWN'} · ${candidates.join(', ')}` : route.route_status);
+      return `<div class="raw-log-detail-line">- ${escapeHtml(label)} · ${escapeHtml(route.reason || '')}</div>`;
+    }).join('')
+    : '<div class="raw-log-detail-line">라우팅 결과가 없습니다.</div>';
+
+  const mockHtml = mockResults.length
+    ? mockResults.map(mock => {
+      const evidence = Array.isArray(mock.evidence) ? mock.evidence.join(' / ') : (mock.evidence || mock.summary || '');
+      return `
+        <div class="raw-log-detail-line">- ${escapeHtml(mock.skill_tree || '미분류')}: 스킬 +${Number(mock.skill_exp) || 0} / ${escapeHtml(mock.stat || '스탯')} +${Number(mock.stat_exp) || 0} / 캐릭터 +${Number(mock.character_exp) || 0}</div>
+        ${evidence ? `<div class="raw-log-detail-line">  근거: ${escapeHtml(evidence)}</div>` : ''}
+      `;
+    }).join('')
+    : '<div class="raw-log-detail-line">Mock 분석 후보가 없습니다.</div>';
+
+  const recordsHtml = appliedRecords.length
+    ? appliedRecords.map(record => `
+      <div class="raw-log-detail-line">- ${escapeHtml(record.skillName || SKILLS[record.skillId]?.name || '미분류 기록')} 기록 1개 · 스킬 +${Number(record.skillExp) || 0} / ${escapeHtml(record.stat || '')} +${Number(record.statExp) || 0} / 캐릭터 +${Number(record.charExp) || 0}</div>
+    `).join('')
+    : '<div class="raw-log-detail-line">성장에 반영된 기록이 없습니다.</div>';
+
+  return `
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">원문</div>
+      <div class="raw-log-detail-line">${escapeHtml(rawLog.raw_text || '')}</div>
+    </div>
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">저장 정보</div>
+      <div class="raw-log-detail-line">저장일: ${escapeHtml(formatRawLogDate(rawLog.saved_at || rawLog.created_at))}</div>
+      <div class="raw-log-detail-line">상태: ${escapeHtml(getRawLogStatusLabel(rawLog))}</div>
+    </div>
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">라우팅</div>
+      ${routingHtml}
+    </div>
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">Mock 분석 후보</div>
+      ${mockHtml}
+    </div>
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">성장 반영</div>
+      ${recordsHtml}
+    </div>
+    <div class="raw-log-detail-section">
+      <div class="raw-log-detail-title">획득 EXP 합계</div>
+      <div class="raw-log-detail-line">AP ${formatAnalysisValue(round2(totalAp))}</div>
+      <div class="raw-log-detail-line">스킬 EXP +${totalSkillExp}</div>
+      <div class="raw-log-detail-line">스탯 EXP +${totalStatExp}</div>
+      <div class="raw-log-detail-line">캐릭터 EXP +${totalCharExp}</div>
+    </div>
+  `;
+}
+
+function openRawLogDetail(rawLogId) {
+  const rawLog = RAW_LOGS.find(item => item.id === rawLogId);
+  if (!rawLog) {
+    console.warn('기록을 찾을 수 없습니다.', rawLogId);
+    showToast('기록을 찾을 수 없습니다.', 'error');
+    return;
+  }
+
+  const analysisResult = getAnalysisByRawLogId(rawLogId);
+  const records = (PLAYER.records || []).filter(record => record.rawLogId === rawLogId);
+  const content = document.getElementById('rawLogDetailContent');
+  const modal = document.getElementById('rawLogDetailModal');
+  if (!content || !modal) return;
+
+  selectedRawLogId = rawLogId;
+  content.innerHTML = renderRawLogDetailContent(rawLog, analysisResult, records);
+  modal.classList.add('show');
+}
+
+function closeRawLogDetail() {
+  selectedRawLogId = null;
+  const modal = document.getElementById('rawLogDetailModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function deleteRawLogCascade(rawLogId) {
+  if (!rawLogId) {
+    return { deletedRawLogs: 0, deletedAnalysisResults: 0, deletedRecords: 0 };
+  }
+
+  const beforeRawLogs = RAW_LOGS.length;
+  const beforeAnalysisResults = ANALYSIS_RESULTS.length;
+  const beforeRecords = (PLAYER.records || []).length;
+
+  for (let i = RAW_LOGS.length - 1; i >= 0; i--) {
+    if (RAW_LOGS[i]?.id === rawLogId) RAW_LOGS.splice(i, 1);
+  }
+
+  for (let i = ANALYSIS_RESULTS.length - 1; i >= 0; i--) {
+    if (ANALYSIS_RESULTS[i]?.raw_log_id === rawLogId) ANALYSIS_RESULTS.splice(i, 1);
+  }
+
+  PLAYER.records = (PLAYER.records || []).filter(record => record.rawLogId !== rawLogId);
+
+  rebuildSkillProgressFromRecords();
+  recalcStats();
+  recalcCharLevel();
+
+  return {
+    deletedRawLogs: beforeRawLogs - RAW_LOGS.length,
+    deletedAnalysisResults: beforeAnalysisResults - ANALYSIS_RESULTS.length,
+    deletedRecords: beforeRecords - PLAYER.records.length
+  };
+}
+
+function deleteSelectedRawLog() {
+  if (!selectedRawLogId) return null;
+  const rawLogId = selectedRawLogId;
+  const ok = window.confirm('이 B형 기록과 연결된 임시 분석 결과, 성장 반영 기록을 함께 삭제할까요?');
+  if (!ok) return null;
+
+  const result = deleteRawLogCascade(rawLogId);
+  closeRawLogDetail();
+  renderAll();
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+  showToast('B형 기록과 연결된 성장 기록을 삭제했어요.', 'success');
+  return result;
+}
+
+function formatRoutingResultRows(routerResult) {
+  const results = routerResult?.routing_results || [];
+  if (!results.length) return '<div class="row"><span class="k">라우팅</span><span class="v">분류 결과 없음</span></div>';
+
+  return results.map((route, index) => {
+    const statusLabel = {
+      active_skill: '활성 스킬',
+      future_skill_candidate: '향후 후보',
+      needs_review: '검토 필요',
+      unassigned: '미분류'
+    }[route.route_status] || route.route_status;
+    const candidates = Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree : [];
+    let label = route.skill_tree || '미분류';
+
+    if (route.route_status === 'future_skill_candidate' && candidates.length > 0) {
+      label = `${route.stat || 'UNKNOWN'} · ${candidates.join(', ')}`;
+    } else if (candidates.length > 0) {
+      label = candidates.join(', ');
+    }
+
+    return `
+      <div class="row">
+        <span class="k">라우팅 ${index + 1}</span>
+        <span class="v">${escapeHtml(statusLabel)} · ${escapeHtml(label)}</span>
+      </div>
+      <div class="row">
+        <span class="k">근거</span>
+        <span class="v">${escapeHtml(route.text_segment)} → ${escapeHtml(route.reason)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatMockAnalysisRows(mockResults) {
+  const results = Array.isArray(mockResults) ? mockResults : [];
+  if (!results.length) {
+    return '<div class="row"><span class="k">분석 후보</span><span class="v">활성 스킬 분석 후보 없음</span></div>';
+  }
+
+  return `
+    <div class="row"><span class="k">분석 후보</span><span class="v">${results.length}개</span></div>
+    ${results.map((item, index) => `
+      <div class="row">
+        <span class="k">후보 ${index + 1}</span>
+        <span class="v">${escapeHtml(item.skill_tree || '미분류')}</span>
+      </div>
+      <div class="row">
+        <span class="k">EXP 후보</span>
+        <span class="v">스킬 +${item.skill_exp || 0} · ${escapeHtml(item.stat || '')} +${item.stat_exp || 0} · 캐릭터 +${item.character_exp || 0}</span>
+      </div>
+      <div class="row">
+        <span class="k">AP 후보</span>
+        <span class="v">${formatAnalysisValue(item.ap_spent)}</span>
+      </div>
+      <div class="row">
+        <span class="k">후보 근거</span>
+        <span class="v">${escapeHtml((item.evidence || []).join(' / '))}</span>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderRawLogAnalysisPreview(log) {
+  const routerResult = log.analysis?.routing_result || log.analysis?.router_result;
+  const mockResults = log.analysis?.mock_analysis_results || [];
+  return `
+    💡 임시 분석 결과
+    <div style="font-size:12px; color:#A07847; margin-top:4px;">현재는 브라우저 임시 라우터로만 분류합니다. 실제 AI 분석과 EXP 계산은 아직 연결하지 않았습니다.</div>
+    <div style="font-size:12px; color:#A07847; margin-top:4px;">아래 값은 브라우저 Mock 분석 후보입니다. 저장하기를 누르면 이 Mock EXP가 임시 성장값으로 반영됩니다. 실제 AI 분석 확정값은 아직 연결하지 않았습니다.</div>
+    <div class="ai-result">
+      <div class="row"><span class="k">기록 유형</span><span class="v">B형 상세기록</span></div>
+      <div class="row"><span class="k">저장 구조</span><span class="v">raw_logs</span></div>
+      <div class="row"><span class="k">분석 상태</span><span class="v">임시 분석</span></div>
+      <div class="row"><span class="k">EXP 계산</span><span class="v">저장 전 후보 표시 · 저장 시 Mock 성장 반영</span></div>
+      <div class="row"><span class="k">라우터 요약</span><span class="v">${escapeHtml(routerResult?.router_comment || '라우팅 결과 없음')}</span></div>
+      ${formatRoutingResultRows(routerResult)}
+      ${formatMockAnalysisRows(mockResults)}
+      <div class="row"><span class="k">원문</span><span class="v">${escapeHtml(log.raw_text)}</span></div>
+    </div>
+    <div class="confirm-row">
+      <button class="confirm-yes" onclick="savePendingRawLog()">저장하기</button>
+      <button class="confirm-edit" onclick="editPendingRawLog()">수정하기</button>
+      <button class="confirm-no" onclick="discardPendingRawLog()">저장 안 함</button>
+    </div>
+  `;
 }
 
 function renderAnalysisPreview(analysis, title = '💡 이렇게 분석했어요!') {
@@ -2049,6 +3608,13 @@ async function handleSend() {
   input.value = '';
   input.style.height = 'auto';
 
+  if (RAW_LOG_MVP_MODE) {
+    pendingRawLog = createRawLogDraft(text);
+    pendingAnalysis = null;
+    appendChat(renderRawLogAnalysisPreview(pendingRawLog), 'ai');
+    return;
+  }
+
   const sendBtn = document.getElementById('sendBtn');
   sendBtn.disabled = true;
   appendTyping();
@@ -2079,6 +3645,7 @@ async function handleSend() {
 
 function estimateExp(skillId, minutes) {
   const sk = SKILLS[skillId];
+  if (!sk) return 0;
   const skState = PLAYER.skills[skillId] || { rank: 'F', exp: 0 };
   const rankBonus = RANK_BONUS[skState.rank] || 1.0;
   const statBonus = 1 + (PLAYER.stats[sk.stat] * 0.01);
@@ -2123,6 +3690,59 @@ function editAnalysis() {
 function cancelAnalysis() {
   pendingAnalysis = null;
   appendChat('알겠어요. 다시 적어주세요.', 'ai');
+}
+
+function savePendingRawLog() {
+  if (!pendingRawLog) return;
+  const rawDraft = pendingRawLog;
+  pendingRawLog = null;
+
+  const now = new Date().toISOString();
+  const log = {
+    ...rawDraft,
+    status: 'analyzed',
+    updated_at: now,
+    saved_at: now,
+    applied_to_player: false
+  };
+  const analysisResult = createTemporaryAnalysisResult(log);
+  const applyResult = applyMockAnalysisResultsToPlayer(log, analysisResult);
+  log.applied_to_player = applyResult.appliedCount > 0;
+
+  RAW_LOGS.unshift(log);
+  if (RAW_LOGS.length > 500) RAW_LOGS.splice(500);
+  ANALYSIS_RESULTS.unshift(analysisResult);
+  if (ANALYSIS_RESULTS.length > 500) ANALYSIS_RESULTS.splice(500);
+  recalcStats();
+  recalcCharLevel();
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+  renderAll();
+  const message = applyResult.appliedCount > 0
+    ? '저장했어요. 원문과 임시 분석 결과를 저장했고, Mock 분석 후보 EXP를 성장에 반영했습니다.'
+    : '저장했어요. 원문과 임시 분석 결과를 저장했습니다. 다만 성장에 반영할 활성 스킬 후보는 없었습니다.';
+  appendChat(message, 'ai');
+}
+
+function editPendingRawLog() {
+  if (!pendingRawLog) return;
+  const input = document.getElementById('chatInput');
+  input.value = pendingRawLog.raw_text || '';
+  input.focus();
+  input.style.height = 'auto';
+  input.style.height = Math.min(100, input.scrollHeight) + 'px';
+  pendingRawLog = null;
+  appendChat('수정할 내용을 입력창에 다시 올려두었어요. 고친 뒤 다시 보내주세요.', 'ai');
+}
+
+function discardPendingRawLog() {
+  if (!pendingRawLog) return;
+  pendingRawLog = null;
+  appendChat('저장하지 않았어요.', 'ai');
 }
 
 const chatInput = document.getElementById('chatInput');
@@ -2179,7 +3799,7 @@ function animateStatBump(stat) {
    초기화
    ============================================ */
 
-loadLocal();
+loadAllLocal();
 loadUser();
 recalcStats();
 recalcCharLevel();
@@ -2197,9 +3817,12 @@ function resetTestData() {
     SAVE_TIMER = null;
   }
   try { localStorage.removeItem(LOCAL_KEY); } catch (e) {}
-  const fresh = createInitialPlayerState();
-  for (const key of Object.keys(PLAYER)) delete PLAYER[key];
-  Object.assign(PLAYER, fresh);
+  try { localStorage.removeItem(RAW_LOGS_KEY); } catch (e) {}
+  try { localStorage.removeItem(ANALYSIS_RESULTS_KEY); } catch (e) {}
+  replacePlayerData(createInitialPlayerState());
+  replaceRawLogs([]);
+  replaceAnalysisResults([]);
+  pendingRawLog = null;
   recalcStats();
   recalcCharLevel();
   renderAll();
@@ -2214,13 +3837,16 @@ function getLifeRpgStatus() {
     AI_ANALYSIS_ENGINE_VERSION,
     DEV_SKIP_LOGIN,
     USE_MOCK_ANALYZER,
+    RAW_LOG_MVP_MODE,
     SERVER_ANALYZE_URL,
     AP_MINUTES,
     records_count: PLAYER.records.length,
+    raw_logs_count: RAW_LOGS.length,
+    analysis_results_count: ANALYSIS_RESULTS.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
-    serverAnalyzeEnabled: USE_MOCK_ANALYZER === false,
+    serverAnalyzeEnabled: RAW_LOG_MVP_MODE ? false : USE_MOCK_ANALYZER === false,
     geminiDirectCall: false,
     gemini_api_connected: false
   };
@@ -2398,6 +4024,359 @@ window.LIFE_RPG_TEST = {
     return resetTestData();
   },
 
+  routerTest() {
+    const cases = [
+      {
+        text: '5km 뛰고 닭가슴살 2팩 먹었다.',
+        expected: 'running_proof + fuel_charge',
+        pass: result => result.routing_results.some(r => r.skill_id === 'running_proof')
+          && result.routing_results.some(r => r.skill_id === 'fuel_charge')
+      },
+      {
+        text: '책 20쪽 읽고 핵심 내용을 정리했다.',
+        expected: 'insight_language',
+        pass: result => result.routing_results.some(r => r.skill_id === 'insight_language')
+      },
+      {
+        text: '푸시업 3세트 했다.',
+        expected: 'strength_proof',
+        pass: result => result.routing_results.some(r => r.skill_id === 'strength_proof')
+      },
+      {
+        text: '기도하고 말씀 읽었다.',
+        expected: 'future WIS candidate',
+        pass: result => result.routing_results.some(r => r.route_status === 'future_skill_candidate' && r.stat === 'WIS')
+      },
+      {
+        text: '운동했다.',
+        expected: 'needs_review',
+        pass: result => result.routing_results.some(r => r.route_status === 'needs_review')
+      },
+      {
+        text: '영어 지문 읽고 단어 5개 정리했다.',
+        expected: 'foreign_language_awakening',
+        pass: result => result.routing_results.some(r => r.skill_id === 'foreign_language_awakening')
+      },
+      {
+        text: 'CSS 오류를 수정했다.',
+        expected: 'code_craftsman',
+        pass: result => result.routing_results.some(r => r.skill_id === 'code_craftsman')
+      },
+      {
+        text: '물 500ml 2병 마셨다.',
+        expected: 'fuel_charge',
+        pass: result => result.routing_results.some(r => r.skill_id === 'fuel_charge')
+      },
+      {
+        text: '7시간 잤다.',
+        expected: 'recovery_night',
+        pass: result => result.routing_results.some(r => r.skill_id === 'recovery_night')
+      },
+      {
+        text: '뭔가 했다.',
+        expected: 'needs_review because activity is unclear',
+        pass: result => result.routing_results.every(r => r.route_status === 'needs_review')
+      }
+    ];
+
+    const rows = cases.map((item, index) => {
+      const result = routeRecordMock(item.text);
+      const passed = item.pass(result);
+      return {
+        no: index + 1,
+        result: passed ? 'PASS' : 'FAIL',
+        text: item.text,
+        expected: item.expected,
+        routes: result.routing_results.map(r => r.skill_id || r.route_status).join(' + '),
+        statuses: result.routing_results.map(r => r.route_status).join(' + '),
+        comment: result.router_comment,
+        routing_results: result.routing_results
+      };
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_ROUTER_TEST: ALL PASS' : 'LIFE_RPG_ROUTER_TEST: FAIL');
+    return rows;
+  },
+
+  analyzerMockTest() {
+    const cases = [
+      {
+        text: '5km 뛰고 닭가슴살 2팩 먹었다.',
+        expected: 'running_proof + fuel_charge mock analyses',
+        pass: data => data.mock_analysis_results.some(item => item.skill_id === 'running_proof')
+          && data.mock_analysis_results.some(item => item.skill_id === 'fuel_charge')
+      },
+      {
+        text: '7시간 잤다.',
+        expected: 'recovery_night skill_exp >= 70',
+        pass: data => data.mock_analysis_results.some(item => item.skill_id === 'recovery_night' && item.skill_exp >= 70)
+      },
+      {
+        text: '푸시업 3세트 했다.',
+        expected: 'strength_proof skill_exp >= 90',
+        pass: data => data.mock_analysis_results.some(item => item.skill_id === 'strength_proof' && item.skill_exp >= 90)
+      },
+      {
+        text: 'CSS 오류를 수정했다.',
+        expected: 'code_craftsman skill_exp 90',
+        pass: data => data.mock_analysis_results.some(item => item.skill_id === 'code_craftsman' && item.skill_exp === 90)
+      },
+      {
+        text: '영어 지문 읽고 단어 5개 정리했다.',
+        expected: 'foreign_language_awakening analysis exists',
+        pass: data => data.mock_analysis_results.some(item => item.skill_id === 'foreign_language_awakening')
+      },
+      {
+        text: '운동했다.',
+        expected: 'needs_review route only, no mock analyses',
+        pass: data => data.mock_analysis_results.length === 0
+          && data.routing_result.routing_results.some(route => route.route_status === 'needs_review')
+      }
+    ];
+
+    const rows = cases.map((item, index) => {
+      const rawLog = createRawLogDraft(item.text);
+      const data = {
+        routing_result: rawLog.analysis.routing_result,
+        mock_analysis_results: rawLog.analysis.mock_analysis_results || []
+      };
+      const passed = item.pass(data);
+      return {
+        no: index + 1,
+        result: passed ? 'PASS' : 'FAIL',
+        text: item.text,
+        expected: item.expected,
+        routes: data.routing_result.routing_results.map(route => route.skill_id || route.route_status).join(' + '),
+        analyses: data.mock_analysis_results.map(result => `${result.skill_id}:${result.skill_exp}`).join(' + '),
+        mock_analysis_results: data.mock_analysis_results
+      };
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_ANALYZER_MOCK_TEST: ALL PASS' : 'LIFE_RPG_ANALYZER_MOCK_TEST: FAIL');
+    return rows;
+  },
+
+  applyMockTest() {
+    const rows = [];
+
+    resetTestData();
+    const rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    const analysisResult = createTemporaryAnalysisResult(rawLog);
+    const applyResult = applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    rows.push({
+      case: 'active mock analyses apply',
+      result: PLAYER.records.length >= 2
+        && (PLAYER.stats.STR || 0) > 0
+        && PLAYER.charExp > 0
+        && (PLAYER.skills.running_proof?.exp || 0) > 0
+        && (PLAYER.skills.fuel_charge?.exp || 0) > 0
+        && analysisResult.status === 'confirmed' ? 'PASS' : 'FAIL',
+      records: PLAYER.records.length,
+      STR: PLAYER.stats.STR || 0,
+      charExp: PLAYER.charExp,
+      runningExp: PLAYER.skills.running_proof?.exp || 0,
+      fuelExp: PLAYER.skills.fuel_charge?.exp || 0,
+      analysisStatus: analysisResult.status,
+      appliedCount: applyResult.appliedCount
+    });
+
+    resetTestData();
+    const reviewRawLog = createRawLogDraft('운동했다.');
+    const reviewAnalysisResult = createTemporaryAnalysisResult(reviewRawLog);
+    const reviewApplyResult = applyMockAnalysisResultsToPlayer(reviewRawLog, reviewAnalysisResult);
+    recalcStats();
+    recalcCharLevel();
+    rows.push({
+      case: 'needs_review does not apply',
+      result: PLAYER.records.length === 0
+        && reviewAnalysisResult.status !== 'confirmed'
+        && reviewAnalysisResult.skill_exp === 0
+        && reviewApplyResult.appliedCount === 0 ? 'PASS' : 'FAIL',
+      records: PLAYER.records.length,
+      STR: PLAYER.stats.STR || 0,
+      charExp: PLAYER.charExp,
+      analysisStatus: reviewAnalysisResult.status,
+      appliedCount: reviewApplyResult.appliedCount
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_APPLY_MOCK_TEST: ALL PASS' : 'LIFE_RPG_APPLY_MOCK_TEST: FAIL');
+    return rows;
+  },
+
+  rawLogDeleteTest() {
+    const rows = [];
+
+    resetTestData();
+    let rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    recalcStats();
+    recalcCharLevel();
+
+    const beforeDeletePass = RAW_LOGS.length === 1
+      && ANALYSIS_RESULTS.length === 1
+      && PLAYER.records.length === 2
+      && PLAYER.charExp > 0
+      && (PLAYER.stats.STR || 0) > 0
+      && (PLAYER.skills.running_proof?.exp || 0) > 0
+      && (PLAYER.skills.fuel_charge?.exp || 0) > 0;
+    const deleteResult = deleteRawLogCascade(rawLog.id);
+    const afterDeletePass = RAW_LOGS.length === 0
+      && ANALYSIS_RESULTS.length === 0
+      && PLAYER.records.length === 0
+      && PLAYER.charExp === 0
+      && (PLAYER.stats.STR || 0) === 0
+      && (PLAYER.skills.running_proof?.exp || 0) === 0
+      && (PLAYER.skills.fuel_charge?.exp || 0) === 0
+      && deleteResult.deletedRawLogs === 1
+      && deleteResult.deletedAnalysisResults === 1
+      && deleteResult.deletedRecords === 2;
+    rows.push({
+      case: 'delete B raw log cascade',
+      result: beforeDeletePass && afterDeletePass ? 'PASS' : 'FAIL',
+      beforeRawLogs: 1,
+      deletedRawLogs: deleteResult.deletedRawLogs,
+      deletedAnalysisResults: deleteResult.deletedAnalysisResults,
+      deletedRecords: deleteResult.deletedRecords,
+      recordsAfter: PLAYER.records.length,
+      charExpAfter: PLAYER.charExp,
+      STRAfter: PLAYER.stats.STR || 0,
+      runningExpAfter: PLAYER.skills.running_proof?.exp || 0,
+      fuelExpAfter: PLAYER.skills.fuel_charge?.exp || 0
+    });
+
+    resetTestData();
+    addRecord('running_proof', 30, 'quick');
+    if (SAVE_TIMER) {
+      clearTimeout(SAVE_TIMER);
+      SAVE_TIMER = null;
+    }
+    const quickRecordCount = PLAYER.records.length;
+    const quickRunningExp = PLAYER.skills.running_proof?.exp || 0;
+    const quickCharExp = PLAYER.charExp;
+    rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    const beforeQuickDeleteRecordCount = PLAYER.records.length;
+    const quickDeleteResult = deleteRawLogCascade(rawLog.id);
+    const quickPreservedPass = RAW_LOGS.length === 0
+      && ANALYSIS_RESULTS.length === 0
+      && PLAYER.records.length === quickRecordCount
+      && PLAYER.records.every(record => record.rawLogId !== rawLog.id)
+      && (PLAYER.skills.running_proof?.exp || 0) === quickRunningExp
+      && (PLAYER.skills.fuel_charge?.exp || 0) === 0
+      && PLAYER.charExp === quickCharExp
+      && quickDeleteResult.deletedRecords === beforeQuickDeleteRecordCount - quickRecordCount;
+    rows.push({
+      case: 'delete B raw log keeps quick record',
+      result: quickPreservedPass ? 'PASS' : 'FAIL',
+      quickRecordCount,
+      recordsBeforeDelete: beforeQuickDeleteRecordCount,
+      deletedRecords: quickDeleteResult.deletedRecords,
+      recordsAfter: PLAYER.records.length,
+      runningExpAfter: PLAYER.skills.running_proof?.exp || 0,
+      expectedRunningExp: quickRunningExp,
+      fuelExpAfter: PLAYER.skills.fuel_charge?.exp || 0,
+      charExpAfter: PLAYER.charExp,
+      expectedCharExp: quickCharExp
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_RAW_LOG_DELETE_TEST: ALL PASS' : 'LIFE_RPG_RAW_LOG_DELETE_TEST: FAIL');
+    return rows;
+  },
+
+  mergeRouteTest() {
+    const rows = [];
+
+    let result = routeRecordMock('영어 지문 읽고 단어 5개 정리했다.');
+    let rawLog = createRawLogDraft('영어 지문 읽고 단어 5개 정리했다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    resetTestData();
+    const beforeEnglishRecords = PLAYER.records.length;
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    rows.push({
+      case: 'merge same foreign_language_awakening routes',
+      result: result.routing_results.filter(route => route.skill_id === 'foreign_language_awakening').length === 1
+        && rawLog.analysis.mock_analysis_results.length === 1
+        && PLAYER.records.length - beforeEnglishRecords === 1 ? 'PASS' : 'FAIL',
+      routeCount: result.routing_results.filter(route => route.skill_id === 'foreign_language_awakening').length,
+      mockCount: rawLog.analysis.mock_analysis_results.length,
+      recordsAdded: PLAYER.records.length - beforeEnglishRecords,
+      textSegment: result.routing_results.find(route => route.skill_id === 'foreign_language_awakening')?.text_segment || ''
+    });
+
+    result = routeRecordMock('5km 뛰고 닭가슴살 2팩 먹었다.');
+    rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    rows.push({
+      case: 'different active skills stay separate',
+      result: result.routing_results.filter(route => route.skill_id === 'running_proof').length === 1
+        && result.routing_results.filter(route => route.skill_id === 'fuel_charge').length === 1
+        && rawLog.analysis.mock_analysis_results.length === 2 ? 'PASS' : 'FAIL',
+      runningRoutes: result.routing_results.filter(route => route.skill_id === 'running_proof').length,
+      fuelRoutes: result.routing_results.filter(route => route.skill_id === 'fuel_charge').length,
+      mockCount: rawLog.analysis.mock_analysis_results.length
+    });
+
+    result = routeRecordMock('CSS 오류를 수정하고 index.html 코드를 고쳤다.');
+    rawLog = createRawLogDraft('CSS 오류를 수정하고 index.html 코드를 고쳤다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    resetTestData();
+    const beforeCodeRecords = PLAYER.records.length;
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    rows.push({
+      case: 'merge same code_craftsman routes',
+      result: result.routing_results.filter(route => route.skill_id === 'code_craftsman').length === 1
+        && rawLog.analysis.mock_analysis_results.length === 1
+        && PLAYER.records.length - beforeCodeRecords === 1 ? 'PASS' : 'FAIL',
+      routeCount: result.routing_results.filter(route => route.skill_id === 'code_craftsman').length,
+      mockCount: rawLog.analysis.mock_analysis_results.length,
+      recordsAdded: PLAYER.records.length - beforeCodeRecords,
+      textSegment: result.routing_results.find(route => route.skill_id === 'code_craftsman')?.text_segment || ''
+    });
+
+    result = routeRecordMock('운동했다.');
+    rawLog = createRawLogDraft('운동했다.');
+    rows.push({
+      case: 'needs_review is not merged or analyzed',
+      result: result.routing_results.some(route => route.route_status === 'needs_review')
+        && result.routing_results.every(route => route.route_status !== 'active_skill')
+        && rawLog.analysis.mock_analysis_results.length === 0 ? 'PASS' : 'FAIL',
+      statuses: result.routing_results.map(route => route.route_status).join(' + '),
+      mockCount: rawLog.analysis.mock_analysis_results.length
+    });
+
+    result = routeRecordMock('기도하고 말씀 읽었다.');
+    rawLog = createRawLogDraft('기도하고 말씀 읽었다.');
+    rows.push({
+      case: 'future WIS candidates remain separate',
+      result: result.routing_results.some(route => route.route_status === 'future_skill_candidate' && route.stat === 'WIS')
+        && result.routing_results.every(route => route.route_status !== 'active_skill')
+        && rawLog.analysis.mock_analysis_results.length === 0 ? 'PASS' : 'FAIL',
+      futureCount: result.routing_results.filter(route => route.route_status === 'future_skill_candidate' && route.stat === 'WIS').length,
+      mockCount: rawLog.analysis.mock_analysis_results.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_MERGE_ROUTE_TEST: ALL PASS' : 'LIFE_RPG_MERGE_ROUTE_TEST: FAIL');
+    return rows;
+  },
+
   status() {
     const status = getLifeRpgStatus();
     console.table([status]);
@@ -2411,14 +4390,46 @@ window.LIFE_RPG = {
   APP_VERSION,
   PLAYER,
   SKILLS,
+  FUTURE_SKILL_CANDIDATES,
+  ANALYZER_IDS,
   STATS,
   USER,
   addRecord,
   addAnalyzedRecord,
+  applySkillExp,
+  applyMockAnalysisResultsToPlayer,
+  openRawLogDetail,
+  closeRawLogDetail,
+  deleteSelectedRawLog,
+  deleteRawLogCascade,
+  rebuildSkillProgressFromRecords,
+  calculateRankFromExp,
   analyzeRecord,
+  routeRecordMock,
+  mergeDuplicateActiveRoutes,
+  analyzeByRouteMock,
+  analyzeRunningProofMock,
+  analyzeFuelChargeMock,
+  analyzeRecoveryNightMock,
+  analyzeStrengthProofMock,
+  analyzeInsightLanguageRouteMock,
+  analyzeCodeCraftsmanMock,
+  analyzeLanguageSkillMock,
+  analyzeForeignLanguageAwakeningMock,
+  analyzeAssetInsightMock,
   callServerAnalyze,
   analyzeRecordMock,
   enterDevMode,
+  RAW_LOGS,
+  RAW_LOGS_KEY,
+  ANALYSIS_RESULTS,
+  ANALYSIS_RESULTS_KEY,
+  APP_DATA_SCHEMA_VERSION,
+  createAppDataSnapshot,
+  RAW_LOG_MVP_MODE,
+  savePendingRawLog,
+  editPendingRawLog,
+  discardPendingRawLog,
   resetTestData,
   getLifeRpgStatus,
   DEV_SKIP_LOGIN,
