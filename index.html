@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.6-A-report-summary-hub';
+const APP_VERSION = 'v0.6-B-report-snapshot-storage';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -1216,9 +1216,12 @@ const LOCAL_KEY = 'lifeRpg_local_v2';
 const USER_KEY = 'lifeRpg_user_v2';
 const RAW_LOGS_KEY = 'lifeRpg_raw_logs_v1';
 const ANALYSIS_RESULTS_KEY = 'lifeRpg_analysis_results_v1';
+const REPORT_SNAPSHOTS_KEY = 'lifeRpg_report_snapshots_v1';
 const APP_DATA_SCHEMA_VERSION = 'life_rpg_mvp_storage_v1';
+const MAX_REPORT_SNAPSHOTS = 100;
 let RAW_LOGS = [];
 let ANALYSIS_RESULTS = [];
+let REPORT_SNAPSHOTS = [];
 
 /* ============================================
    로컬 저장 (캐시 역할)
@@ -1282,6 +1285,25 @@ function loadAnalysisResults() {
   }
 }
 
+function saveReportSnapshots() {
+  try {
+    localStorage.setItem(REPORT_SNAPSHOTS_KEY, JSON.stringify({ report_snapshots: REPORT_SNAPSHOTS }));
+  } catch (e) {}
+}
+
+function loadReportSnapshots() {
+  try {
+    const s = localStorage.getItem(REPORT_SNAPSHOTS_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceReportSnapshots(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.report_snapshots) ? parsed.report_snapshots : []));
+  } catch (e) {
+    replaceReportSnapshots([]);
+  }
+}
+
 function replacePlayerData(data) {
   const next = Object.assign(createInitialPlayerState(), data || {});
   for (const key of Object.keys(PLAYER)) delete PLAYER[key];
@@ -1298,27 +1320,35 @@ function replaceAnalysisResults(results) {
   if (Array.isArray(results)) ANALYSIS_RESULTS.push(...results);
 }
 
+function replaceReportSnapshots(snapshots) {
+  REPORT_SNAPSHOTS.length = 0;
+  if (Array.isArray(snapshots)) REPORT_SNAPSHOTS.push(...snapshots);
+}
+
 function createAppDataSnapshot() {
   return {
     schema_version: APP_DATA_SCHEMA_VERSION,
     saved_at: new Date().toISOString(),
     player: PLAYER,
     raw_logs: RAW_LOGS,
-    analysis_results: ANALYSIS_RESULTS
+    analysis_results: ANALYSIS_RESULTS,
+    report_snapshots: REPORT_SNAPSHOTS
   };
 }
 
 function applyAppDataSnapshot(data) {
   if (!data || typeof data !== 'object') return;
 
-  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results)) {
+  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots)) {
     if (data.player && typeof data.player === 'object') replacePlayerData(data.player);
     if (Array.isArray(data.raw_logs)) replaceRawLogs(data.raw_logs);
     if (Array.isArray(data.analysis_results)) replaceAnalysisResults(data.analysis_results);
+    replaceReportSnapshots(Array.isArray(data.report_snapshots) ? data.report_snapshots : []);
     return;
   }
 
   // 이전 버전 Drive 파일은 PLAYER 객체만 저장되어 있었으므로 그대로 복원합니다.
+  replaceReportSnapshots([]);
   replacePlayerData(data);
 }
 
@@ -1326,12 +1356,14 @@ function saveAllLocal() {
   saveLocal();
   saveRawLogs();
   saveAnalysisResults();
+  saveReportSnapshots();
 }
 
 function loadAllLocal() {
   loadLocal();
   loadRawLogs();
   loadAnalysisResults();
+  loadReportSnapshots();
 }
 
 /* ============================================
@@ -4089,6 +4121,113 @@ function renderReportHubText(hub) {
   ].join('\n');
 }
 
+function createReportSnapshotId() {
+  const now = new Date();
+  const datePart = getDateId(now).replace(/-/g, '');
+  const timePart = [
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+  const randomPart = Math.random().toString(36).slice(2, 8);
+  return `snapshot_${datePart}_${timePart}_${randomPart}`;
+}
+
+function cloneReportData(value) {
+  return JSON.parse(JSON.stringify(value || {}));
+}
+
+function createReportSnapshot(options = {}) {
+  const hub = createReportHub(options);
+  const createdAt = new Date().toISOString();
+  return {
+    id: createReportSnapshotId(),
+    snapshot_type: 'report_hub',
+    version: 'report_snapshot_v0.1',
+    app_version: APP_VERSION,
+    created_at: createdAt,
+    date_id: hub.date_id,
+    week_id: hub.week_id,
+    month_id: hub.month_id,
+    hub: cloneReportData(hub),
+    summary: cloneReportData(hub.summary),
+    note: options.note || ''
+  };
+}
+
+function persistReportSnapshots() {
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function saveReportSnapshot(options = {}) {
+  const snapshot = createReportSnapshot(options);
+  REPORT_SNAPSHOTS.unshift(snapshot);
+  if (REPORT_SNAPSHOTS.length > MAX_REPORT_SNAPSHOTS) {
+    REPORT_SNAPSHOTS.splice(MAX_REPORT_SNAPSHOTS);
+  }
+  persistReportSnapshots();
+  return snapshot;
+}
+
+function getReportSnapshots(filter = {}) {
+  let snapshots = REPORT_SNAPSHOTS.slice();
+  if (filter.date_id) snapshots = snapshots.filter(snapshot => snapshot.date_id === filter.date_id);
+  if (filter.week_id) snapshots = snapshots.filter(snapshot => snapshot.week_id === filter.week_id);
+  if (filter.month_id) snapshots = snapshots.filter(snapshot => snapshot.month_id === filter.month_id);
+  const limit = Number(filter.limit);
+  if (Number.isFinite(limit) && limit > 0) snapshots = snapshots.slice(0, limit);
+  return snapshots;
+}
+
+function getLatestReportSnapshot(filter = {}) {
+  return getReportSnapshots(filter)[0] || null;
+}
+
+function deleteReportSnapshot(snapshotId) {
+  const index = REPORT_SNAPSHOTS.findIndex(snapshot => snapshot.id === snapshotId);
+  if (index === -1) return false;
+  REPORT_SNAPSHOTS.splice(index, 1);
+  persistReportSnapshots();
+  return true;
+}
+
+function clearReportSnapshots() {
+  REPORT_SNAPSHOTS.length = 0;
+  persistReportSnapshots();
+  return true;
+}
+
+function renderReportSnapshotText(snapshot) {
+  if (!snapshot) return '저장된 리포트 스냅샷이 없습니다.';
+  const summary = snapshot.summary || snapshot.hub?.summary || {};
+  return [
+    '리포트 스냅샷',
+    `저장일: ${snapshot.created_at || ''}`,
+    `대상일: ${snapshot.date_id || ''}`,
+    `대상 주: ${snapshot.week_id || ''}`,
+    `대상 월: ${snapshot.month_id || ''}`,
+    '',
+    `오늘 캐릭터 EXP: +${summary.today_char_exp || 0}`,
+    `이번 주 캐릭터 EXP: +${summary.week_char_exp || 0}`,
+    `이번 달 캐릭터 EXP: +${summary.month_char_exp || 0}`,
+    '',
+    `오늘 기록: ${summary.today_records_count || 0}개`,
+    `이번 주 기록: ${summary.week_records_count || 0}개`,
+    `이번 달 기록: ${summary.month_records_count || 0}개`,
+    '',
+    '요약:',
+    summary.overall_message || '',
+    '',
+    '노트:',
+    snapshot.note || ''
+  ].join('\n');
+}
+
 function createTemporaryAnalysisResult(rawLog) {
   const now = new Date().toISOString();
   return {
@@ -4710,9 +4849,11 @@ function resetTestData() {
   try { localStorage.removeItem(LOCAL_KEY); } catch (e) {}
   try { localStorage.removeItem(RAW_LOGS_KEY); } catch (e) {}
   try { localStorage.removeItem(ANALYSIS_RESULTS_KEY); } catch (e) {}
+  try { localStorage.removeItem(REPORT_SNAPSHOTS_KEY); } catch (e) {}
   replacePlayerData(createInitialPlayerState());
   replaceRawLogs([]);
   replaceAnalysisResults([]);
+  replaceReportSnapshots([]);
   pendingRawLog = null;
   recalcStats();
   recalcCharLevel();
@@ -4734,6 +4875,7 @@ function getLifeRpgStatus() {
     records_count: PLAYER.records.length,
     raw_logs_count: RAW_LOGS.length,
     analysis_results_count: ANALYSIS_RESULTS.length,
+    report_snapshots_count: REPORT_SNAPSHOTS.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
@@ -5853,6 +5995,144 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  reportSnapshotTest() {
+    const rows = [];
+
+    resetTestData();
+    clearReportSnapshots();
+    let snapshot = createReportSnapshot();
+    let snapshotText = renderReportSnapshotText(snapshot);
+    rows.push({
+      case: 'create empty report snapshot only',
+      result: snapshot
+        && snapshot.id
+        && snapshot.hub
+        && snapshot.summary
+        && snapshot.summary.month_char_exp === 0
+        && REPORT_SNAPSHOTS.length === 0
+        && snapshotText.includes('리포트 스냅샷') ? 'PASS' : 'FAIL',
+      snapshotId: snapshot?.id || '',
+      monthCharExp: snapshot?.summary?.month_char_exp,
+      storedCount: REPORT_SNAPSHOTS.length
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    let saved = saveReportSnapshot({ note: 'empty test' });
+    rows.push({
+      case: 'save report snapshot',
+      result: REPORT_SNAPSHOTS.length === 1
+        && saved.id === REPORT_SNAPSHOTS[0].id
+        && REPORT_SNAPSHOTS[0].note === 'empty test'
+        && getLatestReportSnapshot()?.id === saved.id ? 'PASS' : 'FAIL',
+      storedCount: REPORT_SNAPSHOTS.length,
+      note: REPORT_SNAPSHOTS[0]?.note || '',
+      latestId: getLatestReportSnapshot()?.id || ''
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    let rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    recalcStats();
+    recalcCharLevel();
+    saved = saveReportSnapshot({ note: 'active test' });
+    snapshotText = renderReportSnapshotText(saved);
+    rows.push({
+      case: 'save active B report snapshot',
+      result: REPORT_SNAPSHOTS.length === 1
+        && saved.summary.month_char_exp > 0
+        && saved.hub.monthly.b_type_logs_count === 1
+        && saved.hub.monthly.skills.length >= 2
+        && snapshotText.includes('이번 달 캐릭터 EXP') ? 'PASS' : 'FAIL',
+      storedCount: REPORT_SNAPSHOTS.length,
+      monthCharExp: saved.summary.month_char_exp,
+      bTypeLogs: saved.hub.monthly.b_type_logs_count,
+      skillsCount: saved.hub.monthly.skills.length
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    const s1 = saveReportSnapshot({ note: 'today snapshot' });
+    const s2 = saveReportSnapshot({ note: 'second snapshot' });
+    rows.push({
+      case: 'filter report snapshots',
+      result: getReportSnapshots().length === 2
+        && getReportSnapshots({ date_id: getTodayId() }).length >= 2
+        && getReportSnapshots({ month_id: getCurrentMonthId() }).length >= 2
+        && getReportSnapshots({ limit: 1 }).length === 1
+        && getLatestReportSnapshot()?.id === s2.id ? 'PASS' : 'FAIL',
+      total: getReportSnapshots().length,
+      today: getReportSnapshots({ date_id: getTodayId() }).length,
+      month: getReportSnapshots({ month_id: getCurrentMonthId() }).length,
+      limited: getReportSnapshots({ limit: 1 }).length,
+      latestIsSecond: getLatestReportSnapshot()?.id === s2.id,
+      firstId: s1.id,
+      secondId: s2.id
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    saved = saveReportSnapshot({ note: 'delete target' });
+    const beforeDeleteCount = REPORT_SNAPSHOTS.length;
+    const deleted = deleteReportSnapshot(saved.id);
+    rows.push({
+      case: 'delete report snapshot',
+      result: deleted === true
+        && REPORT_SNAPSHOTS.length === beforeDeleteCount - 1
+        && getLatestReportSnapshot() === null ? 'PASS' : 'FAIL',
+      deleted,
+      before: beforeDeleteCount,
+      after: REPORT_SNAPSHOTS.length,
+      latest: getLatestReportSnapshot()
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    saveReportSnapshot({ note: 'a' });
+    saveReportSnapshot({ note: 'b' });
+    const beforeClearCount = REPORT_SNAPSHOTS.length;
+    clearReportSnapshots();
+    rows.push({
+      case: 'clear report snapshots',
+      result: beforeClearCount === 2 && REPORT_SNAPSHOTS.length === 0 ? 'PASS' : 'FAIL',
+      before: beforeClearCount,
+      after: REPORT_SNAPSHOTS.length
+    });
+
+    resetTestData();
+    clearReportSnapshots();
+    rawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    const rawCountBefore = RAW_LOGS.length;
+    const analysisCountBefore = ANALYSIS_RESULTS.length;
+    const recordCountBefore = PLAYER.records.length;
+    saved = saveReportSnapshot({ note: 'safe delete test' });
+    deleteReportSnapshot(saved.id);
+    rows.push({
+      case: 'snapshot delete keeps source data',
+      result: RAW_LOGS.length === rawCountBefore
+        && ANALYSIS_RESULTS.length === analysisCountBefore
+        && PLAYER.records.length === recordCountBefore ? 'PASS' : 'FAIL',
+      rawLogsBefore: rawCountBefore,
+      rawLogsAfter: RAW_LOGS.length,
+      analysisBefore: analysisCountBefore,
+      analysisAfter: ANALYSIS_RESULTS.length,
+      recordsBefore: recordCountBefore,
+      recordsAfter: PLAYER.records.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_REPORT_SNAPSHOT_TEST: ALL PASS' : 'LIFE_RPG_REPORT_SNAPSHOT_TEST: FAIL');
+    return rows;
+  },
+
   mergeRouteTest() {
     const rows = [];
 
@@ -5980,6 +6260,14 @@ window.LIFE_RPG = {
   renderMonthlyReportText,
   createReportHub,
   renderReportHubText,
+  createReportSnapshotId,
+  createReportSnapshot,
+  saveReportSnapshot,
+  getReportSnapshots,
+  getLatestReportSnapshot,
+  deleteReportSnapshot,
+  clearReportSnapshots,
+  renderReportSnapshotText,
   analyzeRecord,
   routeRecordMock,
   mergeDuplicateActiveRoutes,
@@ -6000,6 +6288,9 @@ window.LIFE_RPG = {
   RAW_LOGS_KEY,
   ANALYSIS_RESULTS,
   ANALYSIS_RESULTS_KEY,
+  REPORT_SNAPSHOTS,
+  REPORT_SNAPSHOTS_KEY,
+  MAX_REPORT_SNAPSHOTS,
   APP_DATA_SCHEMA_VERSION,
   createAppDataSnapshot,
   RAW_LOG_MVP_MODE,
