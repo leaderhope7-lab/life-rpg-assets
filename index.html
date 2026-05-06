@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.8-C-full-skill-mock-analyzer';
+const APP_VERSION = 'v0.8-D-common-analysis-result-shape';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -6648,9 +6648,130 @@ function renderSleepMonthlyReportText(report) {
   ].join('\n');
 }
 
+function normalizeAnalysisResultShape(analysisResult, rawLog) {
+  const metrics = analysisResult?.metrics || {};
+  const mockAnalysisResults = Array.isArray(metrics.mock_analysis_results)
+    ? metrics.mock_analysis_results
+    : (Array.isArray(analysisResult?.mock_analysis_results) ? analysisResult.mock_analysis_results : []);
+  const routerResult = metrics.routing_result
+    || analysisResult?.routing_result
+    || rawLog?.analysis?.routing_result
+    || rawLog?.analysis?.router_result
+    || null;
+  const routes = Array.isArray(routerResult?.routing_results) ? routerResult.routing_results : [];
+  const reviewRoutes = routes.filter(route => route.route_status === 'needs_review' || route.needs_review);
+  const needsReview = reviewRoutes.length > 0 || (mockAnalysisResults.length === 0 && !!analysisResult?.needs_review);
+
+  const toNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const getSkillName = item => {
+    const skillId = item?.skill_id || item?.skillId || null;
+    const skill = SKILLS[skillId] || {};
+    return item?.skill_name || item?.name || item?.skill_tree || skill.name || skillId || null;
+  };
+  const buildMatchedSkill = (item, index) => {
+    const skillId = item?.skill_id || item?.skillId || null;
+    const skill = SKILLS[skillId] || {};
+    return {
+      skill_id: skillId,
+      skill_name: getSkillName(item),
+      stat: item?.stat || skill.stat || null,
+      skill_exp: toNumber(item?.skill_exp),
+      stat_exp: toNumber(item?.stat_exp),
+      character_exp: toNumber(item?.character_exp ?? item?.char_exp),
+      confidence: typeof item?.confidence === 'number' ? item.confidence : null,
+      analyzer_type: item?.analyzer_type || null,
+      is_primary: index === 0
+    };
+  };
+
+  const matchedSkills = mockAnalysisResults.map(buildMatchedSkill);
+  const primaryMatched = matchedSkills[0] || null;
+  const primarySource = mockAnalysisResults[0] || null;
+  const primarySkill = primaryMatched ? {
+    skill_id: primaryMatched.skill_id,
+    skill_name: primaryMatched.skill_name || primaryMatched.skill_id,
+    stat: primaryMatched.stat,
+    tier: primarySource?.tier || null,
+    tier_label: primarySource?.tier_label || null,
+    skill_exp: primaryMatched.skill_exp,
+    stat_exp: primaryMatched.stat_exp,
+    character_exp: primaryMatched.character_exp,
+    confidence: primaryMatched.confidence,
+    analyzer_type: primaryMatched.analyzer_type
+  } : null;
+
+  const totalSkillExp = matchedSkills.reduce((sum, item) => sum + item.skill_exp, 0);
+  const totalStatExp = matchedSkills.reduce((sum, item) => sum + item.stat_exp, 0);
+  const totalCharacterExp = matchedSkills.reduce((sum, item) => sum + item.character_exp, 0);
+  const candidateSkills = reviewRoutes
+    .flatMap(route => Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree : [])
+    .filter((item, index, list) => item && list.indexOf(item) === index);
+  const reviewQuestion = reviewRoutes.find(route => route.review_question)?.review_question
+    || analysisResult?.review_question
+    || null;
+  const reviewReason = reviewRoutes.map(route => route.reason || route.review_reason).filter(Boolean).join(' / ')
+    || analysisResult?.review_reason
+    || (needsReview ? '보충이 필요한 기록입니다.' : '');
+  const routeStatus = needsReview
+    ? 'needs_review'
+    : (matchedSkills.length > 0 ? 'active_skill' : (analysisResult?.route_status || analysisResult?.status || 'pending'));
+  const status = needsReview
+    ? 'needs_review'
+    : (matchedSkills.length > 0 ? 'analyzed' : (analysisResult?.status || 'pending'));
+  const confidenceValues = mockAnalysisResults
+    .map(item => typeof item?.confidence === 'number' ? item.confidence : null)
+    .filter(value => value !== null);
+  const confidence = confidenceValues.length
+    ? Math.max(...confidenceValues)
+    : (typeof analysisResult?.confidence === 'number' ? analysisResult.confidence : 0);
+  const summary = analysisResult?.summary
+    || primarySource?.summary
+    || primarySource?.display_summary
+    || (needsReview ? '보충이 필요한 기록입니다.' : '분석 결과를 정리했습니다.');
+  const mockEvidence = mockAnalysisResults.flatMap(item => {
+    if (Array.isArray(item?.evidence)) return item.evidence;
+    return item?.evidence ? [item.evidence] : [];
+  });
+
+  return {
+    ...analysisResult,
+    source_text: analysisResult?.source_text || rawLog?.raw_text || rawLog?.text || '',
+    activity_text: analysisResult?.activity_text || rawLog?.raw_text || rawLog?.text || '',
+    status,
+    route_status: routeStatus,
+    primary_skill: primarySkill,
+    primary_skill_id: primarySkill?.skill_id || null,
+    primary_skill_name: primarySkill?.skill_name || null,
+    primary_stat: primarySkill?.stat || null,
+    matched_skills: matchedSkills,
+    mock_analysis_results: mockAnalysisResults,
+    total_skill_exp: needsReview ? 0 : totalSkillExp,
+    total_stat_exp: needsReview ? 0 : totalStatExp,
+    total_character_exp: needsReview ? 0 : totalCharacterExp,
+    skill_exp: needsReview ? 0 : totalSkillExp,
+    stat_exp: needsReview ? 0 : totalStatExp,
+    character_exp: needsReview ? 0 : totalCharacterExp,
+    stat: needsReview ? null : (primarySkill?.stat || analysisResult?.stat || null),
+    skill_tree: needsReview ? null : (primarySkill?.skill_name || analysisResult?.skill_tree || null),
+    needs_review: needsReview,
+    review_reason: reviewReason,
+    review_question: reviewQuestion,
+    candidate_skills: candidateSkills,
+    summary,
+    evidence: analysisResult?.evidence || mockEvidence.join(' / ') || rawLog?.raw_text || '',
+    confidence,
+    metrics: {
+      ...metrics,
+      routing_result: routerResult,
+      mock_analysis_results: mockAnalysisResults
+    },
+    updated_at: analysisResult?.updated_at || new Date().toISOString()
+  };
+}
+
 function createTemporaryAnalysisResult(rawLog) {
   const now = new Date().toISOString();
-  return {
+  const analysisResult = {
     id: `analysis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     raw_log_id: rawLog.id,
     user_id: rawLog.user_id,
@@ -6679,6 +6800,7 @@ function createTemporaryAnalysisResult(rawLog) {
     created_at: now,
     updated_at: now
   };
+  return normalizeAnalysisResultShape(analysisResult, rawLog);
 }
 
 function getAnalysisByRawLogId(rawLogId) {
@@ -9484,6 +9606,130 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  analysisResultShapeTest() {
+    const rows = [];
+    const createResult = text => {
+      const rawLog = createRawLogDraft(text);
+      const analysisResult = createTemporaryAnalysisResult(rawLog);
+      return { rawLog, analysisResult };
+    };
+    const hasMatchedSkill = (analysisResult, skillId) => {
+      return (analysisResult.matched_skills || []).some(item => item.skill_id === skillId);
+    };
+
+    let result = createResult('주일예배를 드렸다.');
+    rows.push({
+      case: 'single WIS analysis has primary and totals',
+      result: result.analysisResult.route_status === 'active_skill'
+        && result.analysisResult.status === 'analyzed'
+        && result.analysisResult.primary_skill?.skill_id === 'worship_place'
+        && result.analysisResult.primary_skill?.skill_name === '예배의 자리'
+        && result.analysisResult.primary_stat === 'WIS'
+        && (result.analysisResult.matched_skills || []).length >= 1
+        && result.analysisResult.total_skill_exp > 0
+        && result.analysisResult.total_stat_exp > 0
+        && result.analysisResult.total_character_exp > 0
+        && result.analysisResult.skill_exp === result.analysisResult.total_skill_exp
+        && result.analysisResult.stat_exp === result.analysisResult.total_stat_exp
+        && result.analysisResult.character_exp === result.analysisResult.total_character_exp
+        ? 'PASS'
+        : 'FAIL',
+      routeStatus: result.analysisResult.route_status,
+      status: result.analysisResult.status,
+      primary: result.analysisResult.primary_skill?.skill_id,
+      primaryName: result.analysisResult.primary_skill?.skill_name,
+      totalSkillExp: result.analysisResult.total_skill_exp
+    });
+
+    result = createResult('5km 뛰고 닭가슴살 2팩 먹었다.');
+    rows.push({
+      case: 'compound STR analysis has running and fuel',
+      result: result.analysisResult.route_status === 'active_skill'
+        && hasMatchedSkill(result.analysisResult, 'running_proof')
+        && hasMatchedSkill(result.analysisResult, 'fuel_charge')
+        && result.analysisResult.total_skill_exp > 0
+        && result.analysisResult.total_character_exp > 0
+        && !!result.analysisResult.primary_skill
+        ? 'PASS'
+        : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      totalSkillExp: result.analysisResult.total_skill_exp,
+      totalCharacterExp: result.analysisResult.total_character_exp
+    });
+
+    result = createResult('일주일 만에 다시 영어 단어 10개 복습했다.');
+    rows.push({
+      case: 'compound INT and AGI analysis',
+      result: hasMatchedSkill(result.analysisResult, 'foreign_language_awakening')
+        && hasMatchedSkill(result.analysisResult, 'flow_return')
+        && result.analysisResult.total_skill_exp > 0
+        ? 'PASS'
+        : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      totalSkillExp: result.analysisResult.total_skill_exp
+    });
+
+    result = createResult('운동했다.');
+    rows.push({
+      case: 'needs_review keeps zero EXP and review data',
+      result: (result.analysisResult.route_status === 'needs_review' || result.analysisResult.status === 'needs_review')
+        && result.analysisResult.total_skill_exp === 0
+        && result.analysisResult.total_stat_exp === 0
+        && result.analysisResult.total_character_exp === 0
+        && result.analysisResult.skill_exp === 0
+        && result.analysisResult.stat_exp === 0
+        && result.analysisResult.character_exp === 0
+        && ((result.analysisResult.candidate_skills || []).length > 0 || !!result.analysisResult.review_question)
+        ? 'PASS'
+        : 'FAIL',
+      routeStatus: result.analysisResult.route_status,
+      status: result.analysisResult.status,
+      candidates: (result.analysisResult.candidate_skills || []).join(', '),
+      reviewQuestion: result.analysisResult.review_question
+    });
+
+    result = createResult('주일예배를 드렸다.');
+    rows.push({
+      case: 'skill_name fallback is filled',
+      result: !!result.analysisResult.primary_skill?.skill_name
+        && !!result.analysisResult.matched_skills?.[0]?.skill_name
+        ? 'PASS'
+        : 'FAIL',
+      primarySkillName: result.analysisResult.primary_skill?.skill_name,
+      firstMatchedSkillName: result.analysisResult.matched_skills?.[0]?.skill_name
+    });
+
+    result = createResult('5km 뛰고 닭가슴살 2팩 먹었다.');
+    rows.push({
+      case: 'metrics mock_analysis_results remains compatible',
+      result: !!result.analysisResult.metrics
+        && Array.isArray(result.analysisResult.metrics.mock_analysis_results)
+        && result.analysisResult.metrics.mock_analysis_results.length >= 2
+        ? 'PASS'
+        : 'FAIL',
+      mockCount: result.analysisResult.metrics?.mock_analysis_results?.length || 0
+    });
+
+    result = createResult('5km 32분 10초 뛰었다.');
+    const runningRecord = createRunningRecordFromRawLog(result.rawLog, result.analysisResult);
+    rows.push({
+      case: 'specialized running engine remains compatible',
+      result: hasMatchedSkill(result.analysisResult, 'running_proof')
+        && !!runningRecord
+        && runningRecord.distance_km === 5
+        && runningRecord.duration_seconds === 1930
+        ? 'PASS'
+        : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      distanceKm: runningRecord?.distance_km,
+      durationSeconds: runningRecord?.duration_seconds
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_ANALYSIS_RESULT_SHAPE_TEST: ALL PASS' : 'LIFE_RPG_ANALYSIS_RESULT_SHAPE_TEST: FAIL');
+    return rows;
+  },
+
   status() {
     const status = getLifeRpgStatus();
     console.table([status]);
@@ -9592,6 +9838,7 @@ window.LIFE_RPG = {
   inferMockExpTier,
   createCommonMockSkillAnalysis,
   analyzeByRouteMock,
+  normalizeAnalysisResultShape,
   analyzeRunningProofMock,
   analyzeFuelChargeMock,
   analyzeRecoveryNightMock,
