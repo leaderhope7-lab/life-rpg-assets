@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.8-A-full-skill-tree-master';
+const APP_VERSION = 'v0.8-B-full-skill-router-keywords';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -3249,44 +3249,249 @@ const ANALYZER_IDS = {
   voice_resonance: 'voice_resonance_v1'
 };
 
-const ROUTER_ACTIVE_RULES = [
-  {
-    skillId: 'foreign_language_awakening',
-    keywords: ['영어', '일본어', '중국어', '외국어', '단어', '숙어', '지문', '문장 해석', '듣기', '따라 읽기', '영어 지문', '영어 기사', 'VOA', 'BBC', '문법', '회화', '토익', '발음']
+const SKILL_ROUTER_KEYWORDS = {
+  strength_proof: {
+    stat: 'STR',
+    skill_name: '근력의 증명',
+    keywords: ['근력', '헬스', '웨이트', '푸시업', '팔굽혀펴기', '스쿼트', '턱걸이', '플랭크', '덤벨', '벤치프레스', '홈트', '세트'],
+    strong_keywords: ['푸시업', '팔굽혀펴기', '스쿼트', '턱걸이', '플랭크', '3세트', '웨이트'],
+    weak_keywords: ['운동', '몸풀기'],
+    examples: ['푸시업 3세트 했다.']
   },
-  {
-    skillId: 'code_craftsman',
-    keywords: ['코드', '개발', '구현', '디버깅', '오류', '에러', '버그', 'HTML', 'CSS', 'JavaScript', '자바스크립트', 'React', 'Claude', 'Codex', 'GitHub', 'API', '함수', 'index.html', '수정']
+  running_proof: {
+    stat: 'STR',
+    skill_name: '런닝의 증명',
+    keywords: ['러닝', '런닝', '달리기', '뛰었다', '뛰', '조깅', '걷기', '산책', '러닝머신', '완주', '걸었다'],
+    strong_keywords: ['3km', '5km', '10km', '15km', '20km', '페이스', '킬로', 'km'],
+    weak_keywords: ['걷기', '산책'],
+    examples: ['5km 뛰었다.']
   },
-  {
-    skillId: 'language_skill',
-    keywords: ['보고 문장', '공문', '설명', '말하기 준비', '민원 응대', '공지문', '카카오톡 안내문', '상사 보고', '표현 다듬기', '문장 정리', '문구', '말하기', '스피치']
+  fuel_charge: {
+    stat: 'STR',
+    skill_name: '연료 충전',
+    keywords: ['먹었다', '먹고', '식사', '아침', '점심', '저녁', '닭가슴살', '단백질', '프로틴', '계란', '물', '생수', '마셨다', '영양제', '비타민'],
+    strong_keywords: ['닭가슴살', '단백질', '프로틴', '계란', '1L', '1리터', '500ml', '물'],
+    weak_keywords: ['밥', '먹었다', '식사'],
+    examples: ['닭가슴살 2팩 먹고 물 1L 마셨다.']
   },
-  {
-    skillId: 'asset_insight',
-    keywords: ['지출', '소비', '구독', '해지', '절약', '저축', '예산', '가계부', '경제 공부', '금융 공부', '투자 공부', '자산 점검', '카드 사용 내역', '자산', '투자', '주식', 'ETF', '코인', '부동산', '재무']
+  recovery_night: {
+    stat: 'STR',
+    skill_name: '회복의 밤',
+    keywords: ['잤다', '잠', '수면', '낮잠', '취침', '기상', '푹 잤다', '못 잤다', '숙면', '개운했다', '일어났다'],
+    strong_keywords: ['7시간', '8시간', '6시간', '낮잠', '푹 잤다', '못 잤다', '숙면'],
+    weak_keywords: ['휴식', '쉬었다'],
+    examples: ['7시간 잤다.']
   },
-  {
-    skillId: 'strength_proof',
-    keywords: ['푸시업', '팔굽혀펴기', '윗몸일으키기', '스쿼트', '플랭크', '덤벨', '벤치', '벤치프레스', '푸시업 바', '세트', '반복', '근력운동', '홈트', '웨이트', '부위 운동', '근력', '헬스']
+  insight_language: {
+    stat: 'INT',
+    skill_name: '통찰의 언어',
+    keywords: ['독서', '읽었다', '읽고', '책', '요약', '정리', '핵심 내용', '핵심', '사색', '인사이트', '구조 분석', '챕터', '자료', '문서', '기사', '보고서'],
+    strong_keywords: ['독서', '책', '요약', '핵심 내용', '인사이트', '구조 분석', '챕터'],
+    weak_keywords: ['읽', '정리', '메모'],
+    examples: ['트렌드 코리아를 20분 읽고 핵심 내용을 요약했다.']
   },
-  {
-    skillId: 'running_proof',
-    keywords: ['걷기', '빠르게 걷기', '조깅', '러닝', '런닝', '뛰기', '뛰', '달리기', '달리', '산책', '러닝머신', 'km', 'KM', '킬로', '분 동안 걸음', '3km', '5km', '10km', '완주', '페이스', '기록 갱신', '걸었다']
+  code_craftsman: {
+    stat: 'INT',
+    skill_name: '코드의 장인',
+    keywords: ['코딩', '코드', '개발', '자바스크립트', 'JavaScript', 'HTML', 'CSS', 'Python', '오류 수정', '오류', '버그', '함수', 'GitHub', 'Codex', 'API', 'index.html'],
+    strong_keywords: ['오류 수정', 'CSS', 'HTML', 'Python', 'JavaScript', '코드', '버그', 'GitHub', 'Codex'],
+    weak_keywords: ['수정', '구현'],
+    examples: ['CSS 오류를 수정했다.']
   },
-  {
-    skillId: 'fuel_charge',
-    keywords: ['닭가슴살', '단백질바', '단백질 쉐이크', '단백질', '프로틴', '계란', '두부', '참치', '제육볶음', '고기 반찬', '물', '생수', '500ml', 'ml', 'mL', '리터', 'L', '종이컵', '머그컵', '텀블러', '비타민C', '오메가3', '종합비타민', '유산균', '식사', '식당', '집밥', '편의점', '카페', '야식', '식단', '밥', '먹', '마셨', '영양제', '도시락']
+  language_skill: {
+    stat: 'INT',
+    skill_name: '언어의 기술',
+    keywords: ['보고', '두괄식', '설명', '설득', '대화', '연락', '카톡 문구', '공지문', '민원인 설명', '팀장님께 보고', '문장', '표현'],
+    strong_keywords: ['두괄식', '팀장님께 보고', '민원인 설명', '공지문', '카톡 문구'],
+    weak_keywords: ['보고', '설명', '대화', '연락'],
+    examples: ['팀장님께 보고할 내용을 두괄식으로 정리했다.']
   },
-  {
-    skillId: 'recovery_night',
-    keywords: ['잠', '수면', '잤', '자서', '일어났다', '일어남', '취침', '기상', '일찍 누웠다', '낮잠', '휴식', '쉬었다', '휴대폰 안 보고 잤다', '자기 전 스트레칭', '개운했다', '푹 잤다', '회복', '숙면']
+  foreign_language_awakening: {
+    stat: 'INT',
+    skill_name: '외국어 각성',
+    keywords: ['영어', '영단어', '영어 단어', '영어 문장', '회화', '발음', '리스닝', '독해', '번역', '복습', '외국어', '단어', '지문'],
+    strong_keywords: ['영어', '영단어', '영어 단어', '회화', '리스닝', '독해', '번역', '외국어'],
+    weak_keywords: ['단어', '복습', '지문'],
+    examples: ['영어 단어 10개를 복습했다.']
   },
-  {
-    skillId: 'insight_language',
-    keywords: ['독서', '책', '읽기', '읽', '글', '자료', '문서', '기사', '보고서', '요약', '핵심 정리', '핵심', '이해', '해석', '적용점', '인사이트', '정리', '밑줄', '메모']
+  asset_insight: {
+    stat: 'INT',
+    skill_name: '자산의 안목',
+    keywords: ['돈', '소비', '지출', '가계부', '예산', '저축', '투자', '주식', '카드값', '결제', '월급', '자산', '카드 사용 내역'],
+    strong_keywords: ['카드값', '지출', '가계부', '예산', '저축', '투자', '자산'],
+    weak_keywords: ['돈', '소비', '결제', '월급'],
+    examples: ['이번 달 카드값과 지출 내역을 정리했다.']
+  },
+  worship_place: {
+    stat: 'WIS',
+    skill_name: '예배의 자리',
+    keywords: ['예배', '주일예배', '수요예배', '금요예배', '교회', '예배드렸다', '설교'],
+    strong_keywords: ['주일예배', '수요예배', '금요예배', '예배드렸다', '설교'],
+    weak_keywords: ['교회', '예배'],
+    examples: ['주일예배를 드렸다.']
+  },
+  prayer_breath: {
+    stat: 'WIS',
+    skill_name: '기도의 숨',
+    keywords: ['기도', '기도했다', '중보기도', '묵상기도', '짧게 기도', '기도 제목', '기도문'],
+    strong_keywords: ['기도했다', '중보기도', '묵상기도', '기도 제목', '기도문'],
+    weak_keywords: ['기도'],
+    examples: ['친구를 위해 기도했다.']
+  },
+  word_lamp: {
+    stat: 'WIS',
+    skill_name: '말씀의 등불',
+    keywords: ['성경', '말씀', '성경 읽기', '말씀 읽기', '묵상', 'QT', '큐티', '요한복음', '창세기', '시편', '잠언', '로마서'],
+    strong_keywords: ['성경', '말씀', 'QT', '큐티', '요한복음', '창세기', '시편', '잠언', '로마서'],
+    weak_keywords: ['묵상', '읽기'],
+    examples: ['요한복음 1장을 읽고 묵상했다.']
+  },
+  gratitude_record: {
+    stat: 'WIS',
+    skill_name: '감사의 기록',
+    keywords: ['감사', '감사한 일', '은혜', '고마웠다', '감사 기록', '감사일기', '감사 제목'],
+    strong_keywords: ['감사한 일', '감사 기록', '감사일기', '감사 제목'],
+    weak_keywords: ['감사', '은혜', '고마웠다'],
+    examples: ['오늘 감사한 일 3가지를 적었다.']
+  },
+  small_obedience: {
+    stat: 'WIS',
+    skill_name: '작은 순종',
+    keywords: ['순종', '실천했다', '마음에 걸린 일', '선한 마음', '양심', '도와줬다', '용서', '사과했다', '먼저 연락했다'],
+    strong_keywords: ['마음에 걸린 일', '도와줬다', '용서', '사과했다', '먼저 연락했다'],
+    weak_keywords: ['순종', '실천했다', '양심'],
+    examples: ['마음에 걸렸던 사람에게 먼저 사과했다.']
+  },
+  document_blade: {
+    stat: 'DEX',
+    skill_name: '문서의 날',
+    keywords: ['공문', '문서', '보고서', '계획서', '출장결과보고서', '이장회의자료', '월중회의자료', '품의', '기안', '서식', '작성'],
+    strong_keywords: ['공문', '보고서', '계획서', '출장결과보고서', '이장회의자료', '월중회의자료', '품의', '기안', '서식'],
+    weak_keywords: ['문서', '작성'],
+    examples: ['공문 제목을 다듬고 보고서를 작성했다.']
+  },
+  organizing_hand: {
+    stat: 'DEX',
+    skill_name: '정리의 손길',
+    keywords: ['정리', '청소', '방청소', '책상 정리', '사진첩 정리', '파일 정리', '폴더 정리', '서류 정리', '분류'],
+    strong_keywords: ['방청소', '책상 정리', '사진첩 정리', '파일 정리', '폴더 정리', '서류 정리', '분류'],
+    weak_keywords: ['정리', '청소'],
+    examples: ['핸드폰 사진첩을 정리했다.']
+  },
+  tool_mastery: {
+    stat: 'DEX',
+    skill_name: '도구의 숙련',
+    keywords: ['엑셀', '한글', 'HWP', '파워포인트', 'PPT', '새올', '온나라', '단축키', '함수', '수식', '자동화', '템플릿'],
+    strong_keywords: ['엑셀', '한글', 'HWP', '파워포인트', 'PPT', '새올', '온나라', '수식', '자동화'],
+    weak_keywords: ['단축키', '함수', '템플릿'],
+    examples: ['엑셀 수식을 고치고 한글 서식을 맞췄다.']
+  },
+  field_eye: {
+    stat: 'DEX',
+    skill_name: '현장의 눈',
+    keywords: ['현장', '현장 확인', '출장', '사진 찍었다', '점검', '도로', '가로등', '반사경', '과속방지턱', '배수로', '민원 현장'],
+    strong_keywords: ['현장 확인', '민원 현장', '사진 찍었다', '점검', '도로', '가로등', '반사경', '과속방지턱', '배수로'],
+    weak_keywords: ['현장', '출장'],
+    examples: ['민원 현장을 확인하고 사진을 찍었다.']
+  },
+  procedure_knot: {
+    stat: 'DEX',
+    skill_name: '절차의 매듭',
+    keywords: ['절차', '단계', '서류', '제출서류', '확인서', '위임장', '신청서', '접수', '검토', '보완 요청', '체크리스트', '신청'],
+    strong_keywords: ['제출서류', '확인서', '위임장', '신청서', '접수', '보완 요청', '체크리스트'],
+    weak_keywords: ['절차', '단계', '서류', '검토', '신청'],
+    examples: ['빈집정비 신청 서류와 위임장을 확인했다.']
+  },
+  first_step_ignition: {
+    stat: 'AGI',
+    skill_name: '첫걸음의 점화',
+    keywords: ['시작했다', '일단 했다', '첫걸음', '조금 시작', '책을 폈다', '펴기만', '열었다', '켰다', '앉았다', '5분만'],
+    strong_keywords: ['시작했다', '일단 했다', '첫걸음', '조금 시작', '책을 폈다', '펴기만', '5분만'],
+    weak_keywords: ['열었다', '켰다', '앉았다'],
+    examples: ['책을 펴기만 했다.']
+  },
+  action_over_words: {
+    stat: 'AGI',
+    skill_name: '말보다 행동',
+    keywords: ['실제로 했다', '실제로', '실행했다', '행동했다', '말만 하다가 했다', '보고했다', '연락했다', '전화했다', '제출했다', '처리했다'],
+    strong_keywords: ['실제로 했다', '말만 하다가 했다', '실행했다', '행동했다', '보고했다', '제출했다', '처리했다'],
+    weak_keywords: ['연락했다', '전화했다'],
+    examples: ['말만 하던 일을 실제로 처리했다.']
+  },
+  flow_return: {
+    stat: 'AGI',
+    skill_name: '흐름의 복귀',
+    keywords: ['다시 했다', '오랜만에', '일주일 만에', '며칠 만에', '한 달 만에', '복귀', '다시 시작', '재개', '다시'],
+    strong_keywords: ['일주일 만에', '며칠 만에', '한 달 만에', '오랜만에', '복귀', '다시 시작', '재개'],
+    weak_keywords: ['다시'],
+    examples: ['일주일 만에 다시 영어 단어를 복습했다.']
+  },
+  life_mobility: {
+    stat: 'AGI',
+    skill_name: '생활의 기동',
+    keywords: ['씻었다', '샤워', '일어났다', '출근 준비', '옷 갈아입었다', '나갔다', '생활 정리', '기본 행동', '하루 시작'],
+    strong_keywords: ['씻었다', '샤워', '출근 준비', '옷 갈아입었다', '하루 시작'],
+    weak_keywords: ['일어났다', '나갔다', '생활 정리', '기본 행동'],
+    examples: ['일어나서 씻고 출근 준비했다.']
+  },
+  no_delay_hand: {
+    stat: 'AGI',
+    skill_name: '미루지 않는 손',
+    keywords: ['미루던', '바로 했다', '즉시 처리', '오늘 처리', '더 미루지 않고', '해야 할 일', '민원 전화', '답장', '제출', '확인 전화'],
+    strong_keywords: ['미루던', '바로 했다', '즉시 처리', '오늘 처리', '더 미루지 않고', '민원 전화', '확인 전화'],
+    weak_keywords: ['해야 할 일', '답장', '제출'],
+    examples: ['미루던 민원 전화를 바로 했다.']
+  },
+  imagination_sketch: {
+    stat: 'ART',
+    skill_name: '상상의 스케치',
+    keywords: ['아이디어', '상상', '구상', '세계관', '설정', '컨셉', '콘셉트', '스킬명', '캐릭터 설정', 'UI 아이디어', '메모했다'],
+    strong_keywords: ['아이디어', '세계관', '캐릭터 설정', 'UI 아이디어', '구상', '컨셉', '콘셉트'],
+    weak_keywords: ['상상', '설정', '스킬명', '메모했다'],
+    examples: ['루나의 모험 세계관 아이디어를 메모했다.']
+  },
+  story_spark: {
+    stat: 'ART',
+    skill_name: '이야기의 불씨',
+    keywords: ['이야기', '스토리', '장면', '대사', '플롯', '감정선', '캐릭터 대화', '서사', '챕터', '시나리오'],
+    strong_keywords: ['이야기', '스토리', '장면', '대사', '플롯', '감정선', '캐릭터 대화', '시나리오'],
+    weak_keywords: ['서사', '챕터'],
+    examples: ['캐릭터 대사와 이야기 장면을 써봤다.']
+  },
+  image_touch: {
+    stat: 'ART',
+    skill_name: '이미지의 손길',
+    keywords: ['이미지', '그림', '캐릭터 이미지', '배경', '아이콘', 'UI 파츠', '프롬프트', '이미지 생성', '투명 배경', 'PNG', '합성'],
+    strong_keywords: ['이미지', '캐릭터 이미지', '프롬프트', '이미지 생성', '투명 배경', 'PNG'],
+    weak_keywords: ['그림', '배경', '아이콘', 'UI 파츠', '합성'],
+    examples: ['캐릭터 이미지 프롬프트를 만들었다.']
+  },
+  sense_tuning: {
+    stat: 'ART',
+    skill_name: '감각의 조율',
+    keywords: ['색감', '폰트', '레이아웃', '가독성', '분위기', '톤', '디자인 수정', 'UI 조정', '정렬', '여백', '비율'],
+    strong_keywords: ['색감', '폰트', '레이아웃', '가독성', '분위기', '디자인 수정', 'UI 조정'],
+    weak_keywords: ['톤', '정렬', '여백', '비율'],
+    examples: ['UI 색감과 폰트를 조정했다.']
+  },
+  voice_resonance: {
+    stat: 'ART',
+    skill_name: '목소리의 울림',
+    keywords: ['노래', '찬양', '발성', '목소리', '녹음', '보컬', '음성', '낭독', '호흡', '고음', '음정'],
+    strong_keywords: ['노래', '찬양', '발성', '목소리', '녹음', '보컬', '낭독'],
+    weak_keywords: ['음성', '호흡', '고음', '음정'],
+    examples: ['찬양 발성과 목소리 녹음을 연습했다.']
   }
-];
+};
+
+const ROUTER_ACTIVE_RULES = Object.entries(SKILL_ROUTER_KEYWORDS).map(([skillId, rule]) => ({
+  skillId,
+  keywords: [
+    ...(rule.strong_keywords || []),
+    ...(rule.keywords || []),
+    ...(rule.weak_keywords || [])
+  ]
+}));
 
 const ROUTER_FUTURE_RULES = {
   WIS: [
@@ -3414,89 +3619,189 @@ function isDexOrganizationFalsePositive(segment) {
   ]);
 }
 
+function countMatchedKeywords(text, keywords) {
+  const lower = String(text || '').toLowerCase();
+  return (keywords || []).filter(keyword => lower.includes(String(keyword).toLowerCase()));
+}
+
+function getSkillRouterMatches(segment) {
+  const matches = Object.entries(SKILL_ROUTER_KEYWORDS).map(([skillId, rule]) => {
+    const strongMatches = countMatchedKeywords(segment, rule.strong_keywords || []);
+    const normalMatches = countMatchedKeywords(segment, rule.keywords || []);
+    const weakMatches = countMatchedKeywords(segment, rule.weak_keywords || []);
+    const uniqueMatches = [...new Set([...strongMatches, ...normalMatches, ...weakMatches])];
+    if (uniqueMatches.length === 0) return null;
+
+    const confidence = Math.min(
+      0.98,
+      0.52 + strongMatches.length * 0.18 + normalMatches.length * 0.08 + weakMatches.length * 0.04
+    );
+    return {
+      skillId,
+      rule,
+      matchedKeywords: uniqueMatches,
+      confidence
+    };
+  }).filter(Boolean);
+
+  return refineSkillRouterMatches(segment, matches)
+    .sort((a, b) => b.confidence - a.confidence || a.skillId.localeCompare(b.skillId));
+}
+
+function refineSkillRouterMatches(segment, matches) {
+  const skillIds = new Set(matches.map(match => match.skillId));
+  const hasForeign = skillIds.has('foreign_language_awakening');
+  const hasWordLamp = skillIds.has('word_lamp');
+  const hasAsset = skillIds.has('asset_insight');
+  const hasLanguage = skillIds.has('language_skill');
+  const hasDocument = skillIds.has('document_blade');
+  const hasOrganizing = skillIds.has('organizing_hand');
+  const hasArtIdea = skillIds.has('imagination_sketch') || skillIds.has('story_spark') || skillIds.has('image_touch');
+  const hasToolOrCode = skillIds.has('tool_mastery') || skillIds.has('code_craftsman');
+
+  return matches.filter(match => {
+    if (match.skillId === 'insight_language' && (hasForeign || hasWordLamp || hasAsset || hasLanguage || hasArtIdea)) {
+      const onlyGenericReading = match.matchedKeywords.every(keyword => ['읽', '읽고', '읽었다', '정리', '메모'].includes(keyword));
+      if (onlyGenericReading) return false;
+    }
+    if (match.skillId === 'organizing_hand' && (hasAsset || hasLanguage || hasDocument || hasForeign || hasWordLamp)) {
+      const onlyGenericOrganizing = match.matchedKeywords.every(keyword => ['정리', '분류'].includes(keyword));
+      if (onlyGenericOrganizing) return false;
+    }
+    if (match.skillId === 'document_blade' && hasToolOrCode) {
+      const onlyGenericDocument = match.matchedKeywords.every(keyword => ['문서', '작성'].includes(keyword));
+      if (onlyGenericDocument) return false;
+    }
+    return true;
+  });
+}
+
+function buildActiveRoutesFromMatches(segment, matches) {
+  return matches.map(match => {
+    const skill = SKILLS[match.skillId];
+    return buildActiveRoute(
+      segment,
+      match.skillId,
+      `${skill.name} 관련 키워드를 찾았습니다. 감지 키워드: ${match.matchedKeywords.join(', ')}.`,
+      match.confidence
+    );
+  });
+}
+
+function buildAmbiguousRouteIfNeeded(segment) {
+  const normalized = segment.trim().replace(/[.!?。]+$/g, '');
+  const ambiguousRules = [
+    {
+      isMatch: normalized === '운동했다' || normalized === '운동 했다',
+      stat: 'STR',
+      candidates: ['근력의 증명', '런닝의 증명'],
+      reason: '운동 표현은 있지만 근력인지 러닝인지 명확하지 않습니다.',
+      question: '어떤 운동이었나요? 근력운동, 걷기/러닝 중 어디에 가까웠나요?'
+    },
+    {
+      isMatch: normalized === '정리했다' || normalized === '정리 했다',
+      stat: 'UNKNOWN',
+      candidates: ['정리의 손길', '문서의 날', '언어의 기술'],
+      reason: '정리 표현만으로는 공간/파일, 문서, 보고 내용 중 무엇인지 확정하기 어렵습니다.',
+      question: '무엇을 정리했나요? 공간/파일 정리, 문서 정리, 보고 내용 정리 중 어디에 가까운가요?'
+    },
+    {
+      isMatch: normalized === '공부했다' || normalized === '공부 했다',
+      stat: 'INT',
+      candidates: ['통찰의 언어', '외국어 각성', '코드의 장인'],
+      reason: '공부 표현만으로는 독서/개념 이해, 외국어, 코딩 중 무엇인지 확정하기 어렵습니다.',
+      question: '무엇을 공부했나요? 독서/개념 이해, 외국어, 코딩 중 어디에 가까운가요?'
+    },
+    {
+      isMatch: normalized === '만들었다' || normalized === '만들었다',
+      stat: 'UNKNOWN',
+      candidates: ['코드의 장인', '이미지의 손길', '이야기의 불씨', '문서의 날'],
+      reason: '만들었다는 표현만으로는 코드, 이미지, 이야기, 문서 중 무엇인지 확정하기 어렵습니다.',
+      question: '무엇을 만들었나요? 코드, 이미지, 이야기, 문서 중 어디에 가까운가요?'
+    },
+    {
+      isMatch: normalized === '읽었다' || normalized === '읽었다',
+      stat: 'UNKNOWN',
+      candidates: ['통찰의 언어', '말씀의 등불'],
+      reason: '읽었다는 표현만으로는 책/자료인지 성경 말씀인지 확정하기 어렵습니다.',
+      question: '무엇을 읽었나요? 책/자료인가요, 성경 말씀인가요?'
+    }
+  ];
+
+  const rule = ambiguousRules.find(item => item.isMatch);
+  if (!rule) return null;
+  return buildNeedsReviewRoute(segment, rule.stat, rule.candidates, rule.reason, rule.question);
+}
+
 function routeSegmentMock(segment) {
+  const ambiguousRoute = buildAmbiguousRouteIfNeeded(segment);
+  if (ambiguousRoute) return [ambiguousRoute];
+
   if (isShortAmbiguousRecord(segment)) {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'UNKNOWN',
       [],
       '활동 자체가 너무 모호해서 라우팅하기 어렵습니다.',
       '무엇을 했는지 조금만 더 구체적으로 적어줄 수 있나요?',
       0.25
-    );
+    )];
   }
 
   if (hasAnyKeyword(segment, ['운동']) && !hasAnyKeyword(segment, ['푸시업', '스쿼트', '플랭크', '덤벨', '근력', '웨이트', '헬스', '세트', 'km', '뛰', '달리', '러닝', '런닝', '조깅'])) {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'STR',
       ['근력의 증명', '런닝의 증명'],
       '운동 표현은 있지만 근력인지 러닝인지 명확하지 않습니다.',
-      '근력운동이었나요, 러닝/걷기였나요?'
-    );
+      '어떤 운동이었나요? 근력운동, 걷기/러닝 중 어디에 가까웠나요?'
+    )];
   }
 
   if (segment.trim() === '코딩했다' || segment.trim() === '코딩 했다') {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'INT',
       ['코드의 장인'],
       '코딩 표현은 있지만 학습, 구현, 디버깅 중 무엇인지 명확하지 않습니다.',
       '학습/구현/디버깅 중 어떤 코딩 활동이었나요?'
-    );
+    )];
   }
 
   if (hasAnyKeyword(segment, ['공부'])) {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'INT',
-      Object.values(SKILLS).filter(skill => skill.stat === 'INT').map(skill => skill.name),
+      ['통찰의 언어', '외국어 각성', '코드의 장인'],
       '공부 표현만으로는 어떤 INT 스킬인지 확정하기 어렵습니다.',
-      '읽기/코딩/언어/외국어/자산 중 어떤 활동에 가까웠나요?'
-    );
+      '무엇을 공부했나요? 독서/개념 이해, 외국어, 코딩 중 어디에 가까운가요?'
+    )];
   }
 
   if ((segment.trim() === '잤다' || segment.trim() === '잠잤다' || segment.trim() === '수면했다') && !hasRecoveryTimeOrDetail(segment)) {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'STR',
       ['회복의 밤'],
       '수면 표현은 있지만 수면 시간이 명확하지 않습니다.',
       '몇 시간 잤는지 적어줄 수 있나요?'
-    );
+    )];
   }
 
   if (/^밥\s*먹/.test(segment) || segment === '밥 먹었다') {
-    return buildNeedsReviewRoute(
+    return [buildNeedsReviewRoute(
       segment,
       'STR',
       ['연료 충전'],
       '식사 표현은 있지만 음식 내용이 부족합니다.',
       '무엇을 얼마나 먹었는지 적어줄 수 있나요?'
-    );
+    )];
   }
 
-  for (const [stat, rules] of Object.entries(ROUTER_FUTURE_RULES)) {
-    if (stat === 'DEX' && isDexOrganizationFalsePositive(segment)) continue;
-    const matched = rules.filter(rule => hasAnyKeyword(segment, rule.keywords)).map(rule => rule.name);
-    if (matched.length > 0) {
-      return buildFutureRoute(
-        segment,
-        stat,
-        FUTURE_SKILL_CANDIDATES[stat] || [...new Set(matched)],
-        `${stat} 미완성 스킬트리 후보 키워드를 찾았습니다. 감지 후보: ${[...new Set(matched)].join(', ')}.`
-      );
-    }
-  }
+  const matches = getSkillRouterMatches(segment);
+  if (matches.length > 0) return buildActiveRoutesFromMatches(segment, matches);
 
-  for (const rule of ROUTER_ACTIVE_RULES) {
-    if (hasAnyKeyword(segment, rule.keywords)) {
-      const skill = SKILLS[rule.skillId];
-      return buildActiveRoute(segment, rule.skillId, `${skill.name} 관련 키워드를 찾았습니다.`);
-    }
-  }
-
-  return buildUnassignedRoute(segment);
+  return [buildUnassignedRoute(segment)];
 }
 
 function mergeUniqueText(values, separator = ' / ') {
@@ -3567,7 +3872,7 @@ function routeRecordMock(text) {
   const segments = splitRouteSegments(rawText);
   const routingResults = (segments.length ? segments : [rawText])
     .filter(Boolean)
-    .map(routeSegmentMock);
+    .flatMap(routeSegmentMock);
   const draftResult = {
     raw_text: rawText,
     routing_results: routingResults,
@@ -6843,8 +7148,9 @@ window.LIFE_RPG_TEST = {
       },
       {
         text: '기도하고 말씀 읽었다.',
-        expected: 'future WIS candidate',
-        pass: result => result.routing_results.some(r => r.route_status === 'future_skill_candidate' && r.stat === 'WIS')
+        expected: 'prayer_breath + word_lamp',
+        pass: result => result.routing_results.some(r => r.skill_id === 'prayer_breath')
+          && result.routing_results.some(r => r.skill_id === 'word_lamp')
       },
       {
         text: '운동했다.',
@@ -8453,11 +8759,12 @@ window.LIFE_RPG_TEST = {
     result = routeRecordMock('기도하고 말씀 읽었다.');
     rawLog = createRawLogDraft('기도하고 말씀 읽었다.');
     rows.push({
-      case: 'future WIS candidates remain separate',
-      result: result.routing_results.some(route => route.route_status === 'future_skill_candidate' && route.stat === 'WIS')
-        && result.routing_results.every(route => route.route_status !== 'active_skill')
+      case: 'WIS active skills route without mock analyzers yet',
+      result: result.routing_results.some(route => route.skill_id === 'prayer_breath')
+        && result.routing_results.some(route => route.skill_id === 'word_lamp')
         && rawLog.analysis.mock_analysis_results.length === 0 ? 'PASS' : 'FAIL',
-      futureCount: result.routing_results.filter(route => route.route_status === 'future_skill_candidate' && route.stat === 'WIS').length,
+      prayerRoutes: result.routing_results.filter(route => route.skill_id === 'prayer_breath').length,
+      wordRoutes: result.routing_results.filter(route => route.skill_id === 'word_lamp').length,
       mockCount: rawLog.analysis.mock_analysis_results.length
     });
 
@@ -8572,6 +8879,85 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  fullSkillRouterTest() {
+    const activeCases = [
+      ['푸시업 3세트 했다.', ['strength_proof']],
+      ['5km 뛰었다.', ['running_proof']],
+      ['닭가슴살 2팩 먹고 물 1L 마셨다.', ['fuel_charge']],
+      ['7시간 잤다.', ['recovery_night']],
+      ['트렌드 코리아를 20분 읽고 핵심 내용을 요약했다.', ['insight_language']],
+      ['CSS 오류를 수정했다.', ['code_craftsman']],
+      ['팀장님께 보고할 내용을 두괄식으로 정리했다.', ['language_skill']],
+      ['영어 단어 10개를 복습했다.', ['foreign_language_awakening']],
+      ['이번 달 카드값과 지출 내역을 정리했다.', ['asset_insight']],
+      ['주일예배를 드렸다.', ['worship_place']],
+      ['친구를 위해 기도했다.', ['prayer_breath']],
+      ['요한복음 1장을 읽고 묵상했다.', ['word_lamp']],
+      ['오늘 감사한 일 3가지를 적었다.', ['gratitude_record']],
+      ['마음에 걸렸던 사람에게 먼저 사과했다.', ['small_obedience']],
+      ['공문 제목을 다듬고 보고서를 작성했다.', ['document_blade']],
+      ['핸드폰 사진첩을 정리했다.', ['organizing_hand']],
+      ['엑셀 수식을 고치고 한글 서식을 맞췄다.', ['tool_mastery']],
+      ['민원 현장을 확인하고 사진을 찍었다.', ['field_eye']],
+      ['빈집정비 신청 서류와 위임장을 확인했다.', ['procedure_knot']],
+      ['책을 펴기만 했다.', ['first_step_ignition']],
+      ['말만 하던 일을 실제로 처리했다.', ['action_over_words']],
+      ['일주일 만에 다시 영어 단어를 복습했다.', ['flow_return', 'foreign_language_awakening']],
+      ['일어나서 씻고 출근 준비했다.', ['life_mobility']],
+      ['미루던 민원 전화를 바로 했다.', ['no_delay_hand']],
+      ['루나의 모험 세계관 아이디어를 메모했다.', ['imagination_sketch']],
+      ['캐릭터 대사와 이야기 장면을 써봤다.', ['story_spark']],
+      ['캐릭터 이미지 프롬프트를 만들었다.', ['image_touch']],
+      ['UI 색감과 폰트를 조정했다.', ['sense_tuning']],
+      ['찬양 발성과 목소리 녹음을 연습했다.', ['voice_resonance']],
+      ['5km 뛰고 닭가슴살 2팩 먹었다.', ['running_proof', 'fuel_charge']],
+      ['일주일 만에 다시 영어 단어 10개 복습했다.', ['foreign_language_awakening', 'flow_return']],
+      ['팀장님께 보고할 내용을 두괄식으로 정리하고 실제로 보고했다.', ['language_skill', 'action_over_words']]
+    ];
+    const reviewCases = [
+      ['운동했다.', ['근력의 증명', '런닝의 증명']],
+      ['정리했다.', ['정리의 손길', '문서의 날', '언어의 기술']],
+      ['만들었다.', ['코드의 장인', '이미지의 손길', '이야기의 불씨', '문서의 날']]
+    ];
+
+    const rows = activeCases.map(([text, expectedSkillIds], index) => {
+      const result = routeRecordMock(text);
+      const routeIds = result.routing_results.map(route => route.skill_id).filter(Boolean);
+      const passed = expectedSkillIds.every(skillId => routeIds.includes(skillId));
+      return {
+        no: index + 1,
+        result: passed ? 'PASS' : 'FAIL',
+        text,
+        expected: expectedSkillIds.join(', '),
+        routes: routeIds.join(', '),
+        statuses: result.routing_results.map(route => route.route_status).join(', '),
+        comment: result.router_comment
+      };
+    });
+
+    reviewCases.forEach(([text, expectedCandidates], index) => {
+      const result = routeRecordMock(text);
+      const reviewRoutes = result.routing_results.filter(route => route.route_status === 'needs_review');
+      const candidateNames = reviewRoutes.flatMap(route => route.candidate_skill_tree || []);
+      const passed = reviewRoutes.length > 0
+        && expectedCandidates.every(candidate => candidateNames.includes(candidate));
+      rows.push({
+        no: activeCases.length + index + 1,
+        result: passed ? 'PASS' : 'FAIL',
+        text,
+        expected: `needs_review: ${expectedCandidates.join(', ')}`,
+        routes: result.routing_results.map(route => route.skill_id || route.route_status).join(', '),
+        candidates: candidateNames.join(', '),
+        statuses: result.routing_results.map(route => route.route_status).join(', '),
+        comment: result.router_comment
+      });
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_FULL_SKILL_ROUTER_TEST: ALL PASS' : 'LIFE_RPG_FULL_SKILL_ROUTER_TEST: FAIL');
+    return rows;
+  },
+
   status() {
     const status = getLifeRpgStatus();
     console.table([status]);
@@ -8589,6 +8975,7 @@ window.LIFE_RPG = {
   SKILL_TREES,
   SKILL_ID_ALIASES,
   SPECIALIZED_SKILL_ENGINES,
+  SKILL_ROUTER_KEYWORDS,
   COMMON_ANALYSIS_RESULT_SHAPE,
   ART_ARCHIVE_CATEGORIES,
   ART_ARCHIVE_SHAPE,
