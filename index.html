@@ -1063,7 +1063,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.8-D-common-analysis-result-shape';
+const APP_VERSION = 'v0.8-G-art-archive-foundation';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -1798,6 +1798,15 @@ const FLOW_RETURN_GAP_RULES = {
   }
 };
 
+const FLOW_RETURN_DETECTION_POLICY = {
+  enabled: true,
+  min_gap_days: 2,
+  max_bonus_per_skill_per_day: 1,
+  target_skill_exclude_ids: ['flow_return'],
+  analyzer_type: 'flow_return_auto',
+  note: '복귀는 쉬었던 날이 아니라 다시 실행한 날에 발생한다.'
+};
+
 const FLOW_WARNING_POLICY = {
   max_warning_per_day: 1,
   max_suggested_flows: 3,
@@ -1817,6 +1826,154 @@ const FLOW_WARNING_POLICY = {
     '가장 작게 다시 시작할 수 있는 흐름을 골라봤어요.',
     '완벽하게 돌아오지 않아도 괜찮아요.'
   ]
+};
+
+const FLOW_REOPEN_SUGGESTIONS = {
+  strength_proof: {
+    suggestion: '푸시업 1회 또는 스쿼트 3회 하기',
+    estimated_minutes: 1,
+    supportive_message: '몸에 아주 작은 힘만 줘도 근력 흐름이 다시 열려요.'
+  },
+  running_proof: {
+    suggestion: '밖에 나가 5분 걷기',
+    estimated_minutes: 5,
+    supportive_message: '5분 걷기부터 다시 시작해도 충분해요.'
+  },
+  fuel_charge: {
+    suggestion: '물 한 컵 마시기',
+    estimated_minutes: 1,
+    supportive_message: '물 한 컵으로 몸에 필요한 연료 흐름을 다시 열 수 있어요.'
+  },
+  recovery_night: {
+    suggestion: '잠들기 전 휴대폰 내려놓기',
+    estimated_minutes: 1,
+    supportive_message: '잠들기 전 작은 선택이 회복 흐름을 부드럽게 열어줘요.'
+  },
+  insight_language: {
+    suggestion: '책이나 글 한 문단 읽기',
+    estimated_minutes: 2,
+    supportive_message: '한 문단만 읽어도 생각의 흐름이 다시 이어질 수 있어요.'
+  },
+  code_craftsman: {
+    suggestion: '코드 한 줄 또는 오류 메시지 하나 보기',
+    estimated_minutes: 3,
+    supportive_message: '한 줄만 다시 봐도 개발 감각이 천천히 돌아와요.'
+  },
+  language_skill: {
+    suggestion: '전달할 문장 한 줄 다듬기',
+    estimated_minutes: 2,
+    supportive_message: '문장 한 줄만 다듬어도 표현의 흐름이 살아나요.'
+  },
+  foreign_language_awakening: {
+    suggestion: '영어 단어 1개 다시 보기',
+    estimated_minutes: 1,
+    supportive_message: '단어 하나만 다시 봐도 언어 감각이 다시 열려요.'
+  },
+  asset_insight: {
+    suggestion: '오늘 지출 하나 확인하기',
+    estimated_minutes: 2,
+    supportive_message: '지출 하나만 바라봐도 자산 흐름을 다시 붙잡을 수 있어요.'
+  },
+  worship_place: {
+    suggestion: '예배 메모 한 줄 다시 보기',
+    estimated_minutes: 2,
+    supportive_message: '예배의 기억 한 줄만 떠올려도 마음의 방향이 다시 놓일 수 있어요.'
+  },
+  prayer_breath: {
+    suggestion: '짧게 한 문장 기도하기',
+    estimated_minutes: 1,
+    supportive_message: '한 문장의 기도도 마음의 숨을 다시 열어줘요.'
+  },
+  word_lamp: {
+    suggestion: '성경 한 구절 읽기',
+    estimated_minutes: 1,
+    supportive_message: '성경 한 구절만 읽어도 흐름이 다시 열릴 수 있어요.'
+  },
+  gratitude_record: {
+    suggestion: '감사한 일 1개 적기',
+    estimated_minutes: 1,
+    supportive_message: '감사 하나만 기억해도 하루의 빛이 다시 보여요.'
+  },
+  small_obedience: {
+    suggestion: '마음에 걸린 작은 일 하나 떠올리기',
+    estimated_minutes: 2,
+    supportive_message: '작은 순종은 아주 작은 마음의 움직임에서 다시 시작돼요.'
+  },
+  document_blade: {
+    suggestion: '문서 제목 한 줄 다듬기',
+    estimated_minutes: 3,
+    supportive_message: '문서 한 줄만 정돈해도 실무 흐름이 다시 이어져요.'
+  },
+  organizing_hand: {
+    suggestion: '책상 위 물건 1개 치우기',
+    estimated_minutes: 1,
+    supportive_message: '물건 하나만 제자리로 돌려도 충분해요.'
+  },
+  tool_mastery: {
+    suggestion: '도구 단축키 하나 다시 써보기',
+    estimated_minutes: 2,
+    supportive_message: '기능 하나만 다시 써봐도 도구 감각이 살아나요.'
+  },
+  field_eye: {
+    suggestion: '현장 메모나 사진 1개 확인하기',
+    estimated_minutes: 2,
+    supportive_message: '기록 하나를 다시 보는 것만으로도 현장 감각이 이어져요.'
+  },
+  procedure_knot: {
+    suggestion: '체크리스트 한 항목 확인하기',
+    estimated_minutes: 2,
+    supportive_message: '항목 하나만 확인해도 절차의 매듭이 다시 잡혀요.'
+  },
+  first_step_ignition: {
+    suggestion: '하려던 일을 1분만 열어보기',
+    estimated_minutes: 1,
+    supportive_message: '1분만 열어도 첫걸음의 불씨는 충분히 살아나요.'
+  },
+  action_over_words: {
+    suggestion: '작은 실행 하나 바로 하기',
+    estimated_minutes: 2,
+    supportive_message: '말로 남아 있던 것을 아주 작게 행동으로 옮겨봐요.'
+  },
+  flow_return: {
+    suggestion: '가장 쉬운 흐름 하나 다시 고르기',
+    estimated_minutes: 1,
+    supportive_message: '완벽하게 돌아오지 않아도 괜찮아요. 하나만 다시 열어도 충분해요.'
+  },
+  life_mobility: {
+    suggestion: '자리에서 일어나 물 한 컵 마시기',
+    estimated_minutes: 1,
+    supportive_message: '몸을 작게 움직이면 생활의 기동이 다시 열려요.'
+  },
+  no_delay_hand: {
+    suggestion: '미루던 항목 하나만 확인하기',
+    estimated_minutes: 2,
+    supportive_message: '확인 하나만으로도 부담의 매듭이 조금 풀려요.'
+  },
+  imagination_sketch: {
+    suggestion: '아이디어 한 줄 메모하기',
+    estimated_minutes: 1,
+    supportive_message: '떠오른 생각 한 줄만 붙잡아도 창작 흐름이 이어져요.'
+  },
+  story_spark: {
+    suggestion: '장면이나 대사 한 줄 쓰기',
+    estimated_minutes: 2,
+    supportive_message: '한 줄의 장면만으로도 이야기의 불씨가 다시 살아나요.'
+  },
+  image_touch: {
+    suggestion: '이미지 프롬프트 한 문장 적기',
+    estimated_minutes: 2,
+    supportive_message: '한 문장만 적어도 이미지 흐름이 다시 보이기 시작해요.'
+  },
+  sense_tuning: {
+    suggestion: '색감이나 여백 하나만 조정하기',
+    estimated_minutes: 2,
+    supportive_message: '작은 조정 하나가 감각의 흐름을 다시 맞춰줘요.'
+  },
+  voice_resonance: {
+    suggestion: '한 소절 낮게 불러보기',
+    estimated_minutes: 2,
+    supportive_message: '한 소절만 편하게 내도 목소리의 흐름이 다시 열려요.'
+  }
 };
 
 // v0.8-A: 기존 future 후보 구조는 라우터 확장 전까지 legacy hint로 유지합니다.
@@ -1931,6 +2088,8 @@ const REPORT_SNAPSHOTS_KEY = 'lifeRpg_report_snapshots_v1';
 const RUNNING_RECORDS_KEY = 'lifeRpg_running_records_v1';
 const FUEL_RECORDS_KEY = 'lifeRpg_fuel_records_v1';
 const SLEEP_RECORDS_KEY = 'lifeRpg_sleep_records_v1';
+const FLOW_WARNING_STATE_KEY = 'lifeRpg_flow_warning_state_v1';
+const ART_ARCHIVES_KEY = 'lifeRpg_art_archives_v1';
 const APP_DATA_SCHEMA_VERSION = 'life_rpg_mvp_storage_v1';
 const MAX_REPORT_SNAPSHOTS = 100;
 const RUNNING_DISTANCE_BUCKETS = [3, 5, 10, 15, 20];
@@ -1940,6 +2099,8 @@ let REPORT_SNAPSHOTS = [];
 let RUNNING_RECORDS = [];
 let FUEL_RECORDS = [];
 let SLEEP_RECORDS = [];
+let FLOW_WARNING_STATE = createDefaultFlowWarningState();
+let ART_ARCHIVES = [];
 
 /* ============================================
    로컬 저장 (캐시 역할)
@@ -2079,6 +2240,53 @@ function loadSleepRecords() {
   }
 }
 
+function createDefaultFlowWarningState() {
+  return {
+    last_generated_date_id: null,
+    last_shown_date_id: null,
+    snoozed_until_date_id: null,
+    hidden_until_date_id: null,
+    hidden_skill_ids: {},
+    dismissed_warning_ids: []
+  };
+}
+
+function saveFlowWarningState() {
+  try {
+    localStorage.setItem(FLOW_WARNING_STATE_KEY, JSON.stringify({ flow_warning_state: FLOW_WARNING_STATE }));
+  } catch (e) {}
+}
+
+function loadFlowWarningState() {
+  try {
+    const s = localStorage.getItem(FLOW_WARNING_STATE_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceFlowWarningState(parsed.flow_warning_state || parsed || null);
+  } catch (e) {
+    replaceFlowWarningState(null);
+  }
+}
+
+function saveArtArchives() {
+  try {
+    localStorage.setItem(ART_ARCHIVES_KEY, JSON.stringify({ art_archives: ART_ARCHIVES }));
+  } catch (e) {}
+}
+
+function loadArtArchives() {
+  try {
+    const s = localStorage.getItem(ART_ARCHIVES_KEY);
+    if (!s) return;
+    const parsed = JSON.parse(s);
+    replaceArtArchives(Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed.art_archives) ? parsed.art_archives : []));
+  } catch (e) {
+    replaceArtArchives([]);
+  }
+}
+
 function replacePlayerData(data) {
   const next = Object.assign(createInitialPlayerState(), data || {});
   for (const key of Object.keys(PLAYER)) delete PLAYER[key];
@@ -2115,6 +2323,19 @@ function replaceSleepRecords(records) {
   if (Array.isArray(records)) SLEEP_RECORDS.push(...records);
 }
 
+function replaceFlowWarningState(state) {
+  const next = Object.assign(createDefaultFlowWarningState(), state || {});
+  next.hidden_skill_ids = Object.assign({}, next.hidden_skill_ids || {});
+  next.dismissed_warning_ids = Array.isArray(next.dismissed_warning_ids) ? next.dismissed_warning_ids.slice() : [];
+  for (const key of Object.keys(FLOW_WARNING_STATE)) delete FLOW_WARNING_STATE[key];
+  Object.assign(FLOW_WARNING_STATE, next);
+}
+
+function replaceArtArchives(archives) {
+  ART_ARCHIVES.length = 0;
+  if (Array.isArray(archives)) ART_ARCHIVES.push(...archives);
+}
+
 function createAppDataSnapshot() {
   return {
     schema_version: APP_DATA_SCHEMA_VERSION,
@@ -2125,14 +2346,16 @@ function createAppDataSnapshot() {
     report_snapshots: REPORT_SNAPSHOTS,
     running_records: RUNNING_RECORDS,
     fuel_records: FUEL_RECORDS,
-    sleep_records: SLEEP_RECORDS
+    sleep_records: SLEEP_RECORDS,
+    flow_warning_state: FLOW_WARNING_STATE,
+    art_archives: ART_ARCHIVES
   };
 }
 
 function applyAppDataSnapshot(data) {
   if (!data || typeof data !== 'object') return;
 
-  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots) || Array.isArray(data.running_records) || Array.isArray(data.fuel_records) || Array.isArray(data.sleep_records)) {
+  if (data.player || Array.isArray(data.raw_logs) || Array.isArray(data.analysis_results) || Array.isArray(data.report_snapshots) || Array.isArray(data.running_records) || Array.isArray(data.fuel_records) || Array.isArray(data.sleep_records) || data.flow_warning_state || Array.isArray(data.art_archives)) {
     if (data.player && typeof data.player === 'object') replacePlayerData(data.player);
     if (Array.isArray(data.raw_logs)) replaceRawLogs(data.raw_logs);
     if (Array.isArray(data.analysis_results)) replaceAnalysisResults(data.analysis_results);
@@ -2140,6 +2363,8 @@ function applyAppDataSnapshot(data) {
     replaceRunningRecords(Array.isArray(data.running_records) ? data.running_records : []);
     replaceFuelRecords(Array.isArray(data.fuel_records) ? data.fuel_records : []);
     replaceSleepRecords(Array.isArray(data.sleep_records) ? data.sleep_records : []);
+    replaceFlowWarningState(data.flow_warning_state || null);
+    replaceArtArchives(Array.isArray(data.art_archives) ? data.art_archives : []);
     return;
   }
 
@@ -2148,6 +2373,8 @@ function applyAppDataSnapshot(data) {
   replaceRunningRecords([]);
   replaceFuelRecords([]);
   replaceSleepRecords([]);
+  replaceFlowWarningState(null);
+  replaceArtArchives([]);
   replacePlayerData(data);
 }
 
@@ -2159,6 +2386,8 @@ function saveAllLocal() {
   saveRunningRecords();
   saveFuelRecords();
   saveSleepRecords();
+  saveFlowWarningState();
+  saveArtArchives();
 }
 
 function loadAllLocal() {
@@ -2169,6 +2398,8 @@ function loadAllLocal() {
   loadRunningRecords();
   loadFuelRecords();
   loadSleepRecords();
+  loadFlowWarningState();
+  loadArtArchives();
 }
 
 /* ============================================
@@ -2809,9 +3040,11 @@ function isApplicableMockAnalysis(mock) {
 
 function applyMockAnalysisResultsToPlayer(rawLog, analysisResult) {
   const now = new Date().toISOString();
-  const mockResults = Array.isArray(rawLog?.analysis?.mock_analysis_results)
-    ? rawLog.analysis.mock_analysis_results
-    : [];
+  const analysisMockResults = Array.isArray(analysisResult?.mock_analysis_results)
+    ? analysisResult.mock_analysis_results
+    : (Array.isArray(analysisResult?.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : null);
+  const mockResults = analysisMockResults
+    || (Array.isArray(rawLog?.analysis?.mock_analysis_results) ? rawLog.analysis.mock_analysis_results : []);
   const applicableResults = mockResults.filter(isApplicableMockAnalysis);
   const appliedRecords = [];
   const rankUps = [];
@@ -6648,6 +6881,635 @@ function renderSleepMonthlyReportText(report) {
   ].join('\n');
 }
 
+function calculateDateGapDays(previousDateId, currentDateId) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(previousDateId || ''))) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(currentDateId || ''))) return null;
+  const previous = new Date(`${previousDateId}T00:00:00`);
+  const current = new Date(`${currentDateId}T00:00:00`);
+  if (isNaN(previous.getTime()) || isNaN(current.getTime())) return null;
+  return Math.round((current.getTime() - previous.getTime()) / 86400000);
+}
+
+function getFlowReturnRuleByGapDays(gapDays) {
+  if (typeof gapDays !== 'number' || gapDays < FLOW_RETURN_DETECTION_POLICY.min_gap_days) return null;
+  for (const [ruleKey, rule] of Object.entries(FLOW_RETURN_GAP_RULES)) {
+    const min = Number(rule.min_gap_days) || 0;
+    const max = rule.max_gap_days === null ? Infinity : Number(rule.max_gap_days);
+    if (gapDays >= min && gapDays <= max) {
+      return { rule_key: ruleKey, ...rule };
+    }
+  }
+  return null;
+}
+
+function getRecordSkillIds(record) {
+  const ids = [];
+  const add = value => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(add);
+      return;
+    }
+    if (typeof value === 'object') {
+      add(value.skill_id || value.skillId);
+      return;
+    }
+    ids.push(String(value));
+  };
+  add(record?.skill_id);
+  add(record?.skillId);
+  add(record?.skill_id_list);
+  add(record?.skillIds);
+  add(record?.matched_skills);
+  add(record?.mock_analysis_results);
+  add(record?.analysis?.matched_skills);
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function getRecordDateId(record) {
+  return getDateId(record?.date_id || record?.date || record?.created_at || record?.saved_at);
+}
+
+function getLastSkillActivityDateId(skillId, currentDateId) {
+  if (!skillId || FLOW_RETURN_DETECTION_POLICY.target_skill_exclude_ids.includes(skillId)) return null;
+  let latestDateId = null;
+  let latestGap = Infinity;
+  for (const record of PLAYER.records || []) {
+    const dateId = getRecordDateId(record);
+    const gapDays = calculateDateGapDays(dateId, currentDateId);
+    if (gapDays === null || gapDays <= 0) continue;
+    if (!getRecordSkillIds(record).includes(skillId)) continue;
+    if (gapDays < latestGap) {
+      latestGap = gapDays;
+      latestDateId = dateId;
+    }
+  }
+  return latestDateId;
+}
+
+function hasFlowReturnBonusForSkillOnDate(targetSkillId, dateId) {
+  if (!targetSkillId || !dateId) return false;
+  return (PLAYER.records || []).some(record => {
+    if (getRecordDateId(record) !== dateId) return false;
+    if (!getRecordSkillIds(record).includes('flow_return')) return false;
+    const target = record.target_skill_id
+      || record.targetSkillId
+      || record.metrics?.target_skill_id
+      || record.metrics?.targetSkillId
+      || record.components?.target_skill_id
+      || record.analysis?.target_skill_id;
+    return target === targetSkillId;
+  });
+}
+
+function createFlowReturnMockAnalysis(targetSkillId, gapDays, rule, currentDateId) {
+  if (!targetSkillId || !rule) return null;
+  const flowSkill = SKILLS.flow_return || {};
+  const targetSkill = SKILLS[targetSkillId] || {};
+  const targetSkillName = targetSkill.name || targetSkillId;
+  return {
+    route_status: 'active_skill',
+    skill_id: 'flow_return',
+    skill_name: flowSkill.name || '흐름의 복귀',
+    skill_tree: flowSkill.name || '흐름의 복귀',
+    stat: 'AGI',
+    analyzer_id: ANALYZER_IDS.flow_return || 'flow_return_v1',
+    tier: rule.rule_key,
+    tier_label: '흐름 복귀',
+    confidence: 0.88,
+    skill_exp: Number(rule.skill_exp) || 0,
+    stat_exp: Number(rule.stat_exp) || 0,
+    character_exp: Number(rule.character_exp) || 0,
+    display_summary: '잠시 쉬었던 흐름에 다시 발을 올린 기록이에요.',
+    summary: `${targetSkillName} 흐름에 다시 발을 올린 기록이에요.`,
+    analyzer_type: FLOW_RETURN_DETECTION_POLICY.analyzer_type,
+    target_skill_id: targetSkillId,
+    target_skill_name: targetSkillName,
+    gap_days: gapDays,
+    date_id: currentDateId,
+    components: {
+      target_skill_id: targetSkillId,
+      target_skill_name: targetSkillName,
+      gap_days: gapDays
+    },
+    metrics: {
+      target_skill_id: targetSkillId,
+      target_skill_name: targetSkillName,
+      gap_days: gapDays,
+      date_id: currentDateId,
+      rule_key: rule.rule_key
+    },
+    evidence: [`${targetSkillName} 기록이 ${gapDays}일 만에 다시 나타나 흐름의 복귀로 보조 판정했습니다.`],
+    needs_review: false,
+    review_reason: null,
+    skill_rule_version: 'flow_return_detection_v0.1'
+  };
+}
+
+function detectFlowReturnCandidates(analysisResult, rawLog) {
+  if (!FLOW_RETURN_DETECTION_POLICY.enabled) return [];
+  if (!analysisResult || analysisResult.needs_review || analysisResult.route_status === 'needs_review') return [];
+  const mockResults = Array.isArray(analysisResult.mock_analysis_results)
+    ? analysisResult.mock_analysis_results
+    : (Array.isArray(analysisResult.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : []);
+  if (!mockResults.length) return [];
+  if (mockResults.some(item => item.skill_id === 'flow_return')) return [];
+
+  const currentDateId = getDateId(rawLog?.date || rawLog?.saved_at || rawLog?.created_at || analysisResult.date || new Date());
+  const targetSkillIds = (analysisResult.matched_skills || mockResults)
+    .map(item => item.skill_id || item.skillId)
+    .filter(skillId => skillId
+      && SKILLS[skillId]
+      && !FLOW_RETURN_DETECTION_POLICY.target_skill_exclude_ids.includes(skillId));
+  const uniqueTargetSkillIds = [...new Set(targetSkillIds)];
+
+  return uniqueTargetSkillIds
+    .map(skillId => {
+      if (hasFlowReturnBonusForSkillOnDate(skillId, currentDateId)) return null;
+      const previousDateId = getLastSkillActivityDateId(skillId, currentDateId);
+      const gapDays = calculateDateGapDays(previousDateId, currentDateId);
+      const rule = getFlowReturnRuleByGapDays(gapDays);
+      return rule ? createFlowReturnMockAnalysis(skillId, gapDays, rule, currentDateId) : null;
+    })
+    .filter(Boolean);
+}
+
+function applyFlowReturnDetectionToAnalysisResult(analysisResult, rawLog) {
+  const flowReturnCandidates = detectFlowReturnCandidates(analysisResult, rawLog);
+  if (!flowReturnCandidates.length) return analysisResult;
+  const metrics = analysisResult.metrics || {};
+  const existing = Array.isArray(analysisResult.mock_analysis_results)
+    ? analysisResult.mock_analysis_results
+    : (Array.isArray(metrics.mock_analysis_results) ? metrics.mock_analysis_results : []);
+  const nextAnalysisResult = {
+    ...analysisResult,
+    mock_analysis_results: [...existing, ...flowReturnCandidates],
+    metrics: {
+      ...metrics,
+      mock_analysis_results: [...existing, ...flowReturnCandidates],
+      flow_return_detection: {
+        version: 'flow_return_detection_v0.1',
+        added_count: flowReturnCandidates.length,
+        target_skill_ids: flowReturnCandidates.map(item => item.target_skill_id)
+      }
+    }
+  };
+  return normalizeAnalysisResultShape(nextAnalysisResult, rawLog);
+}
+
+function addDaysToDateId(dateId, days) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateId || ''))) return null;
+  const date = new Date(`${dateId}T00:00:00`);
+  if (isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + (Number(days) || 0));
+  return getDateId(date);
+}
+
+function isDateIdAfter(dateId, compareDateId) {
+  const gap = calculateDateGapDays(compareDateId, dateId);
+  return typeof gap === 'number' && gap > 0;
+}
+
+function persistFlowWarningState() {
+  saveFlowWarningState();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function getSkillLastActivityMap(currentDateId = getTodayId()) {
+  const map = {};
+  for (const record of PLAYER.records || []) {
+    const dateId = getRecordDateId(record);
+    const gapDays = calculateDateGapDays(dateId, currentDateId);
+    if (gapDays === null || gapDays < 0) continue;
+    for (const skillId of getRecordSkillIds(record)) {
+      if (!skillId || skillId === 'flow_return' || !SKILLS[skillId]) continue;
+      if (!map[skillId] || gapDays < map[skillId].gap_days) {
+        map[skillId] = {
+          skill_id: skillId,
+          skill_name: SKILLS[skillId]?.name || skillId,
+          stat: SKILLS[skillId]?.stat || null,
+          last_date_id: dateId,
+          gap_days: gapDays
+        };
+      }
+    }
+  }
+  return map;
+}
+
+function detectPausedSkillFlows(currentDateId = getTodayId(), options = {}) {
+  const minGapDays = Number(options.min_gap_days || 4);
+  const maxResults = Number(options.max_results || 10);
+  const lastActivityMap = getSkillLastActivityMap(currentDateId);
+  const hiddenSkillIds = FLOW_WARNING_STATE.hidden_skill_ids || {};
+  const flows = Object.values(lastActivityMap)
+    .filter(item => item.skill_id !== 'flow_return')
+    .filter(item => item.gap_days >= minGapDays)
+    .filter(item => !hiddenSkillIds[item.skill_id] || !isDateIdAfter(hiddenSkillIds[item.skill_id], currentDateId))
+    .map(item => {
+      const suggestion = FLOW_REOPEN_SUGGESTIONS[item.skill_id] || {};
+      const estimatedMinutes = Number(suggestion.estimated_minutes) || 5;
+      const statMeta = STAT_META[item.stat] || {};
+      const priorityScore = (item.gap_days * 10)
+        + (suggestion.suggestion ? 20 : 0)
+        + Math.max(0, 10 - estimatedMinutes);
+      return {
+        ...item,
+        stat_name: statMeta.name || item.stat,
+        current_date_id: currentDateId,
+        suggestion: suggestion.suggestion || `${item.skill_name} 아주 작게 다시 열기`,
+        estimated_minutes: estimatedMinutes,
+        supportive_message: suggestion.supportive_message || '하나만 다시 열어도 충분해요.',
+        priority_score: priorityScore
+      };
+    })
+    .sort((a, b) => b.priority_score - a.priority_score || b.gap_days - a.gap_days || a.estimated_minutes - b.estimated_minutes);
+  return flows.slice(0, maxResults);
+}
+
+function createGroupedFlowWarning(currentDateId = getTodayId(), options = {}) {
+  const generatedAt = new Date().toISOString();
+  const id = `flow_warning_${String(currentDateId || getTodayId()).replace(/-/g, '')}`;
+  const maxSuggestedFlows = Number(options.max_suggested_flows || FLOW_WARNING_POLICY.max_suggested_flows || 3);
+
+  if (FLOW_WARNING_STATE.snoozed_until_date_id && isDateIdAfter(FLOW_WARNING_STATE.snoozed_until_date_id, currentDateId)) {
+    return {
+      id,
+      date_id: currentDateId,
+      generated_at: generatedAt,
+      status: 'snoozed',
+      title: '오늘은 흐름 경고를 잠시 쉬고 있어요.',
+      message: '내일 다시 부드럽게 확인할 수 있어요.',
+      suggested_flows: [],
+      total_paused_count: 0,
+      hidden_count: 0,
+      policy: { max_suggested_flows: maxSuggestedFlows, tone: FLOW_WARNING_POLICY.tone },
+      summary_text: '오늘은 흐름 경고를 잠시 쉬고 있어요.'
+    };
+  }
+
+  if (FLOW_WARNING_STATE.hidden_until_date_id && isDateIdAfter(FLOW_WARNING_STATE.hidden_until_date_id, currentDateId)) {
+    return {
+      id,
+      date_id: currentDateId,
+      generated_at: generatedAt,
+      status: 'hidden',
+      title: '오늘은 흐름 경고를 숨겨두었어요.',
+      message: '필요할 때 다시 열어볼 수 있어요.',
+      suggested_flows: [],
+      total_paused_count: 0,
+      hidden_count: 0,
+      policy: { max_suggested_flows: maxSuggestedFlows, tone: FLOW_WARNING_POLICY.tone },
+      summary_text: '오늘은 흐름 경고를 숨겨두었어요.'
+    };
+  }
+
+  const allPaused = detectPausedSkillFlows(currentDateId, { ...options, max_results: 100 });
+  const suggestedFlows = allPaused.slice(0, maxSuggestedFlows).map(item => ({
+    skill_id: item.skill_id,
+    skill_name: item.skill_name,
+    stat: item.stat,
+    stat_name: item.stat_name,
+    gap_days: item.gap_days,
+    last_date_id: item.last_date_id,
+    suggestion: item.suggestion,
+    estimated_minutes: item.estimated_minutes,
+    supportive_message: item.supportive_message
+  }));
+  const hiddenCount = Object.entries(FLOW_WARNING_STATE.hidden_skill_ids || {})
+    .filter(([, untilDateId]) => isDateIdAfter(untilDateId, currentDateId))
+    .length;
+  const warning = {
+    id,
+    date_id: currentDateId,
+    generated_at: generatedAt,
+    status: suggestedFlows.length ? 'available' : 'empty',
+    title: suggestedFlows.length ? '오늘은 몇 가지 흐름이 잠시 쉬고 있어요.' : '지금은 쉬고 있는 흐름 경고가 없어요.',
+    message: suggestedFlows.length ? '하나만 다시 열어도 충분해요.' : '지금 흐름은 괜찮게 이어지고 있어요.',
+    suggested_flows: suggestedFlows,
+    total_paused_count: allPaused.length,
+    hidden_count: hiddenCount,
+    policy: {
+      max_suggested_flows: maxSuggestedFlows,
+      tone: FLOW_WARNING_POLICY.tone
+    },
+    summary_text: suggestedFlows.length
+      ? `가장 작게 다시 열기 좋은 흐름 ${suggestedFlows.length}개를 골라봤어요.`
+      : '지금은 쉬고 있는 흐름 경고가 없어요.'
+  };
+  FLOW_WARNING_STATE.last_generated_date_id = currentDateId;
+  saveFlowWarningState();
+  return warning;
+}
+
+function renderGroupedFlowWarningText(warning) {
+  if (!warning || warning.status === 'empty') return '지금은 쉬고 있는 흐름 경고가 없어요.';
+  if (warning.status === 'snoozed') return '오늘은 흐름 경고를 잠시 쉬고 있어요.';
+  if (warning.status === 'hidden') return '오늘은 흐름 경고를 숨겨두었어요.';
+  const lines = [
+    warning.title || '오늘은 몇 가지 흐름이 잠시 쉬고 있어요.',
+    '',
+    '가장 작게 다시 열기 좋은 흐름:',
+    ''
+  ];
+  for (const flow of warning.suggested_flows || []) {
+    lines.push(`- ${flow.skill_name}`);
+    lines.push(`  ㄴ ${flow.supportive_message}`);
+    lines.push(`  ㄴ 추천 행동: ${flow.suggestion}`);
+    lines.push(`  ㄴ 예상 소요 시간: ${flow.estimated_minutes}분`);
+    lines.push('');
+  }
+  lines.push('요약:');
+  lines.push(warning.message || '하나만 다시 열어도 충분해요.');
+  return lines.join('\n');
+}
+
+function snoozeFlowWarningUntilTomorrow(currentDateId = getTodayId()) {
+  FLOW_WARNING_STATE.snoozed_until_date_id = addDaysToDateId(currentDateId, 1);
+  persistFlowWarningState();
+  return true;
+}
+
+function hideFlowWarningForDays(days = 7, currentDateId = getTodayId()) {
+  FLOW_WARNING_STATE.hidden_until_date_id = addDaysToDateId(currentDateId, days);
+  persistFlowWarningState();
+  return true;
+}
+
+function hideFlowSkillForDays(skillId, days = 7, currentDateId = getTodayId()) {
+  if (!skillId) return false;
+  FLOW_WARNING_STATE.hidden_skill_ids = FLOW_WARNING_STATE.hidden_skill_ids || {};
+  FLOW_WARNING_STATE.hidden_skill_ids[skillId] = addDaysToDateId(currentDateId, days);
+  persistFlowWarningState();
+  return true;
+}
+
+function clearFlowWarningState() {
+  replaceFlowWarningState(null);
+  persistFlowWarningState();
+  return true;
+}
+
+function persistArtArchives() {
+  saveAllLocal();
+  if (DEV_SKIP_LOGIN) {
+    updateSyncIndicator('saved');
+  } else {
+    scheduleSave();
+  }
+}
+
+function createArtArchiveId() {
+  const now = new Date();
+  const date = getDateId(now).replace(/-/g, '');
+  const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+  return `art_archive_${date}_${time}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function isArtSkill(skillId) {
+  if (!skillId) return false;
+  return SKILLS[skillId]?.stat === 'ART' || (SKILL_TREES.ART?.skills || []).includes(skillId);
+}
+
+function inferArtArchiveCategory(text, skillId) {
+  const lower = String(text || '').toLowerCase();
+  const includesAny = words => words.some(word => lower.includes(String(word).toLowerCase()));
+  if (includesAny(['프롬프트', 'prompt'])) return 'prompt';
+  if (includesAny(['결과물', '완성', '최종'])) return 'result';
+  if (includesAny(['실패', '시도', '마음에 안 듦', '수정 전'])) return 'attempt';
+  if (includesAny(['ui', '색감', '폰트', '레이아웃', '가독성', '여백'])) return 'ui_design';
+  if (includesAny(['이미지', '그림', '캐릭터', '아이콘', 'png'])) return 'image';
+  if (includesAny(['이야기', '대사', '장면', '스토리', '플롯'])) return 'story';
+  if (includesAny(['목소리', '찬양', '녹음', '발성', '보컬'])) return 'voice';
+  if (includesAny(['아이디어', '구상', '설정', '세계관'])) return 'idea';
+  const skillCategoryMap = {
+    imagination_sketch: 'idea',
+    story_spark: 'story',
+    image_touch: 'image',
+    sense_tuning: 'ui_design',
+    voice_resonance: 'voice'
+  };
+  return skillCategoryMap[skillId] || 'idea';
+}
+
+function normalizeArtArchiveCategory(category) {
+  return ART_ARCHIVE_CATEGORIES[category] ? category : 'idea';
+}
+
+function normalizeArtArchiveStatus(status, fallback = 'idea') {
+  const validStatuses = ['idea', 'draft', 'in_progress', 'revised', 'completed', 'archived', 'discarded'];
+  return validStatuses.includes(status) ? status : fallback;
+}
+
+function buildArtArchiveTitle(content, category) {
+  const trimmed = String(content || '').trim();
+  if (trimmed) return trimmed.length > 24 ? `${trimmed.slice(0, 24)}...` : trimmed;
+  return ART_ARCHIVE_CATEGORIES[category] || 'ART 아카이브';
+}
+
+function createArtArchiveDraft(options = {}) {
+  const now = new Date().toISOString();
+  const linkedSkill = isArtSkill(options.linked_skill) ? options.linked_skill : '';
+  const content = String(options.content || options.source_text || options.raw_text || '').trim();
+  const category = normalizeArtArchiveCategory(options.category || inferArtArchiveCategory(content, linkedSkill));
+  return {
+    archive_id: options.archive_id || createArtArchiveId(),
+    version: 'art_archive_v0.1',
+    title: String(options.title || buildArtArchiveTitle(content, category)).trim(),
+    category,
+    linked_stat: 'ART',
+    linked_skill: linkedSkill,
+    raw_log_id: options.raw_log_id || null,
+    analysis_result_id: options.analysis_result_id || null,
+    status: normalizeArtArchiveStatus(options.status || 'idea'),
+    content,
+    attachments: Array.isArray(options.attachments) ? options.attachments.slice() : [],
+    source: options.source || '',
+    prompt: options.prompt || (category === 'prompt' ? content : ''),
+    result_note: options.result_note || '',
+    improvement_note: options.improvement_note || '',
+    tags: Array.isArray(options.tags) ? options.tags.slice() : [],
+    created_at: options.created_at || now,
+    updated_at: options.updated_at || now
+  };
+}
+
+function saveArtArchive(options = {}) {
+  const rawLogId = options.raw_log_id || null;
+  const linkedSkill = isArtSkill(options.linked_skill) ? options.linked_skill : '';
+  if (rawLogId && linkedSkill) {
+    const existing = ART_ARCHIVES.find(item => item.raw_log_id === rawLogId && item.linked_skill === linkedSkill);
+    if (existing) return existing;
+  }
+  const archive = createArtArchiveDraft(options);
+  ART_ARCHIVES.unshift(archive);
+  persistArtArchives();
+  return archive;
+}
+
+function createArtArchiveDraftsFromAnalysis(rawLog, analysisResult) {
+  const sourceText = rawLog?.raw_text || analysisResult?.activity_text || analysisResult?.source_text || '';
+  const skillItems = [
+    ...(Array.isArray(analysisResult?.matched_skills) ? analysisResult.matched_skills : []),
+    ...(Array.isArray(analysisResult?.mock_analysis_results) ? analysisResult.mock_analysis_results : []),
+    ...(Array.isArray(analysisResult?.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : [])
+  ];
+  const seen = new Set();
+  return skillItems
+    .map(item => item?.skill_id || item?.skillId)
+    .filter(skillId => isArtSkill(skillId))
+    .filter(skillId => {
+      if (seen.has(skillId)) return false;
+      seen.add(skillId);
+      return true;
+    })
+    .map(skillId => createArtArchiveDraft({
+      title: buildArtArchiveTitle(sourceText, inferArtArchiveCategory(sourceText, skillId)),
+      category: inferArtArchiveCategory(sourceText, skillId),
+      linked_skill: skillId,
+      content: sourceText,
+      raw_log_id: rawLog?.id || analysisResult?.raw_log_id || null,
+      analysis_result_id: analysisResult?.id || null,
+      tags: [SKILLS[skillId]?.name || skillId].filter(Boolean)
+    }));
+}
+
+function saveArtArchivesFromAnalysis(rawLog, analysisResult) {
+  const drafts = createArtArchiveDraftsFromAnalysis(rawLog, analysisResult);
+  return drafts.map(draft => saveArtArchive(draft));
+}
+
+function getArtArchives(filter = {}) {
+  let archives = ART_ARCHIVES.slice();
+  if (filter.category) archives = archives.filter(item => item.category === filter.category);
+  if (filter.linked_skill) archives = archives.filter(item => item.linked_skill === filter.linked_skill);
+  if (filter.status) archives = archives.filter(item => item.status === filter.status);
+  if (filter.tag) archives = archives.filter(item => (item.tags || []).includes(filter.tag));
+  archives.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  if (filter.limit) archives = archives.slice(0, Number(filter.limit));
+  return archives;
+}
+
+function getLatestArtArchive(filter = {}) {
+  return getArtArchives(filter)[0] || null;
+}
+
+function updateArtArchive(archiveId, updates = {}) {
+  const archive = ART_ARCHIVES.find(item => item.archive_id === archiveId);
+  if (!archive) return null;
+  const nextUpdates = { ...updates };
+  delete nextUpdates.archive_id;
+  delete nextUpdates.created_at;
+  if ('category' in nextUpdates) nextUpdates.category = normalizeArtArchiveCategory(nextUpdates.category);
+  if ('status' in nextUpdates) nextUpdates.status = normalizeArtArchiveStatus(nextUpdates.status, archive.status);
+  if ('linked_skill' in nextUpdates) nextUpdates.linked_skill = isArtSkill(nextUpdates.linked_skill) ? nextUpdates.linked_skill : '';
+  if ('tags' in nextUpdates && !Array.isArray(nextUpdates.tags)) nextUpdates.tags = archive.tags || [];
+  if ('attachments' in nextUpdates && !Array.isArray(nextUpdates.attachments)) nextUpdates.attachments = archive.attachments || [];
+  Object.assign(archive, nextUpdates, { updated_at: new Date().toISOString() });
+  persistArtArchives();
+  return archive;
+}
+
+function deleteArtArchive(archiveId) {
+  const index = ART_ARCHIVES.findIndex(item => item.archive_id === archiveId);
+  if (index === -1) return false;
+  ART_ARCHIVES.splice(index, 1);
+  persistArtArchives();
+  return true;
+}
+
+function clearArtArchives() {
+  ART_ARCHIVES.length = 0;
+  persistArtArchives();
+  return true;
+}
+
+function renderArtArchiveText(archive) {
+  if (!archive) return '저장된 ART 아카이브가 없습니다.';
+  const categoryName = ART_ARCHIVE_CATEGORIES[archive.category] || archive.category || '미분류';
+  const skillName = SKILLS[archive.linked_skill]?.name || archive.linked_skill || '없음';
+  return [
+    'ART 아카이브',
+    `제목: ${archive.title || ''}`,
+    `분류: ${categoryName}`,
+    `연결 스킬: ${skillName}`,
+    `상태: ${archive.status || ''}`,
+    '',
+    '내용:',
+    archive.content || '',
+    '',
+    '프롬프트:',
+    archive.prompt || '',
+    '',
+    '결과 메모:',
+    archive.result_note || '',
+    '',
+    '개선 메모:',
+    archive.improvement_note || '',
+    '',
+    '태그:',
+    (archive.tags || []).join(', ')
+  ].join('\n');
+}
+
+function createArtArchiveMonthlyReport(monthId = getCurrentMonthId()) {
+  const categoryCounts = Object.fromEntries(Object.keys(ART_ARCHIVE_CATEGORIES).map(key => [key, 0]));
+  const artSkillIds = SKILL_TREES.ART?.skills || [];
+  const skillCounts = Object.fromEntries(artSkillIds.map(skillId => [skillId, 0]));
+  const archives = ART_ARCHIVES.filter(item => getMonthId(item.created_at) === monthId);
+  for (const archive of archives) {
+    if (categoryCounts[archive.category] !== undefined) categoryCounts[archive.category] += 1;
+    if (skillCounts[archive.linked_skill] !== undefined) skillCounts[archive.linked_skill] += 1;
+  }
+  const latestArchive = archives.slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0] || null;
+  const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
+  const summaryText = archives.length
+    ? `이번 달 ART 아카이브 ${archives.length}개를 남겼어요. 가장 많이 쌓인 분류는 ${ART_ARCHIVE_CATEGORIES[topCategory[0]] || topCategory[0]}입니다.`
+    : '이번 달 ART 아카이브 기록이 아직 없어요.';
+  return {
+    month_id: monthId,
+    archives_count: archives.length,
+    category_counts: categoryCounts,
+    skill_counts: skillCounts,
+    latest_archive: latestArchive,
+    completed_count: archives.filter(item => item.status === 'completed').length,
+    draft_count: archives.filter(item => item.status === 'draft' || item.status === 'idea').length,
+    summary_text: summaryText
+  };
+}
+
+function renderArtArchiveMonthlyReportText(report) {
+  if (!report) return 'ART 아카이브 월간 리포트가 없습니다.';
+  const categoryLines = Object.entries(report.category_counts || {})
+    .filter(([, count]) => count > 0)
+    .map(([category, count]) => `${ART_ARCHIVE_CATEGORIES[category] || category} ${count}개`);
+  const skillLines = Object.entries(report.skill_counts || {})
+    .filter(([, count]) => count > 0)
+    .map(([skillId, count]) => `${SKILLS[skillId]?.name || skillId} ${count}개`);
+  return [
+    'ART 아카이브 월간 리포트',
+    `월: ${report.month_id}`,
+    '',
+    `총 아카이브: ${report.archives_count}개`,
+    '',
+    '분류:',
+    ...(categoryLines.length ? categoryLines : ['기록 없음']),
+    '',
+    '연결 스킬:',
+    ...(skillLines.length ? skillLines : ['기록 없음']),
+    '',
+    `완료: ${report.completed_count}개`,
+    `초안: ${report.draft_count}개`,
+    '',
+    '요약:',
+    report.summary_text
+  ].join('\n');
+}
+
 function normalizeAnalysisResultShape(analysisResult, rawLog) {
   const metrics = analysisResult?.metrics || {};
   const mockAnalysisResults = Array.isArray(metrics.mock_analysis_results)
@@ -6800,7 +7662,8 @@ function createTemporaryAnalysisResult(rawLog) {
     created_at: now,
     updated_at: now
   };
-  return normalizeAnalysisResultShape(analysisResult, rawLog);
+  const normalizedAnalysisResult = normalizeAnalysisResultShape(analysisResult, rawLog);
+  return applyFlowReturnDetectionToAnalysisResult(normalizedAnalysisResult, rawLog);
 }
 
 function getAnalysisByRawLogId(rawLogId) {
@@ -7416,6 +8279,8 @@ function resetTestData() {
   try { localStorage.removeItem(RUNNING_RECORDS_KEY); } catch (e) {}
   try { localStorage.removeItem(FUEL_RECORDS_KEY); } catch (e) {}
   try { localStorage.removeItem(SLEEP_RECORDS_KEY); } catch (e) {}
+  try { localStorage.removeItem(FLOW_WARNING_STATE_KEY); } catch (e) {}
+  try { localStorage.removeItem(ART_ARCHIVES_KEY); } catch (e) {}
   replacePlayerData(createInitialPlayerState());
   replaceRawLogs([]);
   replaceAnalysisResults([]);
@@ -7423,6 +8288,8 @@ function resetTestData() {
   replaceRunningRecords([]);
   replaceFuelRecords([]);
   replaceSleepRecords([]);
+  replaceFlowWarningState(null);
+  replaceArtArchives([]);
   pendingRawLog = null;
   recalcStats();
   recalcCharLevel();
@@ -7448,6 +8315,7 @@ function getLifeRpgStatus() {
     running_records_count: RUNNING_RECORDS.length,
     fuel_records_count: FUEL_RECORDS.length,
     sleep_records_count: SLEEP_RECORDS.length,
+    art_archives_count: ART_ARCHIVES.length,
     charExp: PLAYER.charExp,
     INT_stat: PLAYER.stats.INT || 0,
     insight_language_exp: PLAYER.skills.insight_language?.exp || 0,
@@ -9730,6 +10598,473 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  flowReturnDetectionTest() {
+    const rows = [];
+    const dateDaysAgo = days => getDateId(new Date(Date.now() - days * 86400000));
+    const addHistoryRecord = (skillId, daysAgo, extra = {}) => {
+      const dateId = dateDaysAgo(daysAgo);
+      PLAYER.records.unshift({
+        id: `test_${skillId}_${daysAgo}_${Math.random().toString(36).slice(2, 6)}`,
+        date: `${dateId}T09:00:00`,
+        date_id: dateId,
+        skillId,
+        skillName: SKILLS[skillId]?.name || skillId,
+        stat: SKILLS[skillId]?.stat || null,
+        mode: 'detail_mock',
+        skillExp: 10,
+        statExp: 1,
+        charExp: 1,
+        ...extra
+      });
+      return dateId;
+    };
+    const createResult = text => {
+      const rawLog = createRawLogDraft(text);
+      const analysisResult = createTemporaryAnalysisResult(rawLog);
+      return { rawLog, analysisResult };
+    };
+    const getMocks = analysisResult => analysisResult.mock_analysis_results || analysisResult.metrics?.mock_analysis_results || [];
+    const getFlowMocks = analysisResult => getMocks(analysisResult).filter(item => item.skill_id === 'flow_return');
+    const hasMatched = (analysisResult, skillId) => (analysisResult.matched_skills || []).some(item => item.skill_id === skillId);
+
+    resetTestData();
+    let result = createResult('영어 단어 10개 복습했다.');
+    rows.push({
+      case: 'no history means no auto flow_return',
+      result: hasMatched(result.analysisResult, 'foreign_language_awakening')
+        && getFlowMocks(result.analysisResult).length === 0 ? 'PASS' : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      flowCount: getFlowMocks(result.analysisResult).length
+    });
+
+    resetTestData();
+    addHistoryRecord('foreign_language_awakening', 8);
+    result = createResult('영어 단어 10개 복습했다.');
+    let flowMocks = getFlowMocks(result.analysisResult);
+    rows.push({
+      case: 'foreign language returns after 8 days',
+      result: hasMatched(result.analysisResult, 'foreign_language_awakening')
+        && flowMocks.length === 1
+        && flowMocks[0].target_skill_id === 'foreign_language_awakening'
+        && flowMocks[0].gap_days >= 8
+        && flowMocks[0].skill_exp > 0 ? 'PASS' : 'FAIL',
+      target: flowMocks[0]?.target_skill_id,
+      gapDays: flowMocks[0]?.gap_days,
+      skillExp: flowMocks[0]?.skill_exp
+    });
+
+    resetTestData();
+    addHistoryRecord('running_proof', 1);
+    result = createResult('3km 뛰었다.');
+    rows.push({
+      case: '1 day gap is not return',
+      result: hasMatched(result.analysisResult, 'running_proof')
+        && getFlowMocks(result.analysisResult).length === 0 ? 'PASS' : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      flowCount: getFlowMocks(result.analysisResult).length
+    });
+
+    resetTestData();
+    addHistoryRecord('running_proof', 4);
+    result = createResult('3km 뛰었다.');
+    flowMocks = getFlowMocks(result.analysisResult);
+    rows.push({
+      case: 'running returns after 4 days',
+      result: hasMatched(result.analysisResult, 'running_proof')
+        && flowMocks.length === 1
+        && flowMocks[0].target_skill_id === 'running_proof' ? 'PASS' : 'FAIL',
+      target: flowMocks[0]?.target_skill_id,
+      gapDays: flowMocks[0]?.gap_days
+    });
+
+    resetTestData();
+    addHistoryRecord('strength_proof', 10);
+    result = createResult('운동했다.');
+    rows.push({
+      case: 'needs_review does not detect return',
+      result: result.analysisResult.route_status === 'needs_review'
+        && getFlowMocks(result.analysisResult).length === 0 ? 'PASS' : 'FAIL',
+      routeStatus: result.analysisResult.route_status,
+      flowCount: getFlowMocks(result.analysisResult).length
+    });
+
+    resetTestData();
+    addHistoryRecord('foreign_language_awakening', 8);
+    result = createResult('일주일 만에 다시 영어 단어 10개 복습했다.');
+    flowMocks = getFlowMocks(result.analysisResult);
+    rows.push({
+      case: 'explicit flow_return is not duplicated',
+      result: hasMatched(result.analysisResult, 'foreign_language_awakening')
+        && flowMocks.length === 1 ? 'PASS' : 'FAIL',
+      flowCount: flowMocks.length,
+      targets: flowMocks.map(item => item.target_skill_id || 'explicit').join(', ')
+    });
+
+    resetTestData();
+    addHistoryRecord('foreign_language_awakening', 8);
+    addHistoryRecord('flow_return', 0, {
+      metrics: { target_skill_id: 'foreign_language_awakening' },
+      target_skill_id: 'foreign_language_awakening'
+    });
+    result = createResult('영어 단어 10개 복습했다.');
+    rows.push({
+      case: 'same-day target bonus is not duplicated',
+      result: hasMatched(result.analysisResult, 'foreign_language_awakening')
+        && getFlowMocks(result.analysisResult).length === 0 ? 'PASS' : 'FAIL',
+      flowCount: getFlowMocks(result.analysisResult).length
+    });
+
+    resetTestData();
+    addHistoryRecord('running_proof', 8);
+    addHistoryRecord('fuel_charge', 8);
+    result = createResult('5km 뛰고 닭가슴살 2팩 먹었다.');
+    flowMocks = getFlowMocks(result.analysisResult);
+    rows.push({
+      case: 'compound record checks each target skill',
+      result: hasMatched(result.analysisResult, 'running_proof')
+        && hasMatched(result.analysisResult, 'fuel_charge')
+        && flowMocks.length >= 1
+        && flowMocks.some(item => ['running_proof', 'fuel_charge'].includes(item.target_skill_id))
+        ? 'PASS'
+        : 'FAIL',
+      matched: (result.analysisResult.matched_skills || []).map(item => item.skill_id).join(', '),
+      targets: flowMocks.map(item => item.target_skill_id).join(', ')
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_FLOW_RETURN_DETECTION_TEST: ALL PASS' : 'LIFE_RPG_FLOW_RETURN_DETECTION_TEST: FAIL');
+    return rows;
+  },
+
+  groupedFlowWarningTest() {
+    const rows = [];
+    const addHistoryRecord = (skillId, daysAgo, extra = {}) => {
+      const dateId = addDaysToDateId(getTodayId(), -daysAgo);
+      PLAYER.records.unshift({
+        id: `flow_warning_test_${skillId}_${daysAgo}_${Math.random().toString(36).slice(2, 6)}`,
+        date: `${dateId}T09:00:00`,
+        date_id: dateId,
+        skillId,
+        skillName: SKILLS[skillId]?.name || skillId,
+        stat: SKILLS[skillId]?.stat || null,
+        mode: 'detail_mock',
+        skillExp: 10,
+        statExp: 1,
+        charExp: 1,
+        ...extra
+      });
+      return dateId;
+    };
+    const hasSuggestedSkill = (warning, skillId) => (warning.suggested_flows || []).some(item => item.skill_id === skillId);
+
+    resetTestData();
+    clearFlowWarningState();
+    let warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'no records means no warning',
+      result: warning.status === 'empty' && warning.suggested_flows.length === 0 ? 'PASS' : 'FAIL',
+      status: warning.status,
+      count: warning.suggested_flows.length
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('running_proof', 0);
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'recent same-day record is not paused',
+      result: !hasSuggestedSkill(warning, 'running_proof') ? 'PASS' : 'FAIL',
+      status: warning.status,
+      suggested: (warning.suggested_flows || []).map(item => item.skill_id).join(', ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'detect skill paused for 5 days',
+      result: warning.status === 'available'
+        && hasSuggestedSkill(warning, 'word_lamp')
+        && warning.suggested_flows.find(item => item.skill_id === 'word_lamp')?.gap_days >= 5
+        ? 'PASS'
+        : 'FAIL',
+      status: warning.status,
+      gapDays: warning.suggested_flows.find(item => item.skill_id === 'word_lamp')?.gap_days
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    ['running_proof', 'word_lamp', 'organizing_hand', 'foreign_language_awakening'].forEach(skillId => addHistoryRecord(skillId, 5));
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'suggest at most 3 grouped flows',
+      result: warning.suggested_flows.length <= 3 && warning.total_paused_count >= 4 ? 'PASS' : 'FAIL',
+      suggestedCount: warning.suggested_flows.length,
+      totalPausedCount: warning.total_paused_count
+    });
+
+    const warningText = renderGroupedFlowWarningText(warning);
+    const forbiddenHits = FLOW_WARNING_POLICY.forbidden_phrases.filter(phrase => warningText.includes(phrase));
+    rows.push({
+      case: 'warning text avoids forbidden phrases',
+      result: forbiddenHits.length === 0 ? 'PASS' : 'FAIL',
+      forbiddenHits: forbiddenHits.join(', ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    snoozeFlowWarningUntilTomorrow();
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'snooze until tomorrow',
+      result: warning.status === 'snoozed' ? 'PASS' : 'FAIL',
+      status: warning.status,
+      snoozedUntil: FLOW_WARNING_STATE.snoozed_until_date_id
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    hideFlowWarningForDays(7);
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'hide all warning for days',
+      result: warning.status === 'hidden' ? 'PASS' : 'FAIL',
+      status: warning.status,
+      hiddenUntil: FLOW_WARNING_STATE.hidden_until_date_id
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    hideFlowSkillForDays('word_lamp', 7);
+    warning = createGroupedFlowWarning();
+    rows.push({
+      case: 'hide one skill from suggestions',
+      result: !hasSuggestedSkill(warning, 'word_lamp') ? 'PASS' : 'FAIL',
+      status: warning.status,
+      suggested: (warning.suggested_flows || []).map(item => item.skill_id).join(', ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    warning = createGroupedFlowWarning();
+    const text = renderGroupedFlowWarningText(warning);
+    rows.push({
+      case: 'render grouped flow warning text',
+      result: text.includes('오늘은 몇 가지 흐름이 잠시 쉬고 있어요.')
+        && text.includes('추천 행동')
+        && text.includes('예상 소요 시간')
+        ? 'PASS'
+        : 'FAIL',
+      textPreview: text.split('\n').slice(0, 5).join(' / ')
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_GROUPED_FLOW_WARNING_TEST: ALL PASS' : 'LIFE_RPG_GROUPED_FLOW_WARNING_TEST: FAIL');
+    return rows;
+  },
+
+  artArchiveTest() {
+    const rows = [];
+
+    resetTestData();
+    clearArtArchives();
+    rows.push({
+      case: 'empty archive state',
+      result: ART_ARCHIVES.length === 0
+        && getLatestArtArchive() === null
+        && renderArtArchiveText(null).includes('없습니다')
+        ? 'PASS'
+        : 'FAIL',
+      archives: ART_ARCHIVES.length,
+      latest: getLatestArtArchive()
+    });
+
+    const draft = createArtArchiveDraft({
+      title: '캐릭터 이미지 프롬프트',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.'
+    });
+    rows.push({
+      case: 'createArtArchiveDraft',
+      result: !!draft.archive_id
+        && ['prompt', 'image'].includes(draft.category)
+        && draft.linked_stat === 'ART'
+        && draft.linked_skill === 'image_touch'
+        ? 'PASS'
+        : 'FAIL',
+      category: draft.category,
+      linkedSkill: draft.linked_skill
+    });
+
+    resetTestData();
+    clearArtArchives();
+    const savedIdea = saveArtArchive({
+      title: '세계관 아이디어',
+      linked_skill: 'imagination_sketch',
+      content: '루나의 모험 세계관 아이디어를 메모했다.',
+      tags: ['세계관', '아이디어']
+    });
+    rows.push({
+      case: 'saveArtArchive',
+      result: ART_ARCHIVES.length === 1
+        && savedIdea.category === 'idea'
+        && getLatestArtArchive()?.archive_id === savedIdea.archive_id
+        ? 'PASS'
+        : 'FAIL',
+      archives: ART_ARCHIVES.length,
+      category: savedIdea.category
+    });
+
+    saveArtArchive({
+      title: '캐릭터 이미지',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.',
+      tags: ['캐릭터', '이미지']
+    });
+    saveArtArchive({
+      title: '대사 초안',
+      linked_skill: 'story_spark',
+      content: '캐릭터 대사와 이야기 장면을 써봤다.',
+      tags: ['스토리']
+    });
+    rows.push({
+      case: 'getArtArchives filters',
+      result: getArtArchives({ linked_skill: 'image_touch' }).length === 1
+        && getArtArchives({ tag: '아이디어' }).length >= 1
+        ? 'PASS'
+        : 'FAIL',
+      imageTouchCount: getArtArchives({ linked_skill: 'image_touch' }).length,
+      ideaTagCount: getArtArchives({ tag: '아이디어' }).length
+    });
+
+    const updated = updateArtArchive(savedIdea.archive_id, { status: 'completed' });
+    rows.push({
+      case: 'updateArtArchive',
+      result: updated?.status === 'completed' && !!updated.updated_at ? 'PASS' : 'FAIL',
+      status: updated?.status,
+      updatedAt: updated?.updated_at
+    });
+
+    const deleteTarget = saveArtArchive({
+      title: '삭제 대상',
+      linked_skill: 'sense_tuning',
+      content: 'UI 색감과 폰트를 조정했다.'
+    });
+    const beforeDeleteCount = ART_ARCHIVES.length;
+    rows.push({
+      case: 'deleteArtArchive',
+      result: deleteArtArchive(deleteTarget.archive_id) === true
+        && ART_ARCHIVES.length === beforeDeleteCount - 1
+        ? 'PASS'
+        : 'FAIL',
+      before: beforeDeleteCount,
+      after: ART_ARCHIVES.length
+    });
+
+    resetTestData();
+    clearArtArchives();
+    let rawLog = createRawLogDraft('캐릭터 이미지 프롬프트를 만들었다.');
+    let analysisResult = createTemporaryAnalysisResult(rawLog);
+    let drafts = createArtArchiveDraftsFromAnalysis(rawLog, analysisResult);
+    rows.push({
+      case: 'create ART drafts from analysis',
+      result: drafts.length >= 1 && drafts[0].linked_skill === 'image_touch' ? 'PASS' : 'FAIL',
+      count: drafts.length,
+      linkedSkill: drafts[0]?.linked_skill
+    });
+
+    const savedFromAnalysis = saveArtArchivesFromAnalysis(rawLog, analysisResult);
+    rows.push({
+      case: 'save ART archives from analysis',
+      result: ART_ARCHIVES.length >= 1
+        && savedFromAnalysis.length >= 1
+        && ART_ARCHIVES[0].linked_skill === 'image_touch'
+        ? 'PASS'
+        : 'FAIL',
+      archives: ART_ARCHIVES.length,
+      linkedSkill: ART_ARCHIVES[0]?.linked_skill
+    });
+
+    rawLog = createRawLogDraft('5km 뛰었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    drafts = createArtArchiveDraftsFromAnalysis(rawLog, analysisResult);
+    rows.push({
+      case: 'non-ART analysis creates no archive drafts',
+      result: drafts.length === 0 ? 'PASS' : 'FAIL',
+      count: drafts.length
+    });
+
+    resetTestData();
+    clearArtArchives();
+    saveArtArchive({
+      title: '세계관 아이디어',
+      linked_skill: 'imagination_sketch',
+      content: '루나의 모험 세계관 아이디어를 메모했다.'
+    });
+    saveArtArchive({
+      title: '캐릭터 이미지 프롬프트',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.'
+    });
+    saveArtArchive({
+      title: '최종 이미지 결과물',
+      linked_skill: 'image_touch',
+      category: 'result',
+      status: 'completed',
+      content: '캐릭터 이미지 결과물을 완성했다.'
+    });
+    const report = createArtArchiveMonthlyReport();
+    rows.push({
+      case: 'monthly ART archive report',
+      result: report.archives_count > 0
+        && !!report.category_counts
+        && !!report.skill_counts
+        && (report.summary_text.includes('ART') || report.summary_text.includes('아카이브'))
+        ? 'PASS'
+        : 'FAIL',
+      archives: report.archives_count,
+      summary: report.summary_text
+    });
+
+    resetTestData();
+    clearArtArchives();
+    rawLog = createRawLogDraft('5km 뛰었다.');
+    analysisResult = createTemporaryAnalysisResult(rawLog);
+    applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+    RAW_LOGS.unshift(rawLog);
+    ANALYSIS_RESULTS.unshift(analysisResult);
+    const rawCountBefore = RAW_LOGS.length;
+    const analysisCountBefore = ANALYSIS_RESULTS.length;
+    const recordCountBefore = PLAYER.records.length;
+    const archive = saveArtArchive({
+      title: '삭제 안전 테스트',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.'
+    });
+    const deleted = deleteArtArchive(archive.archive_id);
+    rows.push({
+      case: 'deleting archive does not delete source records',
+      result: deleted
+        && RAW_LOGS.length === rawCountBefore
+        && ANALYSIS_RESULTS.length === analysisCountBefore
+        && PLAYER.records.length === recordCountBefore
+        ? 'PASS'
+        : 'FAIL',
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      playerRecords: PLAYER.records.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_ART_ARCHIVE_TEST: ALL PASS' : 'LIFE_RPG_ART_ARCHIVE_TEST: FAIL');
+    return rows;
+  },
+
   status() {
     const status = getLifeRpgStatus();
     console.table([status]);
@@ -9753,8 +11088,11 @@ window.LIFE_RPG = {
   COMMON_ANALYSIS_RESULT_SHAPE,
   ART_ARCHIVE_CATEGORIES,
   ART_ARCHIVE_SHAPE,
+  ART_ARCHIVES,
   FLOW_RETURN_GAP_RULES,
+  FLOW_RETURN_DETECTION_POLICY,
   FLOW_WARNING_POLICY,
+  FLOW_REOPEN_SUGGESTIONS,
   FUTURE_SKILL_CANDIDATES,
   ANALYZER_IDS,
   STATS,
@@ -9838,6 +11176,37 @@ window.LIFE_RPG = {
   inferMockExpTier,
   createCommonMockSkillAnalysis,
   analyzeByRouteMock,
+  calculateDateGapDays,
+  getFlowReturnRuleByGapDays,
+  getLastSkillActivityDateId,
+  hasFlowReturnBonusForSkillOnDate,
+  createFlowReturnMockAnalysis,
+  detectFlowReturnCandidates,
+  applyFlowReturnDetectionToAnalysisResult,
+  addDaysToDateId,
+  getSkillLastActivityMap,
+  detectPausedSkillFlows,
+  createGroupedFlowWarning,
+  renderGroupedFlowWarningText,
+  snoozeFlowWarningUntilTomorrow,
+  hideFlowWarningForDays,
+  hideFlowSkillForDays,
+  clearFlowWarningState,
+  createArtArchiveId,
+  inferArtArchiveCategory,
+  isArtSkill,
+  createArtArchiveDraft,
+  saveArtArchive,
+  createArtArchiveDraftsFromAnalysis,
+  saveArtArchivesFromAnalysis,
+  getArtArchives,
+  getLatestArtArchive,
+  updateArtArchive,
+  deleteArtArchive,
+  clearArtArchives,
+  renderArtArchiveText,
+  createArtArchiveMonthlyReport,
+  renderArtArchiveMonthlyReportText,
   normalizeAnalysisResultShape,
   analyzeRunningProofMock,
   analyzeFuelChargeMock,
@@ -9867,6 +11236,9 @@ window.LIFE_RPG = {
   FUEL_RECORDS_KEY,
   SLEEP_RECORDS,
   SLEEP_RECORDS_KEY,
+  FLOW_WARNING_STATE,
+  FLOW_WARNING_STATE_KEY,
+  ART_ARCHIVES_KEY,
   APP_DATA_SCHEMA_VERSION,
   createAppDataSnapshot,
   RAW_LOG_MVP_MODE,
