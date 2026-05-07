@@ -797,6 +797,32 @@ body {
   word-break: break-word;
 }
 
+.raw-log-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(208, 162, 74, 0.16);
+  color: var(--brown);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.raw-log-status-badge.needs-review {
+  background: rgba(176, 96, 64, 0.14);
+}
+
+.raw-log-skill-line,
+.raw-log-exp-line,
+.raw-log-link-line,
+.raw-log-review-line {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--brown-light);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 /* ============================================
    토스트
    ============================================ */
@@ -879,6 +905,237 @@ body {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.55);
   font-size: 12px;
+}
+
+.report-view-panel {
+  margin: 8px 14px 12px;
+  padding: 10px;
+  border: 1px solid rgba(208, 162, 74, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.report-view-panel details { display: block; }
+
+.report-view-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.report-view-content {
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-family: var(--font-kr);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--brown);
+}
+
+.report-view-panel pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 8px;
+  font-family: var(--font-kr);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--brown);
+}
+
+.report-view-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.report-view-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: white;
+  color: var(--brown);
+  font-family: var(--font-kr);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.report-view-message {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--brown-light);
+}
+
+.art-archive-panel {
+  margin: 8px 14px 12px;
+  padding: 10px;
+  border: 1px solid rgba(208, 162, 74, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.art-archive-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.art-archive-content,
+.art-archive-monthly,
+.art-archive-detail-preview {
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-family: var(--font-kr);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--brown);
+}
+
+.art-archive-subtitle {
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.art-archive-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.art-archive-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: white;
+  color: var(--brown);
+  font-family: var(--font-kr);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.flow-warning-panel {
+  margin: 8px 14px 12px;
+  padding: 10px;
+  border: 1px solid rgba(208, 162, 74, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.flow-warning-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.flow-warning-content {
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-family: var(--font-kr);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--brown);
+}
+
+.flow-warning-actions,
+.flow-warning-skill-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.flow-warning-actions button,
+.flow-warning-skill-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: white;
+  color: var(--brown);
+  font-family: var(--font-kr);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.flow-warning-message {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--brown-light);
+}
+
+.panel-dock {
+  margin: 16px 14px 18px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.panel-dock-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brown);
+}
+
+.panel-dock-slot {
+  min-width: 0;
+}
+
+.panel-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(180, 140, 60, 0.35);
+  border-radius: 10px;
+}
+
+.panel-card details {
+  width: 100%;
+}
+
+.panel-card summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.panel-text {
+  white-space: pre-line;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.panel-dock .raw-log-list,
+.panel-dock .report-view-panel,
+.panel-dock .art-archive-panel,
+.panel-dock .flow-warning-panel,
+.panel-dock .debug-usage-panel {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .panel-dock {
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 6px;
+  }
+
+  .panel-card {
+    padding: 9px;
+  }
 }
 
 .debug-usage-panel details { display: block; }
@@ -1028,6 +1285,7 @@ body {
           이렇게 적어주시면 됩니다!
         </div>
       </div>
+      <div class="report-view-panel" id="reportViewPanel"></div>
       <div class="raw-log-list" id="rawLogList">
         <div class="raw-log-list-title">저장된 B형 기록</div>
         <div class="raw-log-empty">아직 저장된 B형 기록이 없어요.</div>
@@ -1110,7 +1368,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.9-D-real-use-qa';
+const APP_VERSION = 'v0.9-J-mvp-screen-readiness';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -3384,8 +3642,7 @@ function renderAll() {
   renderMiniStatus();
   renderRecent();
   renderStatsGrid();
-  renderRawLogList();
-  try { refreshDebugUsagePanel(); } catch (e) {}
+  try { refreshAllPanels(); } catch (e) {}
   document.getElementById('umStats').textContent =
     `Lv.${PLAYER.level} · 총 기록 ${PLAYER.records.length}개 · 총 EXP ${PLAYER.charExp}`;
 }
@@ -7311,6 +7568,301 @@ function clearFlowWarningState() {
   return true;
 }
 
+function getFlowWarningStatusLabel(status) {
+  const labels = {
+    available: '표시 가능',
+    empty: '쉬고 있는 흐름 없음',
+    snoozed: '오늘은 쉬는 중',
+    hidden: '숨김 처리됨',
+    error: '오류'
+  };
+  return labels[status] || status || '상태 미정';
+}
+
+function sanitizeFlowWarningText(text) {
+  let next = String(text || '');
+  for (const phrase of FLOW_WARNING_POLICY.forbidden_phrases || []) {
+    next = next.split(phrase).join('');
+  }
+  return next;
+}
+
+function createFlowWarningForView(options = {}) {
+  const currentDateId = options.currentDateId || options.date_id || getTodayId();
+  const previousState = JSON.parse(JSON.stringify(FLOW_WARNING_STATE || createDefaultFlowWarningState()));
+  let warning = null;
+  try {
+    warning = createGroupedFlowWarning(currentDateId, options);
+  } finally {
+    replaceFlowWarningState(previousState);
+    try { saveFlowWarningState(); } catch (e) {}
+  }
+  return warning;
+}
+
+function createFlowWarningViewModel(options = {}) {
+  const errors = [];
+  const warnings = [];
+  try {
+    const warning = createFlowWarningForView(options);
+    const status = warning?.status || 'empty';
+    const text = sanitizeFlowWarningText(renderGroupedFlowWarningText(warning));
+    const forbiddenHits = (FLOW_WARNING_POLICY.forbidden_phrases || []).filter(phrase => text.includes(phrase));
+    if (forbiddenHits.length) warnings.push(`금지 표현 확인 필요: ${forbiddenHits.join(', ')}`);
+    return {
+      generated_at: new Date().toISOString(),
+      warning,
+      status,
+      status_label: getFlowWarningStatusLabel(status),
+      title: warning?.title || '흐름 경고',
+      message: warning?.message || '',
+      suggested_flows: Array.isArray(warning?.suggested_flows) ? warning.suggested_flows.slice() : [],
+      total_paused_count: Number(warning?.total_paused_count) || 0,
+      hidden_count: Number(warning?.hidden_count) || 0,
+      actions: {
+        can_snooze: status === 'available',
+        can_hide_all: status === 'available',
+        can_hide_skill: status === 'available'
+      },
+      text,
+      errors,
+      warnings
+    };
+  } catch (error) {
+    errors.push(error?.message || String(error));
+    return {
+      generated_at: new Date().toISOString(),
+      warning: null,
+      status: 'error',
+      status_label: '오류',
+      title: '흐름 경고',
+      message: '흐름 경고를 확인하는 중 문제가 생겼어요.',
+      suggested_flows: [],
+      total_paused_count: 0,
+      hidden_count: 0,
+      actions: {
+        can_snooze: false,
+        can_hide_all: false,
+        can_hide_skill: false
+      },
+      text: '흐름 경고를 확인하는 중 문제가 생겼어요.',
+      errors,
+      warnings
+    };
+  }
+}
+
+function renderFlowWarningViewText(viewModel) {
+  if (!viewModel) return '흐름 경고를 확인할 수 없어요.';
+  if (viewModel.status === 'empty') return '흐름 경고\n\n지금은 쉬고 있는 흐름 경고가 없어요.';
+  if (viewModel.status === 'snoozed') return '흐름 경고\n\n오늘은 흐름 경고를 잠시 쉬고 있어요.';
+  if (viewModel.status === 'hidden') return '흐름 경고\n\n흐름 경고가 잠시 숨겨져 있어요.';
+  if (viewModel.status === 'error') return `흐름 경고\n\n${viewModel.message}`;
+
+  const lines = [
+    '흐름 경고',
+    '',
+    viewModel.title || '오늘은 몇 가지 흐름이 잠시 쉬고 있어요.',
+    viewModel.message || '하나만 다시 열어도 충분해요.',
+    '',
+    '다시 열기 좋은 흐름:',
+    ''
+  ];
+  (viewModel.suggested_flows || []).forEach((flow, index) => {
+    lines.push(`${index + 1}. ${flow.skill_name}`);
+    lines.push(`   쉬었던 기간: ${flow.gap_days}일`);
+    lines.push(`   추천 행동: ${flow.suggestion}`);
+    lines.push(`   예상 시간: ${flow.estimated_minutes}분`);
+    if (flow.supportive_message) lines.push(`   안내: ${flow.supportive_message}`);
+    lines.push('');
+  });
+  lines.push('상태:');
+  lines.push(viewModel.status_label || '표시 가능');
+  return sanitizeFlowWarningText(lines.join('\n'));
+}
+
+function ensurePanelDock() {
+  if (typeof document === 'undefined') return null;
+  let dock = document.getElementById('panelDock');
+  if (!dock && typeof document.createElement === 'function') {
+    dock = document.createElement('div');
+    dock.id = 'panelDock';
+    dock.className = 'panel-dock';
+  }
+  if (!dock) return null;
+
+  if (dock.classList && typeof dock.classList.add === 'function') {
+    dock.classList.add('panel-dock');
+  } else if (!String(dock.className || '').includes('panel-dock')) {
+    dock.className = `${dock.className || ''} panel-dock`.trim();
+  }
+
+  const ensureChild = (id, className, text = '') => {
+    let child = document.getElementById(id);
+    if (!child && typeof document.createElement === 'function') {
+      child = document.createElement('div');
+      child.id = id;
+    }
+    if (!child) return null;
+    if (child.classList && typeof child.classList.add === 'function') {
+      String(className || '').split(/\s+/).filter(Boolean).forEach(name => child.classList.add(name));
+    } else if (className && !String(child.className || '').includes(className.split(' ')[0])) {
+      child.className = `${child.className || ''} ${className}`.trim();
+    }
+    if (text && !child.textContent && !child.innerHTML) child.textContent = text;
+    if (child.parentNode !== dock && typeof dock.appendChild === 'function') dock.appendChild(child);
+    return child;
+  };
+
+  const title = ensureChild('panelDockTitle', 'panel-dock-title', '나의 기록 관리');
+  const slots = [
+    ensureChild('savedRecordsPanelSlot', 'panel-dock-slot'),
+    ensureChild('reportViewPanelSlot', 'panel-dock-slot'),
+    ensureChild('artArchivePanelSlot', 'panel-dock-slot'),
+    ensureChild('flowWarningPanelSlot', 'panel-dock-slot'),
+    ensureChild('debugUsagePanelSlot', 'panel-dock-slot')
+  ].filter(Boolean);
+
+  [title, ...slots].filter(Boolean).forEach(child => {
+    if (child.parentNode === dock && typeof dock.appendChild === 'function') dock.appendChild(child);
+  });
+
+  const appScreen = document.getElementById('appScreen');
+  const debugPanel = document.getElementById('debugUsagePanel');
+  const panelDetail = document.getElementById('panelDetail');
+  const parent = appScreen || panelDetail?.parentNode || (typeof document.body !== 'undefined' ? document.body : null);
+  if (parent && dock.parentNode !== parent) {
+    if (debugPanel && debugPanel.parentNode === parent && typeof parent.insertBefore === 'function') {
+      parent.insertBefore(dock, debugPanel);
+    } else if (typeof parent.appendChild === 'function') {
+      parent.appendChild(dock);
+    }
+  }
+
+  return dock;
+}
+
+function addPanelClasses(panel, classNames = []) {
+  if (!panel) return null;
+  const names = ['panel-card', ...classNames].filter(Boolean);
+  if (panel.classList && typeof panel.classList.add === 'function') {
+    names.forEach(name => panel.classList.add(name));
+  } else {
+    const existing = new Set(String(panel.className || '').split(/\s+/).filter(Boolean));
+    names.forEach(name => existing.add(name));
+    panel.className = Array.from(existing).join(' ');
+  }
+  if (typeof panel.removeAttribute === 'function') panel.removeAttribute('hidden');
+  if (panel.style) {
+    panel.style.display = 'block';
+    panel.style.visibility = 'visible';
+  }
+  return panel;
+}
+
+function placePanelInDock(panel, slotId, classNames = []) {
+  if (!panel) return null;
+  addPanelClasses(panel, classNames);
+  ensurePanelDock();
+  const slot = typeof document !== 'undefined' ? document.getElementById(slotId) : null;
+  if (slot && panel.parentNode !== slot && typeof slot.appendChild === 'function') {
+    slot.appendChild(panel);
+  }
+  return panel;
+}
+
+function ensureFlowWarningPanelElement() {
+  if (typeof document === 'undefined') return null;
+
+  let panel = document.getElementById('flowWarningPanel');
+  if (!panel && typeof document.createElement === 'function') {
+    panel = document.createElement('div');
+    panel.id = 'flowWarningPanel';
+  }
+  if (!panel) return null;
+
+  return placePanelInDock(panel, 'flowWarningPanelSlot', ['flow-warning-panel']);
+}
+
+
+function setFlowWarningPanelMessage(message) {
+  const messageEl = typeof document !== 'undefined' ? document.getElementById('flowWarningPanelMessage') : null;
+  if (messageEl) messageEl.textContent = message || '';
+}
+
+function snoozeFlowWarningFromPanel() {
+  try {
+    snoozeFlowWarningUntilTomorrow();
+    refreshFlowWarningPanel();
+    setFlowWarningPanelMessage('내일 다시 보기로 설정했어요.');
+    return true;
+  } catch (error) {
+    console.warn('flow warning snooze failed', error);
+    setFlowWarningPanelMessage('내일 다시 보기를 확인해주세요.');
+    return false;
+  }
+}
+
+function hideFlowWarningFromPanel() {
+  try {
+    hideFlowWarningForDays(7);
+    refreshFlowWarningPanel();
+    setFlowWarningPanelMessage('7일 동안 흐름 경고를 숨겨둘게요.');
+    return true;
+  } catch (error) {
+    console.warn('flow warning hide failed', error);
+    setFlowWarningPanelMessage('흐름 경고 숨기기를 확인해주세요.');
+    return false;
+  }
+}
+
+function hideFlowSkillFromPanel(skillId) {
+  try {
+    hideFlowSkillForDays(skillId, 7);
+    refreshFlowWarningPanel();
+    const skillName = SKILLS[skillId]?.name || skillId || '이 흐름';
+    setFlowWarningPanelMessage(`${skillName} 흐름을 7일 동안 숨겨둘게요.`);
+    return true;
+  } catch (error) {
+    console.warn('flow skill hide failed', error);
+    setFlowWarningPanelMessage('이 흐름 숨기기를 확인해주세요.');
+    return false;
+  }
+}
+
+function renderFlowWarningPanel(options = {}) {
+  const panel = ensureFlowWarningPanelElement();
+  if (!panel) return null;
+  const view = createFlowWarningViewModel(options);
+  const text = renderFlowWarningViewText(view);
+  const skillButtons = (view.suggested_flows || []).map(flow => `
+    <button type="button" onclick='hideFlowSkillFromPanel(${JSON.stringify(flow.skill_id)})'>${escapeHtml(flow.skill_name)} 7일 숨기기</button>
+  `).join('');
+  panel.innerHTML = `
+    <details open class="flow-warning-details">
+      <summary>흐름 경고</summary>
+      <div class="flow-warning-content">${escapeHtml(text)}</div>
+      <div class="flow-warning-actions">
+        <button type="button" onclick="snoozeFlowWarningFromPanel()">내일 다시 보기</button>
+        <button type="button" onclick="hideFlowWarningFromPanel()">7일 동안 숨기기</button>
+        <button type="button" onclick="refreshFlowWarningPanel()">새로고침</button>
+      </div>
+      ${skillButtons ? `<div class="flow-warning-skill-actions">${skillButtons}</div>` : ''}
+      <div class="flow-warning-message" id="flowWarningPanelMessage"></div>
+    </details>
+  `;
+  return panel;
+}
+
+function refreshFlowWarningPanel(options = {}) {
+  try {
+    return renderFlowWarningPanel(options);
+  } catch (error) {
+    console.warn('flow warning panel refresh failed', error);
+    return null;
+  }
+}
+
 function persistArtArchives() {
   saveAllLocal();
   if (DEV_SKIP_LOGIN) {
@@ -7405,6 +7957,7 @@ function saveArtArchive(options = {}) {
   const archive = createArtArchiveDraft(options);
   ART_ARCHIVES.unshift(archive);
   persistArtArchives();
+  try { refreshArtArchivePanel(); } catch (error) { console.warn('art archive panel refresh failed', error); }
   return archive;
 }
 
@@ -7468,6 +8021,7 @@ function updateArtArchive(archiveId, updates = {}) {
   if ('attachments' in nextUpdates && !Array.isArray(nextUpdates.attachments)) nextUpdates.attachments = archive.attachments || [];
   Object.assign(archive, nextUpdates, { updated_at: new Date().toISOString() });
   persistArtArchives();
+  try { refreshArtArchivePanel(); } catch (error) { console.warn('art archive panel refresh failed', error); }
   return archive;
 }
 
@@ -7476,12 +8030,14 @@ function deleteArtArchive(archiveId) {
   if (index === -1) return false;
   ART_ARCHIVES.splice(index, 1);
   persistArtArchives();
+  try { refreshArtArchivePanel(); } catch (error) { console.warn('art archive panel refresh failed', error); }
   return true;
 }
 
 function clearArtArchives() {
   ART_ARCHIVES.length = 0;
   persistArtArchives();
+  try { refreshArtArchivePanel(); } catch (error) { console.warn('art archive panel refresh failed', error); }
   return true;
 }
 
@@ -7565,6 +8121,271 @@ function renderArtArchiveMonthlyReportText(report) {
     '요약:',
     report.summary_text
   ].join('\n');
+}
+
+function getArtArchiveCategoryLabel(category) {
+  const labels = {
+    idea: '아이디어 보관함',
+    story: '이야기 보관함',
+    image: '이미지 보관함',
+    ui_design: 'UI 디자인 보관함',
+    voice: '목소리 보관함',
+    prompt: '프롬프트 보관함',
+    result: '결과물 보관함',
+    attempt: '시도/실험 보관함'
+  };
+  return labels[category] || category || '기타 보관함';
+}
+
+function getArtArchiveStatusLabel(status) {
+  const labels = {
+    idea: '아이디어',
+    draft: '초안',
+    in_progress: '진행 중',
+    revised: '수정됨',
+    completed: '완료',
+    archived: '보관됨',
+    discarded: '폐기됨'
+  };
+  return labels[status] || status || '상태 미정';
+}
+
+function createArtArchiveViewModel(filter = {}) {
+  const errors = [];
+  const warnings = [];
+  try {
+    const archives = getArtArchives(filter).map(archive => ({
+      archive_id: archive.archive_id,
+      title: archive.title || '제목 없는 ART 아카이브',
+      category: archive.category || 'idea',
+      category_label: getArtArchiveCategoryLabel(archive.category),
+      linked_skill: archive.linked_skill || '',
+      linked_skill_name: SKILLS[archive.linked_skill]?.name || archive.linked_skill || '연결 스킬 없음',
+      status: archive.status || 'idea',
+      status_label: getArtArchiveStatusLabel(archive.status),
+      content_preview: String(archive.content || '').length > 80
+        ? `${String(archive.content || '').slice(0, 80)}...`
+        : String(archive.content || ''),
+      tags: Array.isArray(archive.tags) ? archive.tags.slice() : [],
+      created_at: archive.created_at || '',
+      updated_at: archive.updated_at || ''
+    }));
+    const summary = {
+      idea_count: 0,
+      story_count: 0,
+      image_count: 0,
+      ui_design_count: 0,
+      voice_count: 0,
+      prompt_count: 0,
+      result_count: 0,
+      attempt_count: 0,
+      completed_count: 0,
+      draft_count: 0,
+      latest_archive_title: archives[0]?.title || null
+    };
+    archives.forEach(archive => {
+      const key = `${archive.category}_count`;
+      if (key in summary) summary[key] += 1;
+      if (archive.status === 'completed') summary.completed_count += 1;
+      if (archive.status === 'draft' || archive.status === 'idea') summary.draft_count += 1;
+    });
+    return {
+      generated_at: new Date().toISOString(),
+      total_count: ART_ARCHIVES.length,
+      filtered_count: archives.length,
+      filters: { ...filter },
+      archives,
+      summary,
+      monthly_report: typeof createArtArchiveMonthlyReport === 'function' ? createArtArchiveMonthlyReport() : null,
+      status: 'ok',
+      errors,
+      warnings
+    };
+  } catch (error) {
+    errors.push(error?.message || String(error));
+    return {
+      generated_at: new Date().toISOString(),
+      total_count: Array.isArray(ART_ARCHIVES) ? ART_ARCHIVES.length : 0,
+      filtered_count: 0,
+      filters: { ...filter },
+      archives: [],
+      summary: {
+        idea_count: 0,
+        story_count: 0,
+        image_count: 0,
+        ui_design_count: 0,
+        voice_count: 0,
+        prompt_count: 0,
+        result_count: 0,
+        attempt_count: 0,
+        completed_count: 0,
+        draft_count: 0,
+        latest_archive_title: null
+      },
+      monthly_report: null,
+      status: 'error',
+      errors,
+      warnings
+    };
+  }
+}
+
+function renderArtArchiveViewText(viewModel) {
+  if (!viewModel || !viewModel.archives || viewModel.archives.length === 0) {
+    return [
+      'ART 아카이브',
+      '',
+      'ART 아카이브에 저장된 창작 기록이 아직 없어요.'
+    ].join('\n');
+  }
+  const categorySummary = [
+    ['idea', viewModel.summary.idea_count],
+    ['story', viewModel.summary.story_count],
+    ['image', viewModel.summary.image_count],
+    ['ui_design', viewModel.summary.ui_design_count],
+    ['voice', viewModel.summary.voice_count],
+    ['prompt', viewModel.summary.prompt_count],
+    ['result', viewModel.summary.result_count],
+    ['attempt', viewModel.summary.attempt_count]
+  ]
+    .filter(([, count]) => count > 0)
+    .map(([category, count]) => `- ${getArtArchiveCategoryLabel(category)}: ${count}개`);
+  const listLines = viewModel.archives.map((archive, index) => [
+    `${index + 1}. ${archive.title}`,
+    `   분류: ${archive.category_label}`,
+    `   연결 스킬: ${archive.linked_skill_name}`,
+    `   상태: ${archive.status_label}`,
+    archive.tags.length ? `   태그: ${archive.tags.join(', ')}` : ''
+  ].filter(Boolean).join('\n'));
+  return [
+    'ART 아카이브',
+    '',
+    `전체 아카이브: ${viewModel.total_count}개`,
+    `표시 아카이브: ${viewModel.filtered_count}개`,
+    '',
+    '분류 요약:',
+    ...(categorySummary.length ? categorySummary : ['- 기록 없음']),
+    '',
+    '목록:',
+    ...listLines
+  ].join('\n');
+}
+
+function createArtArchiveDetailViewModel(archiveId) {
+  const archive = ART_ARCHIVES.find(item => item.archive_id === archiveId);
+  if (!archive) return null;
+  return {
+    archive,
+    title: archive.title || '제목 없는 ART 아카이브',
+    category_label: getArtArchiveCategoryLabel(archive.category),
+    status_label: getArtArchiveStatusLabel(archive.status),
+    linked_skill_name: SKILLS[archive.linked_skill]?.name || archive.linked_skill || '연결 스킬 없음',
+    content: archive.content || '',
+    prompt: archive.prompt || '',
+    result_note: archive.result_note || '',
+    improvement_note: archive.improvement_note || '',
+    tags: Array.isArray(archive.tags) ? archive.tags.slice() : [],
+    attachments: Array.isArray(archive.attachments) ? archive.attachments.slice() : [],
+    linked_raw_log: archive.raw_log_id ? RAW_LOGS.find(log => log.id === archive.raw_log_id) || null : null,
+    linked_analysis_result: archive.analysis_result_id ? ANALYSIS_RESULTS.find(result => result.id === archive.analysis_result_id) || null : null
+  };
+}
+
+function renderArtArchiveDetailViewText(detail) {
+  if (!detail) return '저장된 ART 아카이브가 없습니다.';
+  return [
+    'ART 아카이브 상세',
+    '',
+    '제목:',
+    detail.title,
+    '',
+    '분류:',
+    detail.category_label,
+    '',
+    '연결 스킬:',
+    detail.linked_skill_name,
+    '',
+    '상태:',
+    detail.status_label,
+    '',
+    '내용:',
+    detail.content || '',
+    '',
+    '프롬프트:',
+    detail.prompt || '',
+    '',
+    '결과 메모:',
+    detail.result_note || '',
+    '',
+    '개선 메모:',
+    detail.improvement_note || '',
+    '',
+    '태그:',
+    detail.tags.length ? detail.tags.join(', ') : '없음',
+    '',
+    '연결 기록:',
+    `원본 기록 ${detail.linked_raw_log ? '있음' : '없음'} / 분석 결과 ${detail.linked_analysis_result ? '있음' : '없음'}`
+  ].join('\n');
+}
+
+function ensureArtArchivePanelElement() {
+  if (typeof document === 'undefined') return null;
+
+  let panel = document.getElementById('artArchivePanel');
+  if (!panel && typeof document.createElement === 'function') {
+    panel = document.createElement('div');
+    panel.id = 'artArchivePanel';
+  }
+  if (!panel) return null;
+
+  return placePanelInDock(panel, 'artArchivePanelSlot', ['art-archive-panel']);
+}
+
+function createArtArchivePanelMonthlySummary(report) {
+  if (!report) return '월간 ART 아카이브 요약을 만들 수 없습니다.';
+  const topCategory = Object.entries(report.category_counts || {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])[0];
+  return [
+    `이번 달 ART 아카이브: ${report.archives_count || 0}개`,
+    `가장 많이 쌓인 분류: ${topCategory ? getArtArchiveCategoryLabel(topCategory[0]) : '없음'}`,
+    `초안: ${report.draft_count || 0}개`,
+    `완료: ${report.completed_count || 0}개`
+  ].join('\n');
+}
+
+function renderArtArchivePanel(filter = {}) {
+  const panel = ensureArtArchivePanelElement();
+  if (!panel) return null;
+  const view = createArtArchiveViewModel({ ...filter, limit: filter.limit || 5 });
+  const listText = renderArtArchiveViewText(view);
+  const monthlyText = createArtArchivePanelMonthlySummary(view.monthly_report);
+  const latestDetail = view.archives[0]
+    ? renderArtArchiveDetailViewText(createArtArchiveDetailViewModel(view.archives[0].archive_id))
+    : '최신 ART 아카이브가 없습니다.';
+  panel.innerHTML = `
+    <details open class="art-archive-details">
+      <summary>ART 아카이브</summary>
+      <div class="art-archive-content">${escapeHtml(listText)}</div>
+      <div class="art-archive-subtitle">월간 ART 아카이브 요약</div>
+      <div class="art-archive-monthly">${escapeHtml(monthlyText)}</div>
+      <div class="art-archive-subtitle">최신 아카이브 상세</div>
+      <div class="art-archive-detail-preview">${escapeHtml(latestDetail)}</div>
+      <div class="art-archive-actions">
+        <button type="button" onclick="refreshArtArchivePanel()">수동 갱신</button>
+      </div>
+    </details>
+  `;
+  return panel;
+}
+
+function refreshArtArchivePanel(filter = {}) {
+  try {
+    return renderArtArchivePanel(filter);
+  } catch (error) {
+    console.warn('art archive panel refresh failed', error);
+    return null;
+  }
 }
 
 function createSystemHealthReport() {
@@ -8137,6 +8958,175 @@ function renderRealUseQAReportText(report) {
   ].join('\n');
 }
 
+function createReportViewModel(options = {}) {
+  const errors = [];
+  const warnings = [];
+  const safeRun = (label, fn, fallback = null) => {
+    try {
+      return fn();
+    } catch (error) {
+      errors.push(`${label} 생성 중 문제가 생겼습니다: ${error?.message || error}`);
+      return fallback;
+    }
+  };
+  const daily = safeRun('오늘 리포트', () => createDailyReport(options.date_id), null);
+  const weekly = safeRun('주간 리포트', () => createWeeklyReport(options.week_id), null);
+  const monthly = safeRun('월간 리포트', () => createMonthlyReport(options.month_id), null);
+  const hub = safeRun('리포트 허브', () => createReportHub(options), null);
+  const specialized = {
+    running_monthly: typeof createRunningMonthlyReport === 'function'
+      ? safeRun('러닝 월간 리포트', () => createRunningMonthlyReport(options.month_id), null)
+      : null,
+    fuel_monthly: typeof createFuelMonthlyReport === 'function'
+      ? safeRun('연료 월간 리포트', () => createFuelMonthlyReport(options.month_id), null)
+      : null,
+    sleep_monthly: typeof createSleepMonthlyReport === 'function'
+      ? safeRun('수면 월간 리포트', () => createSleepMonthlyReport(options.month_id), null)
+      : null,
+    art_archive_monthly: typeof createArtArchiveMonthlyReport === 'function'
+      ? safeRun('ART 아카이브 월간 리포트', () => createArtArchiveMonthlyReport(options.month_id), null)
+      : null
+  };
+
+  return {
+    generated_at: new Date().toISOString(),
+    daily,
+    weekly,
+    monthly,
+    hub,
+    specialized,
+    summary: {
+      today_records_count: daily?.applied_records_count || daily?.raw_logs_count || 0,
+      week_records_count: weekly?.applied_records_count || 0,
+      month_records_count: monthly?.applied_records_count || 0,
+      month_char_exp: monthly?.total_char_exp || hub?.summary?.month_char_exp || 0,
+      top_stat_month: monthly?.top_stat || hub?.summary?.top_stat_month || null,
+      top_skill_month: monthly?.top_skill || hub?.summary?.top_skill_month || null,
+      needs_review_count: monthly?.needs_review_count || daily?.needs_review_count || 0
+    },
+    status: errors.length > 0 ? 'error' : (warnings.length > 0 ? 'warning' : 'ok'),
+    errors,
+    warnings
+  };
+}
+
+function renderReportViewText(viewModel) {
+  if (!viewModel) return '성장 리포트를 생성할 수 없습니다.';
+  const topStat = viewModel.summary?.top_stat_month
+    ? `${viewModel.summary.top_stat_month.stat} ${viewModel.summary.top_stat_month.stat_name || ''}`.trim()
+    : '없음';
+  const topSkill = viewModel.summary?.top_skill_month?.skill_name
+    || viewModel.summary?.top_skill_month?.skill_id
+    || '없음';
+  return [
+    '성장 리포트',
+    '',
+    '오늘:',
+    `- 기록: ${viewModel.summary?.today_records_count || 0}개`,
+    `- 캐릭터 EXP: +${viewModel.daily?.total_char_exp || 0}`,
+    '',
+    '이번 주:',
+    `- 활동일: ${viewModel.weekly?.active_days_count || 0}일`,
+    `- 캐릭터 EXP: +${viewModel.weekly?.total_char_exp || 0}`,
+    '',
+    '이번 달:',
+    `- 활동일: ${viewModel.monthly?.active_days_count || 0}일`,
+    `- 캐릭터 EXP: +${viewModel.summary?.month_char_exp || 0}`,
+    `- 가장 성장한 스탯: ${topStat}`,
+    `- TOP 스킬: ${topSkill}`,
+    '',
+    '상세 리포트:',
+    `- 러닝 기록: ${viewModel.specialized?.running_monthly?.records_count || 0}회`,
+    `- 연료 기록: ${viewModel.specialized?.fuel_monthly?.records_count || 0}회`,
+    `- 수면 기록: ${viewModel.specialized?.sleep_monthly?.records_count || 0}회`,
+    `- ART 아카이브: ${viewModel.specialized?.art_archive_monthly?.archives_count || 0}개`,
+    '',
+    '확인 필요:',
+    `- 보충 필요: ${viewModel.summary?.needs_review_count || 0}개`
+  ].join('\n');
+}
+
+function saveReportSnapshotFromReportView() {
+  const message = document.getElementById('reportViewPanelMessage');
+  try {
+    const snapshot = saveReportSnapshot({ note: '리포트 화면에서 저장' });
+    if (message) message.textContent = '현재 리포트 스냅샷을 저장했어요.';
+    refreshReportViewPanel();
+    return snapshot;
+  } catch (error) {
+    console.warn('report view snapshot save failed', error);
+    if (message) message.textContent = '리포트 스냅샷 저장을 확인해주세요.';
+    return null;
+  }
+}
+
+function ensureReportViewPanelElement() {
+  if (typeof document === 'undefined') return null;
+
+  let panel = document.getElementById('reportViewPanel');
+  if (!panel && typeof document.createElement === 'function') {
+    panel = document.createElement('div');
+    panel.id = 'reportViewPanel';
+  }
+  if (!panel) return null;
+
+  return placePanelInDock(panel, 'reportViewPanelSlot', ['report-view-panel']);
+}
+
+function renderReportViewPanel() {
+  const panel = ensureReportViewPanelElement();
+  if (!panel) return null;
+  const view = createReportViewModel();
+  const hasGrowthRecord = (view.daily?.applied_records_count || 0) > 0
+    || (view.weekly?.applied_records_count || 0) > 0
+    || (view.monthly?.applied_records_count || 0) > 0
+    || (view.daily?.raw_logs_count || 0) > 0;
+  const topStat = view.summary?.top_stat_month
+    ? `${view.summary.top_stat_month.stat} ${view.summary.top_stat_month.stat_name || ''}`.trim()
+    : '없음';
+  const topSkill = view.summary?.top_skill_month?.skill_name
+    || view.summary?.top_skill_month?.skill_id
+    || '없음';
+  const runningCount = view.specialized.running_monthly?.records_count || 0;
+  const fuelCount = view.specialized.fuel_monthly?.records_count || 0;
+  const sleepCount = view.specialized.sleep_monthly?.records_count || 0;
+  const artCount = view.specialized.art_archive_monthly?.archives_count || 0;
+  const textLines = [];
+  if (!hasGrowthRecord) textLines.push('아직 성장 기록이 없어요.', '');
+  textLines.push(
+    `오늘: 기록 ${view.summary.today_records_count}개 · 캐릭터 EXP +${view.daily?.total_char_exp || 0}`,
+    `이번 주: 활동일 ${view.weekly?.active_days_count || 0}일 · 캐릭터 EXP +${view.weekly?.total_char_exp || 0}`,
+    `이번 달: 활동일 ${view.monthly?.active_days_count || 0}일 · 캐릭터 EXP +${view.summary.month_char_exp}`,
+    `가장 많이 성장한 스탯: ${topStat}`,
+    `TOP 스킬: ${topSkill}`,
+    `보충 필요: ${view.summary.needs_review_count}개`,
+    '',
+    `러닝 / 연료 요약: 러닝 기록 ${runningCount}회 · 연료 기록 ${fuelCount}회`,
+    `수면 / ART 요약: 수면 기록 ${sleepCount}회 · ART 아카이브 ${artCount}개`
+  );
+  const text = textLines.join('\n');
+  panel.innerHTML = `
+    <details open class="report-view-details">
+      <summary>성장 리포트</summary>
+      <div class="report-view-content">${escapeHtml(text)}</div>
+      <div class="report-view-actions">
+        <button type="button" onclick="saveReportSnapshotFromReportView()">현재 리포트 스냅샷 저장</button>
+      </div>
+      <div class="report-view-message" id="reportViewPanelMessage"></div>
+    </details>
+  `;
+  return panel;
+}
+
+function refreshReportViewPanel() {
+  try {
+    return renderReportViewPanel();
+  } catch (error) {
+    console.warn('report view panel refresh failed', error);
+    return null;
+  }
+}
+
 function createGroupedFlowWarningPreview() {
   const previousState = JSON.parse(JSON.stringify(FLOW_WARNING_STATE || createDefaultFlowWarningState()));
   let warning = null;
@@ -8304,8 +9294,19 @@ function renderLatestAnalysisDebugText(view) {
   ].join('\n');
 }
 
+function ensureDebugUsagePanelElement() {
+  if (typeof document === 'undefined') return null;
+  let panel = document.getElementById('debugUsagePanel');
+  if (!panel && typeof document.createElement === 'function') {
+    panel = document.createElement('div');
+    panel.id = 'debugUsagePanel';
+  }
+  if (!panel) return null;
+  return placePanelInDock(panel, 'debugUsagePanelSlot', ['debug-usage-panel']);
+}
+
 function renderDebugUsagePanel() {
-  const panel = document.getElementById('debugUsagePanel');
+  const panel = ensureDebugUsagePanelElement();
   if (!panel) return null;
   let summary = null;
   let latest = null;
@@ -8336,6 +9337,7 @@ function renderDebugUsagePanel() {
       </div>
       <pre>${escapeHtml([
         `현재 버전: ${APP_VERSION}`,
+        '시스템 상태를 확인할 수 있어요.',
         '',
         `저장소 카운트: 원본 ${summary.counts.raw_logs} / 분석 ${summary.counts.analysis_results} / 성장 ${summary.counts.player_records}`,
         `상세 기록: 러닝 ${summary.counts.running_records} / 연료 ${summary.counts.fuel_records} / 수면 ${summary.counts.sleep_records} / ART ${summary.counts.art_archives}`,
@@ -8357,6 +9359,198 @@ function refreshDebugUsagePanel() {
   } catch (error) {
     console.warn('debug usage panel refresh failed', error);
     return null;
+  }
+}
+
+function refreshAllPanels() {
+  const result = {
+    status: 'ok',
+    refreshed: {
+      saved_records: false,
+      report: false,
+      art_archive: false,
+      flow_warning: false,
+      debug: false
+    },
+    errors: []
+  };
+  const run = (key, fn) => {
+    try {
+      const value = fn();
+      result.refreshed[key] = !!value;
+      return value;
+    } catch (error) {
+      result.errors.push(`${key}: ${error?.message || error}`);
+      return null;
+    }
+  };
+
+  try { ensurePanelDock(); } catch (error) { result.errors.push(`panel_dock: ${error?.message || error}`); }
+  run('saved_records', () => refreshSavedRecordsView());
+  run('report', () => refreshReportViewPanel());
+  run('art_archive', () => refreshArtArchivePanel());
+  run('flow_warning', () => refreshFlowWarningPanel());
+  run('debug', () => refreshDebugUsagePanel());
+  result.status = result.errors.length ? 'warning' : 'ok';
+  return result;
+}
+
+function createMvpReadinessReport() {
+  const warnings = [];
+  const errors = [];
+  const safeRun = (label, fn) => {
+    try {
+      return fn();
+    } catch (error) {
+      warnings.push(`${label} 확인 중 문제가 생겼습니다: ${error?.message || error}`);
+      return null;
+    }
+  };
+
+  safeRun('패널 도크', () => ensurePanelDock());
+  safeRun('전체 패널 갱신', () => refreshAllPanels());
+
+  const exists = id => typeof document !== 'undefined' && !!document.getElementById(id);
+  const sections = {
+    input: exists('chatInput') && exists('sendBtn'),
+    saved_records: exists('rawLogList'),
+    report: exists('reportViewPanel'),
+    art_archive: exists('artArchivePanel'),
+    flow_warning: exists('flowWarningPanel'),
+    debug_panel: exists('debugUsagePanel'),
+    panel_dock: exists('panelDock')
+  };
+  const functions = {
+    save_pipeline: typeof saveBRecordThroughPipeline === 'function',
+    delete_cascade: typeof deleteRawLogCascade === 'function',
+    refresh_all_panels: typeof refreshAllPanels === 'function'
+  };
+  const tests = {
+    panel_layout: typeof LIFE_RPG_TEST?.panelLayoutCleanupTest === 'function',
+    flow_warning_view: typeof LIFE_RPG_TEST?.flowWarningViewConnectionTest === 'function',
+    art_archive_view: typeof LIFE_RPG_TEST?.artArchiveViewConnectionTest === 'function',
+    report_view: typeof LIFE_RPG_TEST?.reportViewConnectionTest === 'function',
+    saved_record_view: typeof LIFE_RPG_TEST?.savedRecordManagementViewTest === 'function'
+  };
+
+  Object.entries(sections).forEach(([key, ok]) => {
+    if (!ok) errors.push(`화면 구성 확인 필요: ${key}`);
+  });
+  Object.entries(functions).forEach(([key, ok]) => {
+    if (!ok) errors.push(`핵심 함수 확인 필요: ${key}`);
+  });
+  Object.entries(tests).forEach(([key, ok]) => {
+    if (!ok) warnings.push(`테스트 함수 확인 필요: ${key}`);
+  });
+
+  return {
+    app_version: APP_VERSION,
+    checked_at: new Date().toISOString(),
+    status: errors.length ? 'error' : (warnings.length ? 'warning' : 'ok'),
+    sections,
+    functions,
+    tests,
+    warnings,
+    errors
+  };
+}
+
+function renderMvpReadinessReportText(report) {
+  if (!report) return 'MVP 사용 화면 점검 리포트를 만들 수 없어요.';
+  const label = value => value ? '정상' : '확인 필요';
+  const statusText = report.status === 'ok'
+    ? 'MVP 사용 화면으로 점검 완료'
+    : 'MVP 사용 화면 확인 필요';
+  return [
+    'MVP 사용 화면 점검 리포트',
+    '',
+    '버전:',
+    report.app_version || APP_VERSION,
+    '',
+    '화면 구성:',
+    `- B형 기록 입력: ${label(report.sections?.input)}`,
+    `- 저장된 기록: ${label(report.sections?.saved_records)}`,
+    `- 성장 리포트: ${label(report.sections?.report)}`,
+    `- ART 아카이브: ${label(report.sections?.art_archive)}`,
+    `- 흐름 경고: ${label(report.sections?.flow_warning)}`,
+    `- 개발 점검 패널: ${label(report.sections?.debug_panel)}`,
+    '',
+    '핵심 기능:',
+    `- 저장 파이프라인: ${label(report.functions?.save_pipeline)}`,
+    `- 삭제 안전장치: ${label(report.functions?.delete_cascade)}`,
+    `- 전체 패널 갱신: ${label(report.functions?.refresh_all_panels)}`,
+    '',
+    '상태:',
+    statusText,
+    ...(report.errors?.length ? ['', '오류:', ...report.errors.map(item => `- ${item}`)] : []),
+    ...(report.warnings?.length ? ['', '확인:', ...report.warnings.map(item => `- ${item}`)] : [])
+  ].join('\n');
+}
+
+function runMvpSmokeScenario() {
+  const errors = [];
+  const warnings = [];
+  const saveResults = [];
+  try {
+    resetTestData();
+    clearArtArchives();
+    clearFlowWarningState();
+    clearReportSnapshots();
+    const firstRefresh = refreshAllPanels();
+    if (firstRefresh.errors?.length) warnings.push(`초기 패널 갱신 확인 필요: ${firstRefresh.errors.join(' / ')}`);
+
+    saveResults.push(saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.'));
+    saveResults.push(saveBRecordThroughPipeline('캐릭터 이미지 프롬프트를 만들었다.'));
+    saveResults.push(saveBRecordThroughPipeline('운동했다.'));
+
+    const secondRefresh = refreshAllPanels();
+    if (secondRefresh.errors?.length) warnings.push(`저장 후 패널 갱신 확인 필요: ${secondRefresh.errors.join(' / ')}`);
+
+    const savedRecordsView = createSavedRecordsViewModel();
+    const reportView = createReportViewModel();
+    const artArchiveView = createArtArchiveViewModel();
+    const flowWarningView = createFlowWarningViewModel();
+    const readiness = createMvpReadinessReport();
+    const activeSkillCount = saveResults.filter(result => result?.ok && result.status === 'saved').length;
+    const needsReviewCount = saveResults.filter(result => result?.status === 'needs_review' || result?.route_status === 'needs_review').length;
+    const exists = id => typeof document !== 'undefined' && !!document.getElementById(id);
+
+    if (savedRecordsView.records.length < 3) errors.push('저장된 기록 수가 기대보다 적습니다.');
+    if (activeSkillCount < 2) errors.push('명확한 기록의 성장 반영 수가 기대보다 적습니다.');
+    if (needsReviewCount < 1) errors.push('needs_review 기록이 확인되지 않았습니다.');
+    if (readiness.status !== 'ok') warnings.push(`MVP 준비 상태: ${readiness.status}`);
+
+    return {
+      status: errors.length ? 'error' : 'ok',
+      saved_records_count: savedRecordsView.records.length,
+      active_skill_count: activeSkillCount,
+      needs_review_count: needsReviewCount,
+      has_saved_records_panel: exists('rawLogList'),
+      has_report_panel: exists('reportViewPanel') && !!reportView,
+      has_art_archive_panel: exists('artArchivePanel') && artArchiveView.total_count >= 1,
+      has_flow_warning_panel: exists('flowWarningPanel') && !!flowWarningView,
+      readiness_status: readiness.status,
+      report_view_status: reportView.status,
+      art_archive_count: artArchiveView.total_count,
+      flow_warning_status: flowWarningView.status,
+      errors,
+      warnings
+    };
+  } catch (error) {
+    errors.push(error?.message || String(error));
+    return {
+      status: 'error',
+      saved_records_count: 0,
+      active_skill_count: 0,
+      needs_review_count: 0,
+      has_saved_records_panel: false,
+      has_report_panel: false,
+      has_art_archive_panel: false,
+      has_flow_warning_panel: false,
+      readiness_status: 'error',
+      errors,
+      warnings
+    };
   }
 }
 
@@ -8509,8 +9703,17 @@ function saveBRecordThroughPipeline(text, options = {}) {
     } else {
       scheduleSave();
     }
-    if (policy.auto_refresh_debug_panel && typeof refreshDebugUsagePanel === 'function') {
-      try { refreshDebugUsagePanel(); } catch (error) { warnings.push(`디버그 패널 갱신 건너뜀: ${error?.message || error}`); }
+    if (policy.auto_refresh_debug_panel) {
+      if (typeof refreshAllPanels === 'function') {
+        const panelRefresh = refreshAllPanels();
+        if (panelRefresh.errors?.length) warnings.push(`패널 갱신 확인 필요: ${panelRefresh.errors.join(' / ')}`);
+      } else {
+        try { refreshSavedRecordsView(); } catch (error) { warnings.push(`저장 기록 목록 갱신 건너뜀: ${error?.message || error}`); }
+        try { refreshReportViewPanel(); } catch (error) { warnings.push(`리포트 패널 갱신 건너뜀: ${error?.message || error}`); }
+        try { refreshArtArchivePanel(); } catch (error) { warnings.push(`ART 아카이브 패널 갱신 건너뜀: ${error?.message || error}`); }
+        try { refreshFlowWarningPanel(); } catch (error) { warnings.push(`흐름 경고 패널 갱신 건너뜀: ${error?.message || error}`); }
+        try { refreshDebugUsagePanel(); } catch (error) { warnings.push(`디버그 패널 갱신 건너뜀: ${error?.message || error}`); }
+      }
     }
 
     const matchedSkillIds = getAnalysisMatchedSkillIds(analysisResult);
@@ -8787,11 +9990,261 @@ function formatRawLogDate(value) {
   }
 }
 
+function createSavedRecordViewModel(rawLog) {
+  if (!rawLog) return null;
+  const analysisResult = getAnalysisByRawLogId(rawLog.id);
+  const playerRecords = (PLAYER.records || []).filter(record => record.rawLogId === rawLog.id);
+  const matchedSource = Array.isArray(analysisResult?.matched_skills) && analysisResult.matched_skills.length
+    ? analysisResult.matched_skills
+    : (Array.isArray(analysisResult?.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : []);
+  const matchedSkills = matchedSource.map(item => {
+    const skillId = item?.skill_id || item?.skillId || null;
+    const skill = SKILLS[skillId] || {};
+    return {
+      skill_id: skillId,
+      skill_name: item?.skill_name || item?.name || item?.skill_tree || skill.name || skillId || '미분류',
+      stat: item?.stat || skill.stat || null,
+      exp: Number(item?.skill_exp ?? item?.earnedExp) || 0
+    };
+  }).filter(item => item.skill_id);
+  if (!matchedSkills.length && playerRecords.length) {
+    playerRecords.forEach(record => {
+      const skillId = record.skillId || record.skill_id;
+      if (!skillId || matchedSkills.some(item => item.skill_id === skillId)) return;
+      matchedSkills.push({
+        skill_id: skillId,
+        skill_name: record.skillName || SKILLS[skillId]?.name || skillId,
+        stat: record.stat || SKILLS[skillId]?.stat || null,
+        exp: Number(record.skillExp ?? record.earnedExp) || 0
+      });
+    });
+  }
+
+  const routeStatusSource = analysisResult?.route_status || analysisResult?.status || rawLog.status || 'unknown';
+  const needsReview = routeStatusSource === 'needs_review'
+    || analysisResult?.needs_review === true
+    || (matchedSkills.length === 0 && analysisResult?.status === 'pending');
+  const routeStatus = needsReview
+    ? 'needs_review'
+    : (matchedSkills.length > 0 ? 'active_skill' : (analysisResult ? 'analyzed' : 'unassigned'));
+  const statusLabel = needsReview
+    ? '보충 필요'
+    : (matchedSkills.length > 0 || analysisResult ? '분석 완료' : '미분류');
+  const linkedDetails = {
+    running: RUNNING_RECORDS.some(record => record.raw_log_id === rawLog.id),
+    fuel: FUEL_RECORDS.some(record => record.raw_log_id === rawLog.id),
+    sleep: SLEEP_RECORDS.some(record => record.raw_log_id === rawLog.id),
+    art_archive: ART_ARCHIVES.some(archive => archive.raw_log_id === rawLog.id)
+  };
+  const totalFromMatched = {
+    skill_exp: matchedSource.reduce((sum, item) => sum + (Number(item?.skill_exp) || 0), 0),
+    stat_exp: matchedSource.reduce((sum, item) => sum + (Number(item?.stat_exp) || 0), 0),
+    character_exp: matchedSource.reduce((sum, item) => sum + (Number(item?.character_exp ?? item?.char_exp) || 0), 0)
+  };
+  const totalFromRecords = {
+    skill_exp: playerRecords.reduce((sum, record) => sum + (Number(record.skillExp ?? record.earnedExp) || 0), 0),
+    stat_exp: playerRecords.reduce((sum, record) => sum + (Number(record.statExp) || 0), 0),
+    character_exp: playerRecords.reduce((sum, record) => sum + (Number(record.charExp) || 0), 0)
+  };
+  const totalExp = {
+    skill_exp: Number(analysisResult?.total_skill_exp ?? analysisResult?.skill_exp) || totalFromMatched.skill_exp || totalFromRecords.skill_exp,
+    stat_exp: Number(analysisResult?.total_stat_exp ?? analysisResult?.stat_exp) || totalFromMatched.stat_exp || totalFromRecords.stat_exp,
+    character_exp: Number(analysisResult?.total_character_exp ?? analysisResult?.character_exp) || totalFromMatched.character_exp || totalFromRecords.character_exp
+  };
+
+  return {
+    raw_log_id: rawLog.id,
+    text: rawLog.raw_text || rawLog.text || '',
+    date_id: rawLog.date || getDateId(rawLog.saved_at || rawLog.created_at),
+    created_at: rawLog.saved_at || rawLog.created_at || null,
+    route_status: routeStatus,
+    status_label: statusLabel,
+    matched_skills: matchedSkills,
+    total_exp: totalExp,
+    linked_details: linkedDetails,
+    needs_review: needsReview,
+    review_question: analysisResult?.review_question || getPrimaryReviewQuestion(rawLog),
+    can_delete: true,
+    can_open_detail: true
+  };
+}
+
+function createSavedRecordsViewModel(filter = {}) {
+  const filters = {
+    status: filter.status || 'all',
+    skill_id: filter.skill_id || null,
+    stat: filter.stat || null,
+    has_detail: filter.has_detail === true,
+    limit: Number(filter.limit) || null
+  };
+  let records = RAW_LOGS.map(createSavedRecordViewModel).filter(Boolean);
+  if (filters.status && filters.status !== 'all') {
+    records = records.filter(record => {
+      if (filters.status === 'needs_review') return record.needs_review;
+      if (filters.status === 'active_skill') return record.route_status === 'active_skill';
+      if (filters.status === 'analyzed') return record.status_label === '분석 완료';
+      return record.route_status === filters.status;
+    });
+  }
+  if (filters.skill_id) {
+    records = records.filter(record => record.matched_skills.some(skill => skill.skill_id === filters.skill_id));
+  }
+  if (filters.stat) {
+    records = records.filter(record => record.matched_skills.some(skill => skill.stat === filters.stat));
+  }
+  if (filters.has_detail) {
+    records = records.filter(record => Object.values(record.linked_details || {}).some(Boolean));
+  }
+  const filteredCount = records.length;
+  if (filters.limit) records = records.slice(0, filters.limit);
+  const hasAnyDetail = record => Object.values(record.linked_details || {}).some(Boolean);
+
+  return {
+    generated_at: new Date().toISOString(),
+    total_count: RAW_LOGS.length,
+    filtered_count: filteredCount,
+    filters,
+    records,
+    summary: {
+      active_skill_count: records.filter(record => record.route_status === 'active_skill').length,
+      needs_review_count: records.filter(record => record.needs_review).length,
+      detail_linked_count: records.filter(hasAnyDetail).length,
+      total_skill_exp: records.reduce((sum, record) => sum + (Number(record.total_exp?.skill_exp) || 0), 0),
+      total_character_exp: records.reduce((sum, record) => sum + (Number(record.total_exp?.character_exp) || 0), 0)
+    }
+  };
+}
+
+function renderSavedRecordsViewText(viewModel) {
+  if (!viewModel) return '저장된 B형 기록 목록이 없습니다.';
+  const detailLabels = {
+    running: '러닝',
+    fuel: '연료',
+    sleep: '수면',
+    art_archive: 'ART'
+  };
+  const lines = [
+    '저장된 B형 기록 목록',
+    '',
+    `전체 기록: ${viewModel.total_count || 0}개`,
+    `표시 기록: ${viewModel.records?.length || 0}개`,
+    '',
+    '상태 요약:',
+    `- 분석 완료: ${viewModel.summary?.active_skill_count || 0}개`,
+    `- 보충 필요: ${viewModel.summary?.needs_review_count || 0}개`,
+    `- 상세 기록 연결: ${viewModel.summary?.detail_linked_count || 0}개`,
+    '',
+    '기록 목록:'
+  ];
+  if (!viewModel.records?.length) {
+    lines.push('- 저장된 B형 기록이 없습니다.');
+    return lines.join('\n');
+  }
+  viewModel.records.forEach((record, index) => {
+    const skillNames = record.matched_skills.map(skill => skill.skill_name).join(', ') || '확인 필요';
+    const linked = Object.entries(record.linked_details || {})
+      .filter(([, value]) => value)
+      .map(([key]) => detailLabels[key] || key)
+      .join(', ') || '없음';
+    lines.push(`${index + 1}. ${record.text}`);
+    lines.push(`   상태: ${record.status_label}`);
+    if (record.needs_review) {
+      lines.push(`   질문: ${record.review_question || '조금 더 구체적으로 적어줄 수 있나요?'}`);
+    } else {
+      lines.push(`   스킬: ${skillNames}`);
+      lines.push(`   EXP: 스킬 +${record.total_exp.skill_exp || 0} / 캐릭터 +${record.total_exp.character_exp || 0}`);
+      lines.push(`   연결: ${linked}`);
+    }
+    lines.push('');
+  });
+  return lines.join('\n').trim();
+}
+
+function createSavedRecordDetailViewModel(rawLogId) {
+  const rawLog = RAW_LOGS.find(log => log.id === rawLogId);
+  if (!rawLog) return null;
+  const base = createSavedRecordViewModel(rawLog);
+  const analysisResult = getAnalysisByRawLogId(rawLogId);
+  const playerRecords = (PLAYER.records || []).filter(record => record.rawLogId === rawLogId);
+  const runningRecords = RUNNING_RECORDS.filter(record => record.raw_log_id === rawLogId);
+  const fuelRecords = FUEL_RECORDS.filter(record => record.raw_log_id === rawLogId);
+  const sleepRecords = SLEEP_RECORDS.filter(record => record.raw_log_id === rawLogId);
+  const artArchives = ART_ARCHIVES.filter(archive => archive.raw_log_id === rawLogId);
+  const linkedDetailTypes = [];
+  if (runningRecords.length) linkedDetailTypes.push('running');
+  if (fuelRecords.length) linkedDetailTypes.push('fuel');
+  if (sleepRecords.length) linkedDetailTypes.push('sleep');
+  if (artArchives.length) linkedDetailTypes.push('art_archive');
+
+  return {
+    raw_log: rawLog,
+    analysis_result: analysisResult,
+    player_records: playerRecords,
+    running_records: runningRecords,
+    fuel_records: fuelRecords,
+    sleep_records: sleepRecords,
+    art_archives: artArchives,
+    summary: {
+      text: base.text,
+      status_label: base.status_label,
+      matched_skill_names: base.matched_skills.map(skill => skill.skill_name),
+      total_skill_exp: base.total_exp.skill_exp,
+      total_character_exp: base.total_exp.character_exp,
+      linked_detail_types: linkedDetailTypes
+    },
+    view_model: base
+  };
+}
+
+function renderSavedRecordDetailText(detail) {
+  if (!detail) return 'B형 기록 상세가 없습니다.';
+  const matchedLines = detail.view_model?.matched_skills?.length
+    ? detail.view_model.matched_skills.map(skill => `- ${skill.skill_name} / ${skill.stat || 'UNKNOWN'} / +${skill.exp || 0}`)
+    : ['- 매칭된 스킬이 없습니다.'];
+  const detailLines = [
+    detail.running_records?.length ? `- 러닝 기록 ${detail.running_records.length}개` : '',
+    detail.fuel_records?.length ? `- 연료 기록 ${detail.fuel_records.length}개` : '',
+    detail.sleep_records?.length ? `- 수면 기록 ${detail.sleep_records.length}개` : '',
+    detail.art_archives?.length ? `- ART 아카이브 ${detail.art_archives.length}개` : ''
+  ].filter(Boolean);
+  return [
+    'B형 기록 상세',
+    '',
+    '원문:',
+    detail.summary?.text || '',
+    '',
+    '상태:',
+    detail.summary?.status_label || '확인 필요',
+    '',
+    '매칭된 스킬:',
+    ...matchedLines,
+    '',
+    '획득 EXP:',
+    `- 스킬 EXP: +${detail.summary?.total_skill_exp || 0}`,
+    `- 캐릭터 EXP: +${detail.summary?.total_character_exp || 0}`,
+    '',
+    '연결된 상세 기록:',
+    ...(detailLines.length ? detailLines : ['- 연결된 상세 기록이 없습니다.'])
+  ].join('\n');
+}
+
+function ensureSavedRecordsPanelElement() {
+  if (typeof document === 'undefined') return null;
+  let panel = document.getElementById('rawLogList');
+  if (!panel && typeof document.createElement === 'function') {
+    panel = document.createElement('div');
+    panel.id = 'rawLogList';
+  }
+  if (!panel) return null;
+  return placePanelInDock(panel, 'savedRecordsPanelSlot', ['raw-log-list', 'saved-records-panel']);
+}
+
 function renderRawLogList() {
-  const box = document.getElementById('rawLogList');
+  const box = ensureSavedRecordsPanelElement();
   if (!box) return;
 
-  if (!RAW_LOGS.length) {
+  const view = createSavedRecordsViewModel({ limit: 10 });
+  if (!view.records.length) {
     box.innerHTML = `
       <div class="raw-log-list-title">저장된 B형 기록</div>
       <div class="raw-log-empty">아직 저장된 B형 기록이 없어요.</div>
@@ -8800,16 +10253,44 @@ function renderRawLogList() {
   }
 
   box.innerHTML = `
-    <div class="raw-log-list-title">저장된 B형 기록 ${RAW_LOGS.length}개</div>
+    <div class="raw-log-list-title">저장된 B형 기록 ${view.total_count}개</div>
     <div class="raw-log-items">
-      ${RAW_LOGS.slice(0, 10).map(log => `
-        <div class="raw-log-item" role="button" tabindex="0" onclick="openRawLogDetail('${escapeHtml(log.id)}')" onkeydown="if(event.key==='Enter'){openRawLogDetail('${escapeHtml(log.id)}')}">
-          <div class="raw-log-meta">B형 기록 · ${escapeHtml(formatRawLogDate(log.saved_at || log.created_at))} · ${escapeHtml(getRawLogStatusLabel(log))}</div>
-          <div class="raw-log-text">${escapeHtml(log.raw_text || '')}</div>
+      ${view.records.map(record => {
+        const linkedLabels = [
+          record.linked_details.running ? '러닝' : '',
+          record.linked_details.fuel ? '연료' : '',
+          record.linked_details.sleep ? '수면' : '',
+          record.linked_details.art_archive ? 'ART' : ''
+        ].filter(Boolean);
+        const skillNames = record.matched_skills.map(skill => skill.skill_name).join(' · ');
+        return `
+        <div class="raw-log-item" role="button" tabindex="0" onclick="openRawLogDetail('${escapeHtml(record.raw_log_id)}')" onkeydown="if(event.key==='Enter'){openRawLogDetail('${escapeHtml(record.raw_log_id)}')}">
+          <div class="raw-log-meta">
+            <span class="raw-log-status-badge ${record.needs_review ? 'needs-review' : ''}">${escapeHtml(record.status_label)}</span>
+            B형 기록 · ${escapeHtml(formatRawLogDate(record.created_at))}
+          </div>
+          <div class="raw-log-text">${escapeHtml(record.text || '')}</div>
+          ${record.needs_review
+            ? `<div class="raw-log-review-line">질문: ${escapeHtml(record.review_question || '조금 더 구체적으로 적어줄 수 있나요?')}</div>`
+            : `
+              <div class="raw-log-skill-line">스킬: ${escapeHtml(skillNames || '확인 필요')}</div>
+              <div class="raw-log-exp-line">EXP: 스킬 +${Number(record.total_exp.skill_exp) || 0} / 캐릭터 +${Number(record.total_exp.character_exp) || 0}</div>
+              <div class="raw-log-link-line">연결: ${escapeHtml(linkedLabels.join(' · ') || '없음')}</div>
+            `}
         </div>
-      `).join('')}
+      `; }).join('')}
     </div>
   `;
+}
+
+function refreshSavedRecordsView() {
+  try {
+    renderRawLogList();
+    return createSavedRecordsViewModel();
+  } catch (error) {
+    console.warn('saved records view refresh failed', error);
+    return null;
+  }
 }
 
 function getRawLogStatusLabel(log) {
@@ -8969,22 +10450,29 @@ function deleteRawLogCascade(rawLogId) {
 }
 
 function deleteSelectedRawLog() {
-  if (!selectedRawLogId) return null;
-  const rawLogId = selectedRawLogId;
-  const ok = window.confirm('이 B형 기록과 연결된 임시 분석 결과, 성장 반영 기록을 함께 삭제할까요?');
-  if (!ok) return null;
+  try {
+    if (!selectedRawLogId) return null;
+    const rawLogId = selectedRawLogId;
+    const ok = window.confirm('이 B형 기록과 연결된 임시 분석 결과, 성장 반영 기록을 함께 삭제할까요?');
+    if (!ok) return null;
 
-  const result = deleteRawLogCascade(rawLogId);
-  closeRawLogDetail();
-  renderAll();
-  saveAllLocal();
-  if (DEV_SKIP_LOGIN) {
-    updateSyncIndicator('saved');
-  } else {
-    scheduleSave();
+    const result = deleteRawLogCascade(rawLogId);
+    closeRawLogDetail();
+    renderAll();
+    try { refreshAllPanels(); } catch (error) { console.warn('all panel refresh failed', error); }
+    saveAllLocal();
+    if (DEV_SKIP_LOGIN) {
+      updateSyncIndicator('saved');
+    } else {
+      scheduleSave();
+    }
+    showToast('B형 기록과 연결된 성장 기록을 삭제했어요.', 'success');
+    return result;
+  } catch (error) {
+    console.warn('selected raw log delete failed', error);
+    showToast('삭제 중 문제가 생겼어요. 기록을 다시 확인해주세요.', 'error');
+    return null;
   }
-  showToast('B형 기록과 연결된 성장 기록을 삭제했어요.', 'success');
-  return result;
 }
 
 function formatRoutingResultRows(routerResult) {
@@ -11950,6 +13438,562 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  flowWarningViewConnectionTest() {
+    const rows = [];
+    const addHistoryRecord = (skillId, daysAgo, extra = {}) => {
+      const dateId = addDaysToDateId(getTodayId(), -daysAgo);
+      PLAYER.records.unshift({
+        id: `flow_warning_view_test_${skillId}_${daysAgo}_${Math.random().toString(36).slice(2, 6)}`,
+        date: `${dateId}T09:00:00`,
+        date_id: dateId,
+        skillId,
+        skillName: SKILLS[skillId]?.name || skillId,
+        stat: SKILLS[skillId]?.stat || null,
+        mode: 'detail_mock',
+        skillExp: 10,
+        statExp: 1,
+        charExp: 1,
+        ...extra
+      });
+      return dateId;
+    };
+    const hasSuggestedSkill = (view, skillId) => (view.suggested_flows || []).some(item => item.skill_id === skillId);
+
+    resetTestData();
+    clearFlowWarningState();
+    let view = createFlowWarningViewModel();
+    rows.push({
+      case: 'empty flow warning view',
+      result: !!view
+        && ['empty', 'available'].includes(view.status)
+        && typeof renderFlowWarningViewText(view) === 'string'
+        ? 'PASS'
+        : 'FAIL',
+      status: view?.status,
+      textPreview: renderFlowWarningViewText(view).split('\n').slice(0, 3).join(' / ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    view = createFlowWarningViewModel();
+    rows.push({
+      case: 'paused flow appears in view model',
+      result: view.status === 'available'
+        && hasSuggestedSkill(view, 'word_lamp')
+        && (view.text.includes('흐름') || renderFlowWarningViewText(view).includes('흐름'))
+        ? 'PASS'
+        : 'FAIL',
+      status: view.status,
+      suggested: (view.suggested_flows || []).map(item => item.skill_id).join(', ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    ['running_proof', 'word_lamp', 'organizing_hand', 'foreign_language_awakening'].forEach(skillId => addHistoryRecord(skillId, 5));
+    view = createFlowWarningViewModel();
+    rows.push({
+      case: 'view suggests at most 3 flows',
+      result: view.suggested_flows.length <= 3 ? 'PASS' : 'FAIL',
+      suggestedCount: view.suggested_flows.length,
+      suggested: view.suggested_flows.map(item => item.skill_id).join(', ')
+    });
+
+    const viewText = renderFlowWarningViewText(view);
+    const forbiddenHits = FLOW_WARNING_POLICY.forbidden_phrases.filter(phrase => viewText.includes(phrase));
+    rows.push({
+      case: 'flow warning view avoids forbidden phrases',
+      result: forbiddenHits.length === 0 ? 'PASS' : 'FAIL',
+      forbiddenHits: forbiddenHits.join(', ')
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    snoozeFlowWarningUntilTomorrow();
+    view = createFlowWarningViewModel();
+    rows.push({
+      case: 'snoozed state appears in view',
+      result: view.status === 'snoozed' ? 'PASS' : 'FAIL',
+      status: view.status,
+      label: view.status_label
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    hideFlowWarningForDays(7);
+    view = createFlowWarningViewModel();
+    rows.push({
+      case: 'hidden state appears in view',
+      result: view.status === 'hidden' ? 'PASS' : 'FAIL',
+      status: view.status,
+      label: view.status_label
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    hideFlowSkillForDays('word_lamp', 7);
+    view = createFlowWarningViewModel();
+    rows.push({
+      case: 'hidden skill is removed from view suggestions',
+      result: !hasSuggestedSkill(view, 'word_lamp') ? 'PASS' : 'FAIL',
+      status: view.status,
+      suggested: view.suggested_flows.map(item => item.skill_id).join(', ')
+    });
+
+    rows.push({
+      case: 'flow warning panel functions exist',
+      result: typeof renderFlowWarningPanel === 'function'
+        && typeof refreshFlowWarningPanel === 'function'
+        ? 'PASS'
+        : 'FAIL',
+      renderType: typeof renderFlowWarningPanel,
+      refreshType: typeof refreshFlowWarningPanel
+    });
+
+    resetTestData();
+    clearFlowWarningState();
+    addHistoryRecord('word_lamp', 5);
+    const panel = renderFlowWarningPanel();
+    const panelText = panel?.innerText || panel?.textContent || panel?.innerHTML || '';
+    rows.push({
+      case: 'flow warning panel renders into DOM',
+      result: !!panel
+        && panel.id === 'flowWarningPanel'
+        && String(panelText).includes('흐름 경고')
+        ? 'PASS'
+        : 'FAIL',
+      hasPanel: !!panel,
+      preview: String(panelText).replace(/\s+/g, ' ').slice(0, 120)
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_FLOW_WARNING_VIEW_CONNECTION_TEST: ALL PASS' : 'LIFE_RPG_FLOW_WARNING_VIEW_CONNECTION_TEST: FAIL');
+    return rows;
+  },
+
+  panelLayoutCleanupTest() {
+    const rows = [];
+    const textOf = element => String(element?.innerText || element?.textContent || element?.innerHTML || '');
+
+    resetTestData();
+    const dock = ensurePanelDock();
+    rows.push({
+      case: 'panelDock and slots are created',
+      result: !!dock
+        && !!document.getElementById('panelDock')
+        && !!document.getElementById('savedRecordsPanelSlot')
+        && !!document.getElementById('reportViewPanelSlot')
+        && !!document.getElementById('artArchivePanelSlot')
+        && !!document.getElementById('flowWarningPanelSlot')
+        && !!document.getElementById('debugUsagePanelSlot')
+        ? 'PASS'
+        : 'FAIL',
+      dock: !!dock,
+      slots: ['savedRecordsPanelSlot', 'reportViewPanelSlot', 'artArchivePanelSlot', 'flowWarningPanelSlot', 'debugUsagePanelSlot']
+        .map(id => !!document.getElementById(id)).join(', ')
+    });
+
+    let refreshResult = refreshAllPanels();
+    rows.push({
+      case: 'refreshAllPanels creates panels',
+      result: refreshResult.errors.length === 0
+        && !!document.getElementById('rawLogList')
+        && !!document.getElementById('reportViewPanel')
+        && !!document.getElementById('artArchivePanel')
+        && !!document.getElementById('flowWarningPanel')
+        && !!document.getElementById('debugUsagePanel')
+        ? 'PASS'
+        : 'FAIL',
+      status: refreshResult.status,
+      errors: refreshResult.errors.join(' / ')
+    });
+
+    resetTestData();
+    saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.');
+    refreshResult = refreshAllPanels();
+    const savedPanelText = textOf(document.getElementById('rawLogList'));
+    const reportPanelText = textOf(document.getElementById('reportViewPanel'));
+    rows.push({
+      case: 'saved B record appears after panel refresh',
+      result: savedPanelText.includes('5km')
+        && reportPanelText.includes('성장 리포트')
+        && (reportPanelText.includes('EXP') || reportPanelText.includes('캐릭터'))
+        ? 'PASS'
+        : 'FAIL',
+      savedPreview: savedPanelText.replace(/\s+/g, ' ').slice(0, 80),
+      reportPreview: reportPanelText.replace(/\s+/g, ' ').slice(0, 80)
+    });
+
+    saveBRecordThroughPipeline('캐릭터 이미지 프롬프트를 만들었다.');
+    refreshResult = refreshAllPanels();
+    const artPanelText = textOf(document.getElementById('artArchivePanel'));
+    rows.push({
+      case: 'ART archive panel appears after ART save',
+      result: artPanelText.includes('ART 아카이브') ? 'PASS' : 'FAIL',
+      preview: artPanelText.replace(/\s+/g, ' ').slice(0, 100)
+    });
+
+    refreshFlowWarningPanel();
+    const flowPanelText = textOf(document.getElementById('flowWarningPanel'));
+    rows.push({
+      case: 'flow warning panel remains available',
+      result: !!document.getElementById('flowWarningPanel')
+        && flowPanelText.includes('흐름 경고')
+        ? 'PASS'
+        : 'FAIL',
+      preview: flowPanelText.replace(/\s+/g, ' ').slice(0, 100)
+    });
+
+    const currentDock = ensurePanelDock();
+    const childIds = Array.from(currentDock?.children || []).map(child => child.id);
+    const slotOrder = [
+      'savedRecordsPanelSlot',
+      'reportViewPanelSlot',
+      'artArchivePanelSlot',
+      'flowWarningPanelSlot',
+      'debugUsagePanelSlot'
+    ];
+    rows.push({
+      case: 'panel slot order is stable',
+      result: slotOrder.every((id, index) => childIds.indexOf(id) > -1
+        && (index === 0 || childIds.indexOf(slotOrder[index - 1]) < childIds.indexOf(id)))
+        ? 'PASS'
+        : 'FAIL',
+      order: childIds.join(' > ')
+    });
+
+    const existingTests = [
+      ['reportViewConnectionTest', LIFE_RPG_TEST.reportViewConnectionTest],
+      ['artArchiveViewConnectionTest', LIFE_RPG_TEST.artArchiveViewConnectionTest],
+      ['flowWarningViewConnectionTest', LIFE_RPG_TEST.flowWarningViewConnectionTest],
+      ['savedRecordManagementViewTest', LIFE_RPG_TEST.savedRecordManagementViewTest]
+    ].map(([name, fn]) => {
+      const testRows = typeof fn === 'function' ? fn.call(LIFE_RPG_TEST) : [];
+      return {
+        name,
+        pass: Array.isArray(testRows) && testRows.every(row => row.result === 'PASS')
+      };
+    });
+    rows.push({
+      case: 'existing panel tests still pass',
+      result: existingTests.every(item => item.pass) ? 'PASS' : 'FAIL',
+      tests: existingTests.map(item => `${item.name}:${item.pass ? 'PASS' : 'FAIL'}`).join(', ')
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_PANEL_LAYOUT_CLEANUP_TEST: ALL PASS' : 'LIFE_RPG_PANEL_LAYOUT_CLEANUP_TEST: FAIL');
+    return rows;
+  },
+
+  mvpScreenReadinessTest() {
+    const rows = [];
+
+    let report = createMvpReadinessReport();
+    rows.push({
+      case: 'MVP readiness report',
+      result: !!report
+        && report.status === 'ok'
+        && report.sections.panel_dock === true
+        && report.functions.save_pipeline === true
+        && report.functions.refresh_all_panels === true
+        ? 'PASS'
+        : 'FAIL',
+      status: report?.status,
+      sections: JSON.stringify(report?.sections || {}),
+      functions: JSON.stringify(report?.functions || {}),
+      errors: (report?.errors || []).join(' / ')
+    });
+
+    const reportText = renderMvpReadinessReportText(report);
+    rows.push({
+      case: 'MVP readiness report text',
+      result: typeof reportText === 'string'
+        && reportText.includes('MVP 사용 화면 점검 리포트')
+        && reportText.includes('B형 기록 입력')
+        && reportText.includes('저장 파이프라인')
+        ? 'PASS'
+        : 'FAIL',
+      preview: reportText.split('\n').slice(0, 8).join(' / ')
+    });
+
+    const smoke = runMvpSmokeScenario();
+    rows.push({
+      case: 'MVP smoke scenario',
+      result: smoke.status === 'ok'
+        && smoke.saved_records_count >= 3
+        && smoke.active_skill_count >= 2
+        && smoke.needs_review_count >= 1
+        && smoke.has_saved_records_panel === true
+        && smoke.has_report_panel === true
+        && smoke.has_art_archive_panel === true
+        && smoke.has_flow_warning_panel === true
+        ? 'PASS'
+        : 'FAIL',
+      status: smoke.status,
+      saved: smoke.saved_records_count,
+      active: smoke.active_skill_count,
+      review: smoke.needs_review_count,
+      errors: (smoke.errors || []).join(' / ')
+    });
+
+    refreshAllPanels();
+    rows.push({
+      case: 'MVP panel DOM exists',
+      result: !!document.getElementById('panelDock')
+        && !!document.getElementById('reportViewPanel')
+        && !!document.getElementById('artArchivePanel')
+        && !!document.getElementById('flowWarningPanel')
+        && !!document.getElementById('debugUsagePanel')
+        ? 'PASS'
+        : 'FAIL',
+      panelDock: !!document.getElementById('panelDock'),
+      report: !!document.getElementById('reportViewPanel'),
+      art: !!document.getElementById('artArchivePanel'),
+      flow: !!document.getElementById('flowWarningPanel'),
+      debug: !!document.getElementById('debugUsagePanel')
+    });
+
+    const existingTests = [
+      ['panelLayoutCleanupTest', LIFE_RPG_TEST.panelLayoutCleanupTest],
+      ['flowWarningViewConnectionTest', LIFE_RPG_TEST.flowWarningViewConnectionTest],
+      ['artArchiveViewConnectionTest', LIFE_RPG_TEST.artArchiveViewConnectionTest],
+      ['reportViewConnectionTest', LIFE_RPG_TEST.reportViewConnectionTest],
+      ['savedRecordManagementViewTest', LIFE_RPG_TEST.savedRecordManagementViewTest]
+    ].map(([name, fn]) => {
+      const testRows = typeof fn === 'function' ? fn.call(LIFE_RPG_TEST) : [];
+      return {
+        name,
+        pass: Array.isArray(testRows) && testRows.every(row => row.result === 'PASS')
+      };
+    });
+    rows.push({
+      case: 'existing MVP panel tests still pass',
+      result: existingTests.every(item => item.pass) ? 'PASS' : 'FAIL',
+      tests: existingTests.map(item => `${item.name}:${item.pass ? 'PASS' : 'FAIL'}`).join(', ')
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_MVP_SCREEN_READINESS_TEST: ALL PASS' : 'LIFE_RPG_MVP_SCREEN_READINESS_TEST: FAIL');
+    return rows;
+  },
+
+  reportViewConnectionTest() {
+    const rows = [];
+
+    resetTestData();
+    let view = createReportViewModel();
+    rows.push({
+      case: 'empty report view model',
+      result: !!view
+        && !!view.daily
+        && !!view.weekly
+        && !!view.monthly
+        && !!view.hub
+        && view.status === 'ok'
+        ? 'PASS'
+        : 'FAIL',
+      status: view?.status,
+      daily: !!view?.daily,
+      weekly: !!view?.weekly,
+      monthly: !!view?.monthly,
+      hub: !!view?.hub
+    });
+
+    saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.');
+    view = createReportViewModel();
+    rows.push({
+      case: 'saved record appears in report view',
+      result: view.monthly.applied_records_count > 0
+        && !!view.hub
+        && view.summary.month_char_exp >= 0
+        ? 'PASS'
+        : 'FAIL',
+      monthlyRecords: view.monthly.applied_records_count,
+      monthCharExp: view.summary.month_char_exp,
+      hub: !!view.hub
+    });
+
+    rows.push({
+      case: 'specialized reports are connected',
+      result: (typeof createRunningMonthlyReport !== 'function' || !!view.specialized.running_monthly)
+        && (typeof createFuelMonthlyReport !== 'function' || !!view.specialized.fuel_monthly)
+        && (typeof createSleepMonthlyReport !== 'function' || !!view.specialized.sleep_monthly)
+        && (typeof createArtArchiveMonthlyReport !== 'function' || !!view.specialized.art_archive_monthly)
+        ? 'PASS'
+        : 'FAIL',
+      running: !!view.specialized.running_monthly,
+      fuel: !!view.specialized.fuel_monthly,
+      sleep: !!view.specialized.sleep_monthly,
+      art: !!view.specialized.art_archive_monthly
+    });
+
+    const text = renderReportViewText(view);
+    rows.push({
+      case: 'report view text renderer',
+      result: typeof text === 'string'
+        && text.includes('성장 리포트')
+        && text.includes('오늘')
+        && text.includes('이번 주')
+        && text.includes('이번 달')
+        ? 'PASS'
+        : 'FAIL',
+      preview: text.split('\n').slice(0, 8).join(' / ')
+    });
+
+    rows.push({
+      case: 'report panel functions exist',
+      result: typeof renderReportViewPanel === 'function'
+        && typeof refreshReportViewPanel === 'function'
+        ? 'PASS'
+        : 'FAIL',
+      renderType: typeof renderReportViewPanel,
+      refreshType: typeof refreshReportViewPanel
+    });
+
+    const panel = renderReportViewPanel();
+    const panelHtml = panel?.innerHTML || '';
+    rows.push({
+      case: 'report panel renders visible content',
+      result: !!panel
+        && panelHtml.includes('성장 리포트')
+        && panelHtml.includes('오늘')
+        && panelHtml.includes('이번 주')
+        && panelHtml.includes('이번 달')
+        && panelHtml.includes('러닝 / 연료 요약')
+        && panelHtml.includes('현재 리포트 스냅샷 저장')
+        ? 'PASS'
+        : 'FAIL',
+      hasPanel: !!panel,
+      preview: panelHtml.replace(/\s+/g, ' ').slice(0, 120)
+    });
+
+    const beforeSnapshots = REPORT_SNAPSHOTS.length;
+    saveReportSnapshot({ note: 'report view test' });
+    rows.push({
+      case: 'report snapshot save integration',
+      result: REPORT_SNAPSHOTS.length >= beforeSnapshots + 1 ? 'PASS' : 'FAIL',
+      before: beforeSnapshots,
+      after: REPORT_SNAPSHOTS.length
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_REPORT_VIEW_CONNECTION_TEST: ALL PASS' : 'LIFE_RPG_REPORT_VIEW_CONNECTION_TEST: FAIL');
+    return rows;
+  },
+
+  savedRecordManagementViewTest() {
+    const rows = [];
+
+    resetTestData();
+    let view = createSavedRecordsViewModel();
+    rows.push({
+      case: 'empty saved records view',
+      result: view.total_count === 0 && view.records.length === 0 ? 'PASS' : 'FAIL',
+      total: view.total_count,
+      records: view.records.length
+    });
+
+    resetTestData();
+    let result = saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.');
+    view = createSavedRecordsViewModel();
+    let first = view.records[0];
+    rows.push({
+      case: 'STR compound record view model',
+      result: view.records.length >= 1
+        && first.matched_skills.some(skill => skill.skill_id === 'running_proof')
+        && first.matched_skills.some(skill => skill.skill_id === 'fuel_charge')
+        && first.linked_details.running === true
+        && first.linked_details.fuel === true
+        ? 'PASS'
+        : 'FAIL',
+      matched: first?.matched_skills?.map(skill => skill.skill_id).join(', '),
+      running: first?.linked_details?.running,
+      fuel: first?.linked_details?.fuel
+    });
+
+    resetTestData();
+    result = saveBRecordThroughPipeline('운동했다.');
+    view = createSavedRecordsViewModel({ status: 'needs_review' });
+    first = view.records[0];
+    rows.push({
+      case: 'needs_review saved record filter',
+      result: view.records.length >= 1
+        && first.needs_review === true
+        && !!first.review_question
+        ? 'PASS'
+        : 'FAIL',
+      count: view.records.length,
+      status: first?.status_label,
+      question: first?.review_question
+    });
+
+    resetTestData();
+    clearArtArchives();
+    result = saveBRecordThroughPipeline('캐릭터 이미지 프롬프트를 만들었다.');
+    let detail = createSavedRecordDetailViewModel(result.raw_log.id);
+    rows.push({
+      case: 'ART record detail link',
+      result: detail?.art_archives?.length >= 1
+        || detail?.view_model?.linked_details?.art_archive === true
+        ? 'PASS'
+        : 'FAIL',
+      artArchives: detail?.art_archives?.length || 0,
+      linkedArt: detail?.view_model?.linked_details?.art_archive
+    });
+
+    rows.push({
+      case: 'saved record detail view model',
+      result: !!detail?.raw_log
+        && !!detail?.analysis_result
+        && !!detail?.summary
+        && Array.isArray(detail.summary.matched_skill_names)
+        ? 'PASS'
+        : 'FAIL',
+      rawLog: !!detail?.raw_log,
+      analysis: !!detail?.analysis_result,
+      matched: detail?.summary?.matched_skill_names?.join(', ')
+    });
+
+    const listText = renderSavedRecordsViewText(createSavedRecordsViewModel());
+    const detailText = renderSavedRecordDetailText(detail);
+    rows.push({
+      case: 'saved records text renderers',
+      result: typeof listText === 'string'
+        && typeof detailText === 'string'
+        && listText.includes('저장된 B형 기록 목록')
+        && detailText.includes('B형 기록 상세')
+        ? 'PASS'
+        : 'FAIL',
+      listPreview: listText.split('\n').slice(0, 4).join(' / '),
+      detailPreview: detailText.split('\n').slice(0, 4).join(' / ')
+    });
+
+    resetTestData();
+    result = saveBRecordThroughPipeline('5km 뛰었다.');
+    const deleteTargetId = result.raw_log.id;
+    deleteRawLogCascade(deleteTargetId);
+    view = createSavedRecordsViewModel();
+    rows.push({
+      case: 'deleted record disappears from view',
+      result: !view.records.some(record => record.raw_log_id === deleteTargetId) ? 'PASS' : 'FAIL',
+      remaining: view.records.length,
+      targetPresent: view.records.some(record => record.raw_log_id === deleteTargetId)
+    });
+
+    rows.push({
+      case: 'refreshSavedRecordsView exists',
+      result: typeof refreshSavedRecordsView === 'function' ? 'PASS' : 'FAIL',
+      type: typeof refreshSavedRecordsView
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_SAVED_RECORD_MANAGEMENT_VIEW_TEST: ALL PASS' : 'LIFE_RPG_SAVED_RECORD_MANAGEMENT_VIEW_TEST: FAIL');
+    return rows;
+  },
+
   realUseQATest() {
     const rows = [];
 
@@ -12563,6 +14607,152 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  artArchiveViewConnectionTest() {
+    const rows = [];
+
+    resetTestData();
+    clearArtArchives();
+    let view = createArtArchiveViewModel();
+    rows.push({
+      case: 'empty ART archive view',
+      result: view.total_count === 0
+        && view.archives.length === 0
+        && (renderArtArchiveViewText(view).includes('아직 없어요') || renderArtArchiveViewText(view).includes('없습니다'))
+        ? 'PASS'
+        : 'FAIL',
+      total: view.total_count,
+      archives: view.archives.length
+    });
+
+    resetTestData();
+    clearArtArchives();
+    const saved = saveArtArchive({
+      title: '캐릭터 이미지 프롬프트',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.',
+      tags: ['캐릭터', '이미지', '프롬프트']
+    });
+    view = createArtArchiveViewModel();
+    rows.push({
+      case: 'saved archive appears in view model',
+      result: view.total_count >= 1
+        && !!view.archives[0]?.title
+        && !!view.archives[0]?.category_label
+        && !!view.archives[0]?.linked_skill_name
+        ? 'PASS'
+        : 'FAIL',
+      title: view.archives[0]?.title,
+      categoryLabel: view.archives[0]?.category_label,
+      skillName: view.archives[0]?.linked_skill_name
+    });
+
+    resetTestData();
+    clearArtArchives();
+    saveArtArchive({
+      title: '캐릭터 이미지',
+      linked_skill: 'image_touch',
+      content: '캐릭터 이미지 프롬프트를 만들었다.'
+    });
+    saveArtArchive({
+      title: '이야기 장면',
+      linked_skill: 'story_spark',
+      content: '캐릭터 대사와 이야기 장면을 써봤다.'
+    });
+    view = createArtArchiveViewModel({ linked_skill: 'image_touch' });
+    rows.push({
+      case: 'linked_skill filter',
+      result: view.archives.length >= 1
+        && view.archives.every(archive => archive.linked_skill === 'image_touch')
+        ? 'PASS'
+        : 'FAIL',
+      count: view.archives.length,
+      skills: view.archives.map(archive => archive.linked_skill).join(', ')
+    });
+
+    const detail = createArtArchiveDetailViewModel(view.archives[0]?.archive_id);
+    rows.push({
+      case: 'archive detail view model',
+      result: !!detail
+        && !!detail.title
+        && !!detail.category_label
+        && !!detail.status_label
+        ? 'PASS'
+        : 'FAIL',
+      title: detail?.title,
+      categoryLabel: detail?.category_label,
+      statusLabel: detail?.status_label
+    });
+
+    const detailText = renderArtArchiveDetailViewText(detail);
+    rows.push({
+      case: 'archive detail text renderer',
+      result: typeof detailText === 'string'
+        && detailText.includes('ART 아카이브 상세')
+        && detailText.includes('제목')
+        && detailText.includes('분류')
+        && detailText.includes('연결 스킬')
+        ? 'PASS'
+        : 'FAIL',
+      preview: detailText.split('\n').slice(0, 8).join(' / ')
+    });
+
+    resetTestData();
+    clearArtArchives();
+    saveBRecordThroughPipeline('캐릭터 이미지 프롬프트를 만들었다.');
+    view = createArtArchiveViewModel();
+    rows.push({
+      case: 'B record pipeline updates ART archive view',
+      result: view.total_count >= 1
+        && view.archives.some(archive => archive.linked_skill === 'image_touch'
+          || ['prompt', 'image'].includes(archive.category))
+        ? 'PASS'
+        : 'FAIL',
+      total: view.total_count,
+      skills: view.archives.map(archive => archive.linked_skill).join(', '),
+      categories: view.archives.map(archive => archive.category).join(', ')
+    });
+
+    const report = createArtArchiveMonthlyReport();
+    const reportText = renderArtArchiveMonthlyReportText(report);
+    rows.push({
+      case: 'monthly ART archive report is connected',
+      result: !!report
+        && typeof reportText === 'string'
+        && (reportText.includes('ART') || reportText.includes('아카이브'))
+        ? 'PASS'
+        : 'FAIL',
+      archives: report?.archives_count,
+      preview: reportText.split('\n').slice(0, 6).join(' / ')
+    });
+
+    rows.push({
+      case: 'ART archive panel functions exist',
+      result: typeof renderArtArchivePanel === 'function'
+        && typeof refreshArtArchivePanel === 'function'
+        ? 'PASS'
+        : 'FAIL',
+      renderType: typeof renderArtArchivePanel,
+      refreshType: typeof refreshArtArchivePanel
+    });
+
+    const panel = renderArtArchivePanel();
+    const panelText = panel?.innerText || panel?.textContent || panel?.innerHTML || '';
+    rows.push({
+      case: 'ART archive panel renders into DOM',
+      result: !!panel
+        && panel.id === 'artArchivePanel'
+        && panelText.includes('ART 아카이브')
+        ? 'PASS'
+        : 'FAIL',
+      hasPanel: !!panel,
+      preview: String(panelText).replace(/\s+/g, ' ').slice(0, 120)
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_ART_ARCHIVE_VIEW_CONNECTION_TEST: ALL PASS' : 'LIFE_RPG_ART_ARCHIVE_VIEW_CONNECTION_TEST: FAIL');
+    return rows;
+  },
+
   status() {
     const status = getLifeRpgStatus();
     console.table([status]);
@@ -12687,10 +14877,19 @@ window.LIFE_RPG = {
   detectPausedSkillFlows,
   createGroupedFlowWarning,
   renderGroupedFlowWarningText,
+  createFlowWarningViewModel,
+  renderFlowWarningViewText,
+  renderFlowWarningPanel,
+  refreshFlowWarningPanel,
   snoozeFlowWarningUntilTomorrow,
   hideFlowWarningForDays,
   hideFlowSkillForDays,
   clearFlowWarningState,
+  ensurePanelDock,
+  refreshAllPanels,
+  createMvpReadinessReport,
+  renderMvpReadinessReportText,
+  runMvpSmokeScenario,
   createArtArchiveId,
   inferArtArchiveCategory,
   isArtSkill,
@@ -12706,6 +14905,14 @@ window.LIFE_RPG = {
   renderArtArchiveText,
   createArtArchiveMonthlyReport,
   renderArtArchiveMonthlyReportText,
+  createArtArchiveViewModel,
+  getArtArchiveCategoryLabel,
+  getArtArchiveStatusLabel,
+  renderArtArchiveViewText,
+  createArtArchiveDetailViewModel,
+  renderArtArchiveDetailViewText,
+  renderArtArchivePanel,
+  refreshArtArchivePanel,
   createSystemHealthReport,
   renderSystemHealthReportText,
   validateCoreDataConsistency,
@@ -12717,6 +14924,16 @@ window.LIFE_RPG = {
   runDeleteConsistencyQATest,
   runNeedsReviewQATest,
   renderRealUseQAReportText,
+  createReportViewModel,
+  renderReportViewText,
+  renderReportViewPanel,
+  refreshReportViewPanel,
+  createSavedRecordViewModel,
+  createSavedRecordsViewModel,
+  renderSavedRecordsViewText,
+  createSavedRecordDetailViewModel,
+  renderSavedRecordDetailText,
+  refreshSavedRecordsView,
   createUsageFlowSummary,
   renderUsageFlowSummaryText,
   getLatestAnalysisDebugView,
