@@ -872,6 +872,51 @@ body {
   overflow-y: auto;
 }
 
+.debug-usage-panel {
+  margin: 8px 14px 14px;
+  padding: 10px;
+  border: 1px solid rgba(208, 162, 74, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.debug-usage-panel details { display: block; }
+
+.debug-usage-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.debug-usage-panel pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 8px;
+  font-family: var(--font-kr);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--brown);
+}
+
+.debug-usage-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.debug-usage-actions button {
+  padding: 6px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: white;
+  color: var(--brown);
+  font-family: var(--font-kr);
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .raw-log-detail-section {
   margin: 10px 0;
   padding: 10px;
@@ -993,6 +1038,8 @@ body {
       </div>
     </section>
 
+    <div class="debug-usage-panel" id="debugUsagePanel"></div>
+
   </div>
 
   <!-- 빠른 기록 모달 -->
@@ -1063,7 +1110,7 @@ body {
    v0.3-C 개발/테스트 설정
    ============================================================ */
 
-const APP_VERSION = 'v0.8-G-art-archive-foundation';
+const APP_VERSION = 'v0.9-D-real-use-qa';
 
 // 절대 index.html에 Gemini API 키를 넣지 말 것.
 // Gemini 호출은 Google Cloud Run Function에서만 처리합니다.
@@ -1078,6 +1125,15 @@ const DEV_SKIP_LOGIN = true;
 const USE_MOCK_ANALYZER = false;
 const SERVER_ANALYZE_URL = "https://life-rpg-gemini-analyze-833548758553.asia-northeast3.run.app/analyze";
 const RAW_LOG_MVP_MODE = true;
+const B_RECORD_SAVE_PIPELINE_POLICY = {
+  auto_apply_exp: true,
+  auto_save_specialized_records: true,
+  auto_save_art_archives: true,
+  auto_refresh_debug_panel: true,
+  prevent_duplicate_raw_log_save: true,
+  prevent_duplicate_analysis_save: true,
+  prevent_duplicate_art_archive: true
+};
 
 // 실제 배포/실사용 전에는 DEV_SKIP_LOGIN / USE_MOCK_ANALYZER 상태를 재검토해야 합니다.
 
@@ -3329,6 +3385,7 @@ function renderAll() {
   renderRecent();
   renderStatsGrid();
   renderRawLogList();
+  try { refreshDebugUsagePanel(); } catch (e) {}
   document.getElementById('umStats').textContent =
     `Lv.${PLAYER.level} · 총 기록 ${PLAYER.records.length}개 · 총 EXP ${PLAYER.charExp}`;
 }
@@ -7510,6 +7567,1052 @@ function renderArtArchiveMonthlyReportText(report) {
   ].join('\n');
 }
 
+function createSystemHealthReport() {
+  const warnings = [];
+  const errors = [];
+  const skillTreeSkillCount = Object.values(SKILL_TREES || {})
+    .reduce((sum, tree) => sum + (Array.isArray(tree.skills) ? tree.skills.length : 0), 0);
+  const stores = {
+    PLAYER: !!PLAYER && typeof PLAYER === 'object',
+    RAW_LOGS: Array.isArray(RAW_LOGS),
+    ANALYSIS_RESULTS: Array.isArray(ANALYSIS_RESULTS),
+    RUNNING_RECORDS: Array.isArray(RUNNING_RECORDS),
+    FUEL_RECORDS: Array.isArray(FUEL_RECORDS),
+    SLEEP_RECORDS: Array.isArray(SLEEP_RECORDS),
+    ART_ARCHIVES: Array.isArray(ART_ARCHIVES),
+    REPORT_SNAPSHOTS: Array.isArray(REPORT_SNAPSHOTS),
+    FLOW_WARNING_STATE: !!FLOW_WARNING_STATE && typeof FLOW_WARNING_STATE === 'object'
+  };
+  const masterData = {
+    stats_count: Object.keys(STAT_META || {}).length,
+    skills_count: Object.keys(SKILLS || {}).length,
+    skill_tree_skill_count: skillTreeSkillCount,
+    has_stat_meta: !!STAT_META,
+    has_skill_trees: !!SKILL_TREES,
+    has_skill_router_keywords: !!SKILL_ROUTER_KEYWORDS
+  };
+  const engines = {
+    router: typeof routeRecordMock === 'function',
+    mock_analyzer: typeof createCommonMockSkillAnalysis === 'function' && typeof analyzeByRouteMock === 'function',
+    analysis_normalizer: typeof normalizeAnalysisResultShape === 'function',
+    flow_return_detection: typeof detectFlowReturnCandidates === 'function',
+    grouped_flow_warning: typeof createGroupedFlowWarning === 'function',
+    art_archive: typeof saveArtArchive === 'function' && typeof createArtArchiveMonthlyReport === 'function',
+    report_hub: typeof createReportHub === 'function',
+    report_snapshot: typeof saveReportSnapshot === 'function'
+  };
+  const specializedEngines = {
+    running_proof: typeof saveRunningRecordFromRawLog === 'function' && SPECIALIZED_SKILL_ENGINES.running_proof?.enabled === true,
+    fuel_charge: typeof saveFuelRecordFromRawLog === 'function' && SPECIALIZED_SKILL_ENGINES.fuel_charge?.enabled === true,
+    recovery_night: typeof saveSleepRecordFromRawLog === 'function' && SPECIALIZED_SKILL_ENGINES.recovery_night?.enabled === true
+  };
+
+  Object.entries(stores).forEach(([key, ok]) => { if (!ok) errors.push(`${key} 저장소가 준비되지 않았습니다.`); });
+  Object.entries(engines).forEach(([key, ok]) => { if (!ok) errors.push(`${key} 엔진이 준비되지 않았습니다.`); });
+  Object.entries(specializedEngines).forEach(([key, ok]) => { if (!ok) errors.push(`${key} 상세 엔진이 준비되지 않았습니다.`); });
+  if (masterData.stats_count !== 6) warnings.push(`스탯 메타 수가 6개가 아닙니다. 현재 ${masterData.stats_count}개입니다.`);
+  if (masterData.skills_count !== 29) warnings.push(`스킬 수가 29개가 아닙니다. 현재 ${masterData.skills_count}개입니다.`);
+  if (masterData.skill_tree_skill_count !== 29) warnings.push(`스킬트리 등록 수가 29개가 아닙니다. 현재 ${masterData.skill_tree_skill_count}개입니다.`);
+
+  return {
+    app_version: APP_VERSION,
+    checked_at: new Date().toISOString(),
+    stores,
+    master_data: masterData,
+    engines,
+    specialized_engines: specializedEngines,
+    warnings,
+    errors,
+    status: errors.length > 0 ? 'error' : (warnings.length > 0 ? 'warning' : 'ok')
+  };
+}
+
+function renderSystemHealthReportText(report) {
+  if (!report) return '인생 RPG 시스템 점검 리포트가 없습니다.';
+  const okText = value => value ? '정상' : '확인 필요';
+  const statusText = report.status === 'ok' ? '정상' : (report.status === 'warning' ? '주의 필요' : '오류 확인 필요');
+  const storeLines = Object.entries(report.stores || {}).map(([key, value]) => `- ${key}: ${okText(value)}`);
+  const engineLabels = {
+    router: '라우터',
+    mock_analyzer: 'Mock 분석기',
+    analysis_normalizer: '분석 결과 정규화',
+    flow_return_detection: '복귀 판단',
+    grouped_flow_warning: '흐름 경고',
+    art_archive: 'ART 아카이브',
+    report_hub: '리포트 허브',
+    report_snapshot: '리포트 스냅샷'
+  };
+  const engineLines = Object.entries(report.engines || {}).map(([key, value]) => `- ${engineLabels[key] || key}: ${okText(value)}`);
+  const issueLines = [
+    ...(report.errors || []).map(item => `오류: ${item}`),
+    ...(report.warnings || []).map(item => `주의: ${item}`)
+  ];
+  return [
+    '인생 RPG 시스템 점검 리포트',
+    `버전: ${report.app_version}`,
+    '',
+    '저장소:',
+    ...storeLines,
+    '',
+    '마스터 데이터:',
+    `- 스탯 수: ${report.master_data?.stats_count || 0}개`,
+    `- 스킬 수: ${report.master_data?.skills_count || 0}개`,
+    `- 스킬트리 등록 수: ${report.master_data?.skill_tree_skill_count || 0}개`,
+    '',
+    '엔진:',
+    ...engineLines,
+    '',
+    '상태:',
+    statusText,
+    ...(issueLines.length ? ['', '확인 내용:', ...issueLines] : [])
+  ].join('\n');
+}
+
+function extractRecordSkillIdsForValidation(record) {
+  const ids = [];
+  const add = value => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(add);
+      return;
+    }
+    if (typeof value === 'object') {
+      add(value.skill_id || value.skillId);
+      return;
+    }
+    ids.push(String(value));
+  };
+  add(record?.skill_id);
+  add(record?.skillId);
+  add(record?.skill_id_list);
+  add(record?.skillIds);
+  add(record?.matched_skills);
+  add(record?.mock_analysis_results);
+  add(record?.analysis?.matched_skills);
+  add(record?.analysis?.mock_analysis_results);
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function validateCoreDataConsistency() {
+  const errors = [];
+  const warnings = [];
+  const requireArray = (name, value) => {
+    if (!Array.isArray(value)) errors.push(`${name}가 배열이 아닙니다.`);
+  };
+  requireArray('PLAYER.records', PLAYER?.records);
+  requireArray('RAW_LOGS', RAW_LOGS);
+  requireArray('ANALYSIS_RESULTS', ANALYSIS_RESULTS);
+  requireArray('RUNNING_RECORDS', RUNNING_RECORDS);
+  requireArray('FUEL_RECORDS', FUEL_RECORDS);
+  requireArray('SLEEP_RECORDS', SLEEP_RECORDS);
+  requireArray('ART_ARCHIVES', ART_ARCHIVES);
+  requireArray('REPORT_SNAPSHOTS', REPORT_SNAPSHOTS);
+
+  (PLAYER?.records || []).forEach(record => {
+    extractRecordSkillIdsForValidation(record).forEach(skillId => {
+      if (!SKILLS[skillId]) warnings.push(`PLAYER.records에 알 수 없는 skill_id가 있습니다: ${skillId}`);
+    });
+  });
+  RUNNING_RECORDS.forEach(record => {
+    if (record.skill_id !== 'running_proof') errors.push(`RUNNING_RECORDS에 running_proof가 아닌 기록이 있습니다: ${record.id || record.raw_log_id || ''}`);
+  });
+  FUEL_RECORDS.forEach(record => {
+    if (record.skill_id !== 'fuel_charge') errors.push(`FUEL_RECORDS에 fuel_charge가 아닌 기록이 있습니다: ${record.id || record.raw_log_id || ''}`);
+  });
+  SLEEP_RECORDS.forEach(record => {
+    if (record.skill_id !== 'recovery_night') errors.push(`SLEEP_RECORDS에 recovery_night가 아닌 기록이 있습니다: ${record.id || record.raw_log_id || ''}`);
+  });
+  ART_ARCHIVES.forEach(archive => {
+    if (archive.linked_skill && !isArtSkill(archive.linked_skill)) {
+      errors.push(`ART_ARCHIVES에 ART 스킬이 아닌 linked_skill이 있습니다: ${archive.linked_skill}`);
+    }
+  });
+  ANALYSIS_RESULTS.forEach(result => {
+    const matched = Array.isArray(result.matched_skills) ? result.matched_skills : [];
+    matched.forEach(item => {
+      const skillId = item?.skill_id || item?.skillId;
+      if (skillId && !SKILLS[skillId]) warnings.push(`ANALYSIS_RESULTS에 알 수 없는 skill_id가 있습니다: ${skillId}`);
+    });
+  });
+
+  return {
+    checked_at: new Date().toISOString(),
+    errors,
+    warnings,
+    status: errors.length > 0 ? 'error' : (warnings.length > 0 ? 'warning' : 'ok')
+  };
+}
+
+function applyIntegratedScenarioRawLog(text) {
+  const rawLog = createRawLogDraft(text);
+  const analysisResult = createTemporaryAnalysisResult(rawLog);
+  applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+  RAW_LOGS.unshift(rawLog);
+  ANALYSIS_RESULTS.unshift(analysisResult);
+  saveRunningRecordFromRawLog(rawLog, analysisResult);
+  saveFuelRecordFromRawLog(rawLog, analysisResult);
+  saveSleepRecordFromRawLog(rawLog, analysisResult);
+  saveArtArchivesFromAnalysis(rawLog, analysisResult);
+  return { rawLog, analysisResult };
+}
+
+function runIntegratedUserJourneyScenario() {
+  resetTestData();
+  clearArtArchives();
+  clearReportSnapshots();
+  clearFlowWarningState();
+  const errors = [];
+  const warnings = [];
+  [
+    '5km 32분 10초 뛰고 닭가슴살 2팩 먹었다.',
+    '7시간 잤다.',
+    '캐릭터 이미지 프롬프트를 만들었다.',
+    '주일예배를 드렸다.'
+  ].forEach(applyIntegratedScenarioRawLog);
+  recalcStats();
+  recalcCharLevel();
+
+  const reportHub = createReportHub();
+  const snapshot = saveReportSnapshot({ note: 'integrated journey scenario' });
+  const flowWarning = createGroupedFlowWarning();
+  const healthReport = createSystemHealthReport();
+  const consistency = validateCoreDataConsistency();
+  if (healthReport.status === 'error') errors.push('시스템 헬스 리포트에서 오류가 확인되었습니다.');
+  if (consistency.errors.length > 0) errors.push(...consistency.errors);
+  if (consistency.warnings.length > 0) warnings.push(...consistency.warnings);
+
+  const checks = {
+    has_running_record: RUNNING_RECORDS.length >= 1,
+    has_fuel_record: FUEL_RECORDS.length >= 1,
+    has_sleep_record: SLEEP_RECORDS.length >= 1,
+    has_art_archive: ART_ARCHIVES.length >= 1,
+    has_report_hub: !!reportHub && !!reportHub.summary,
+    has_report_snapshot: !!snapshot && REPORT_SNAPSHOTS.length >= 1,
+    has_health_report: !!healthReport && !!healthReport.stores,
+    consistency_ok: consistency.errors.length === 0
+  };
+  Object.entries(checks).forEach(([key, ok]) => {
+    if (!ok) errors.push(`${key} 확인이 통과하지 못했습니다.`);
+  });
+
+  return {
+    scenario_name: 'integrated_user_journey_v0.1',
+    status: errors.length > 0 ? 'error' : 'ok',
+    counts: {
+      raw_logs: RAW_LOGS.length,
+      analysis_results: ANALYSIS_RESULTS.length,
+      player_records: PLAYER.records.length,
+      running_records: RUNNING_RECORDS.length,
+      fuel_records: FUEL_RECORDS.length,
+      sleep_records: SLEEP_RECORDS.length,
+      art_archives: ART_ARCHIVES.length,
+      report_snapshots: REPORT_SNAPSHOTS.length
+    },
+    checks,
+    report_hub: reportHub,
+    snapshot,
+    flow_warning: flowWarning,
+    health_report: healthReport,
+    consistency,
+    errors,
+    warnings
+  };
+}
+
+function renderIntegratedUserJourneyScenarioText(result) {
+  if (!result) return '통합 사용 시나리오 점검 결과가 없습니다.';
+  const okText = value => value ? '정상' : '확인 필요';
+  return [
+    '통합 사용 시나리오 점검 결과',
+    '',
+    `상태: ${result.status === 'ok' ? '정상' : '확인 필요'}`,
+    '',
+    '생성된 기록:',
+    `- RAW_LOGS: ${result.counts?.raw_logs || 0}개`,
+    `- ANALYSIS_RESULTS: ${result.counts?.analysis_results || 0}개`,
+    `- PLAYER.records: ${result.counts?.player_records || 0}개`,
+    `- RUNNING_RECORDS: ${result.counts?.running_records || 0}개`,
+    `- FUEL_RECORDS: ${result.counts?.fuel_records || 0}개`,
+    `- SLEEP_RECORDS: ${result.counts?.sleep_records || 0}개`,
+    `- ART_ARCHIVES: ${result.counts?.art_archives || 0}개`,
+    `- REPORT_SNAPSHOTS: ${result.counts?.report_snapshots || 0}개`,
+    '',
+    '연결 확인:',
+    `- 러닝 상세 기록: ${okText(result.checks?.has_running_record)}`,
+    `- 연료 상세 기록: ${okText(result.checks?.has_fuel_record)}`,
+    `- 수면 상세 기록: ${okText(result.checks?.has_sleep_record)}`,
+    `- ART 아카이브: ${okText(result.checks?.has_art_archive)}`,
+    `- 리포트 허브: ${okText(result.checks?.has_report_hub)}`,
+    `- 리포트 스냅샷: ${okText(result.checks?.has_report_snapshot)}`,
+    `- 데이터 정합성: ${okText(result.checks?.consistency_ok)}`
+  ].join('\n');
+}
+
+function runCascadeSafetyScenario() {
+  resetTestData();
+  clearArtArchives();
+  clearReportSnapshots();
+  clearFlowWarningState();
+  const { rawLog, analysisResult } = applyIntegratedScenarioRawLog('5km 32분 10초 뛰었다.');
+  const savedArchive = saveArtArchive({
+    title: '삭제 안전성 비교용 아카이브',
+    linked_skill: 'image_touch',
+    content: '삭제 안전성 비교용 아카이브입니다.'
+  });
+  const snapshot = saveReportSnapshot({ note: 'cascade safety snapshot' });
+  hideFlowWarningForDays(1);
+  const flowHiddenUntil = FLOW_WARNING_STATE.hidden_until_date_id;
+  const before = {
+    art_archives: ART_ARCHIVES.length,
+    report_snapshots: REPORT_SNAPSHOTS.length,
+    hidden_until: flowHiddenUntil
+  };
+  deleteRawLogCascade(rawLog.id);
+  const deletedRawLog = !RAW_LOGS.some(log => log.id === rawLog.id);
+  const deletedAnalysisResult = !ANALYSIS_RESULTS.some(result => result.raw_log_id === rawLog.id);
+  const deletedPlayerRecords = !(PLAYER.records || []).some(record => record.rawLogId === rawLog.id);
+  const deletedRunningRecords = !RUNNING_RECORDS.some(record => record.raw_log_id === rawLog.id);
+  const unrelatedStoresSafe = ART_ARCHIVES.length === before.art_archives
+    && ART_ARCHIVES.some(item => item.archive_id === savedArchive.archive_id)
+    && REPORT_SNAPSHOTS.length === before.report_snapshots
+    && REPORT_SNAPSHOTS.some(item => item.id === snapshot.id)
+    && FLOW_WARNING_STATE.hidden_until_date_id === before.hidden_until;
+  const errors = [];
+  if (!deletedRawLog) errors.push('RAW_LOGS에서 대상 B형 기록이 삭제되지 않았습니다.');
+  if (!deletedAnalysisResult) errors.push('ANALYSIS_RESULTS에서 연결 분석 결과가 삭제되지 않았습니다.');
+  if (!deletedPlayerRecords) errors.push('PLAYER.records에서 연결 성장 기록이 삭제되지 않았습니다.');
+  if (!deletedRunningRecords) errors.push('RUNNING_RECORDS에서 연결 러닝 기록이 삭제되지 않았습니다.');
+  if (!unrelatedStoresSafe) errors.push('관련 없는 저장소가 예상보다 많이 변했습니다.');
+  return {
+    status: errors.length > 0 ? 'error' : 'ok',
+    deleted_raw_log: deletedRawLog,
+    deleted_analysis_result: deletedAnalysisResult,
+    deleted_player_records: deletedPlayerRecords,
+    deleted_running_records: deletedRunningRecords,
+    unrelated_stores_safe: unrelatedStoresSafe,
+    errors,
+    raw_log_id: rawLog.id,
+    analysis_result_id: analysisResult.id
+  };
+}
+
+function runRealUseQAScenario() {
+  resetTestData();
+  clearArtArchives();
+  clearReportSnapshots();
+  clearFlowWarningState();
+  const errors = [];
+  const warnings = [];
+  const texts = [
+    '5km 뛰고 닭가슴살 2팩 먹었다.',
+    '7시간 잤다.',
+    '주일예배를 드렸다.',
+    '영어 단어 10개 복습했다.',
+    '공문 제목을 다듬고 보고서를 작성했다.',
+    '캐릭터 이미지 프롬프트를 만들었다.',
+    '운동했다.',
+    '정리했다.'
+  ];
+  const results = texts.map(text => {
+    const result = saveBRecordThroughPipeline(text);
+    if (!result.ok) errors.push(`${text} 저장 중 오류가 발생했습니다.`);
+    if (Array.isArray(result.warnings) && result.warnings.length) warnings.push(...result.warnings);
+    return result;
+  });
+  const activeSkillCount = results.filter(result => result.ok && result.status !== 'needs_review').length;
+  const needsReviewCount = results.filter(result => result.status === 'needs_review' || result.route_status === 'needs_review').length;
+  const summary = createUsageFlowSummary();
+  const reportHub = createReportHub();
+  const consistency = validateCoreDataConsistency();
+  if (activeSkillCount < 6) errors.push('명확한 기록의 성장 반영 수가 예상보다 적습니다.');
+  if (needsReviewCount < 2) errors.push('needs_review 기록 수가 예상보다 적습니다.');
+  if (RUNNING_RECORDS.length < 1) errors.push('러닝 상세 기록이 생성되지 않았습니다.');
+  if (FUEL_RECORDS.length < 1) errors.push('연료 상세 기록이 생성되지 않았습니다.');
+  if (SLEEP_RECORDS.length < 1) errors.push('수면 상세 기록이 생성되지 않았습니다.');
+  if (ART_ARCHIVES.length < 1) errors.push('ART 아카이브가 생성되지 않았습니다.');
+  if (!summary || summary.status === 'error') errors.push('디버그 요약 생성에 문제가 있습니다.');
+  if (!reportHub || !reportHub.summary) errors.push('리포트 허브 생성에 문제가 있습니다.');
+  if (consistency.errors.length > 0) errors.push(...consistency.errors);
+  if (consistency.warnings.length > 0) warnings.push(...consistency.warnings);
+
+  return {
+    scenario_name: 'real_use_qa_v0.1',
+    status: errors.length > 0 ? 'error' : 'ok',
+    saved_count: results.filter(result => result.ok).length,
+    active_skill_count: activeSkillCount,
+    needs_review_count: needsReviewCount,
+    counts: {
+      raw_logs: RAW_LOGS.length,
+      analysis_results: ANALYSIS_RESULTS.length,
+      player_records: PLAYER.records.length,
+      running_records: RUNNING_RECORDS.length,
+      fuel_records: FUEL_RECORDS.length,
+      sleep_records: SLEEP_RECORDS.length,
+      art_archives: ART_ARCHIVES.length
+    },
+    results,
+    usage_summary: summary,
+    report_hub: reportHub,
+    consistency,
+    errors,
+    warnings
+  };
+}
+
+function runDuplicateSaveQATest() {
+  resetTestData();
+  clearArtArchives();
+  const errors = [];
+  const warnings = [];
+
+  const sameTextFirst = saveBRecordThroughPipeline('5km 뛰었다.');
+  const sameTextSecond = saveBRecordThroughPipeline('5km 뛰었다.');
+  const sameTextAllowed = sameTextFirst.ok
+    && sameTextSecond.ok
+    && RAW_LOGS.length === 2
+    && new Set(RAW_LOGS.map(log => log.id)).size === RAW_LOGS.length;
+  if (!sameTextAllowed) errors.push('같은 텍스트를 별도 기록으로 저장하는 흐름에 문제가 있습니다.');
+
+  resetTestData();
+  clearArtArchives();
+  const forcedRawLog = createRawLogDraft('5km 뛰고 닭가슴살 2팩 먹었다.');
+  const first = saveBRecordThroughPipeline(forcedRawLog.raw_text, { rawLogDraft: forcedRawLog });
+  const afterFirst = {
+    rawLogCopies: RAW_LOGS.filter(log => log.id === forcedRawLog.id).length,
+    analysisCopies: ANALYSIS_RESULTS.filter(item => item.raw_log_id === forcedRawLog.id).length,
+    playerRecords: countPlayerRecordsByRawLogId(forcedRawLog.id),
+    runningRecords: RUNNING_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length,
+    fuelRecords: FUEL_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length
+  };
+  const second = saveBRecordThroughPipeline(forcedRawLog.raw_text, { rawLogDraft: forcedRawLog });
+  const forcedDuplicateSafe = first.ok
+    && second.ok
+    && RAW_LOGS.filter(log => log.id === forcedRawLog.id).length === 1
+    && ANALYSIS_RESULTS.filter(item => item.raw_log_id === forcedRawLog.id).length === 1
+    && countPlayerRecordsByRawLogId(forcedRawLog.id) === afterFirst.playerRecords
+    && RUNNING_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length === afterFirst.runningRecords
+    && FUEL_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length === afterFirst.fuelRecords;
+  if (!forcedDuplicateSafe) errors.push('동일 raw_log_id 기준 중복 저장 방지에 문제가 있습니다.');
+
+  const artRawLog = createRawLogDraft('캐릭터 이미지 프롬프트를 만들었다.');
+  const artFirst = saveBRecordThroughPipeline(artRawLog.raw_text, { rawLogDraft: artRawLog });
+  const artAfterFirst = ART_ARCHIVES.filter(item => item.raw_log_id === artRawLog.id).length;
+  const artSecond = saveBRecordThroughPipeline(artRawLog.raw_text, { rawLogDraft: artRawLog });
+  const artDuplicateSafe = artFirst.ok
+    && artSecond.ok
+    && ART_ARCHIVES.filter(item => item.raw_log_id === artRawLog.id).length === artAfterFirst;
+  if (!artDuplicateSafe) errors.push('ART_ARCHIVES 중복 저장 방지에 문제가 있습니다.');
+
+  return {
+    status: errors.length > 0 ? 'error' : 'ok',
+    same_text_saved_as_separate_records: sameTextAllowed,
+    duplicate_raw_log_safe: forcedDuplicateSafe,
+    duplicate_analysis_safe: ANALYSIS_RESULTS.filter(item => item.raw_log_id === forcedRawLog.id).length === 1,
+    duplicate_player_records_safe: countPlayerRecordsByRawLogId(forcedRawLog.id) === afterFirst.playerRecords,
+    duplicate_specialized_records_safe: RUNNING_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length === afterFirst.runningRecords
+      && FUEL_RECORDS.filter(item => item.raw_log_id === forcedRawLog.id).length === afterFirst.fuelRecords,
+    duplicate_art_archives_safe: artDuplicateSafe,
+    counts: {
+      raw_logs: RAW_LOGS.length,
+      analysis_results: ANALYSIS_RESULTS.length,
+      player_records: PLAYER.records.length,
+      running_records: RUNNING_RECORDS.length,
+      fuel_records: FUEL_RECORDS.length,
+      art_archives: ART_ARCHIVES.length
+    },
+    errors,
+    warnings
+  };
+}
+
+function runDeleteConsistencyQATest() {
+  resetTestData();
+  clearArtArchives();
+  clearReportSnapshots();
+  clearFlowWarningState();
+  const errors = [];
+  const result = saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.');
+  const rawLog = result.raw_log;
+  const savedArchive = saveArtArchive({
+    title: '삭제 정합성 비교용 ART 아카이브',
+    linked_skill: 'image_touch',
+    content: '삭제 정합성 비교용 기록입니다.'
+  });
+  const snapshot = saveReportSnapshot({ note: 'delete consistency qa snapshot' });
+  hideFlowWarningForDays(1);
+  const before = {
+    art_archives: ART_ARCHIVES.length,
+    report_snapshots: REPORT_SNAPSHOTS.length,
+    hidden_until: FLOW_WARNING_STATE.hidden_until_date_id
+  };
+  deleteRawLogCascade(rawLog?.id);
+  const deletedRawLog = !!rawLog && !RAW_LOGS.some(log => log.id === rawLog.id);
+  const deletedAnalysisResult = !!rawLog && !ANALYSIS_RESULTS.some(item => item.raw_log_id === rawLog.id);
+  const deletedPlayerRecords = !!rawLog && !(PLAYER.records || []).some(record => record.rawLogId === rawLog.id);
+  const deletedSpecializedRecords = !!rawLog
+    && !RUNNING_RECORDS.some(item => item.raw_log_id === rawLog.id)
+    && !FUEL_RECORDS.some(item => item.raw_log_id === rawLog.id)
+    && !SLEEP_RECORDS.some(item => item.raw_log_id === rawLog.id);
+  const unrelatedStoresSafe = ART_ARCHIVES.length === before.art_archives
+    && ART_ARCHIVES.some(item => item.archive_id === savedArchive.archive_id)
+    && REPORT_SNAPSHOTS.length === before.report_snapshots
+    && REPORT_SNAPSHOTS.some(item => item.id === snapshot.id)
+    && FLOW_WARNING_STATE.hidden_until_date_id === before.hidden_until;
+  if (!deletedRawLog) errors.push('RAW_LOGS 삭제 정합성 확인에 실패했습니다.');
+  if (!deletedAnalysisResult) errors.push('ANALYSIS_RESULTS 삭제 정합성 확인에 실패했습니다.');
+  if (!deletedPlayerRecords) errors.push('PLAYER.records 삭제 정합성 확인에 실패했습니다.');
+  if (!deletedSpecializedRecords) errors.push('특화 기록 삭제 정합성 확인에 실패했습니다.');
+  if (!unrelatedStoresSafe) errors.push('관련 없는 저장소가 예상보다 많이 변했습니다.');
+
+  return {
+    status: errors.length > 0 ? 'error' : 'ok',
+    deleted_raw_log: deletedRawLog,
+    deleted_analysis_result: deletedAnalysisResult,
+    deleted_player_records: deletedPlayerRecords,
+    deleted_specialized_records: deletedSpecializedRecords,
+    unrelated_stores_safe: unrelatedStoresSafe,
+    errors,
+    raw_log_id: rawLog?.id || null
+  };
+}
+
+function runNeedsReviewQATest() {
+  resetTestData();
+  clearArtArchives();
+  const errors = [];
+  const initial = saveBRecordThroughPipeline('운동했다.');
+  const initialNeedsReview = initial.status === 'needs_review' || initial.route_status === 'needs_review';
+  const recordsBeforeSupplement = PLAYER.records.length;
+  if (!initialNeedsReview) errors.push('운동했다 기록이 needs_review로 분류되지 않았습니다.');
+
+  const supplementedRawLog = createSupplementedRawLog(initial.raw_log, '푸시업 3세트 했다.');
+  const supplementedResult = saveBRecordThroughPipeline(supplementedRawLog.raw_text, { rawLogDraft: supplementedRawLog });
+  const matchedStrength = supplementedResult.matched_skill_ids.includes('strength_proof');
+  const expApplied = PLAYER.records.length > recordsBeforeSupplement
+    && countPlayerRecordsByRawLogId(supplementedRawLog.id) > 0
+    && (PLAYER.skills.strength_proof?.exp || 0) > 0;
+  if (!matchedStrength) errors.push('보충 후 strength_proof 후보를 찾지 못했습니다.');
+  if (!expApplied) errors.push('보충 후 성장 반영이 확인되지 않았습니다.');
+
+  return {
+    status: errors.length > 0 ? 'error' : 'ok',
+    initial_needs_review: initialNeedsReview,
+    supplemented_active_skill: supplementedResult.status === 'saved' && matchedStrength,
+    matched_skill_ids: supplementedResult.matched_skill_ids,
+    player_records_added: PLAYER.records.length - recordsBeforeSupplement,
+    strength_proof_exp: PLAYER.skills.strength_proof?.exp || 0,
+    initial_result: initial,
+    supplemented_result: supplementedResult,
+    errors
+  };
+}
+
+function renderRealUseQAReportText(report) {
+  if (!report) return '실사용 QA 리포트가 없습니다.';
+  const okText = value => value ? '정상' : '확인 필요';
+  const statusText = report.status === 'ok' ? '정상' : '확인 필요';
+  return [
+    '실사용 QA 리포트',
+    '',
+    `상태: ${statusText}`,
+    '',
+    '저장 테스트:',
+    `- 총 기록: ${report.saved_count || report.counts?.raw_logs || 0}개`,
+    `- 성장 반영: ${report.active_skill_count || 0}개`,
+    `- 보충 필요: ${report.needs_review_count || 0}개`,
+    '',
+    '상세 기록:',
+    `- 러닝 기록: ${okText((report.counts?.running_records || 0) > 0)}`,
+    `- 연료 기록: ${okText((report.counts?.fuel_records || 0) > 0)}`,
+    `- 수면 기록: ${okText((report.counts?.sleep_records || 0) > 0)}`,
+    `- ART 아카이브: ${okText((report.counts?.art_archives || 0) > 0)}`,
+    '',
+    '삭제 안정성:',
+    `- 원본 기록 삭제: ${okText(report.deleted_raw_log !== false)}`,
+    `- 분석 결과 삭제: ${okText(report.deleted_analysis_result !== false)}`,
+    `- 성장 기록 정리: ${okText(report.deleted_player_records !== false)}`,
+    '',
+    '상태:',
+    report.status === 'ok' ? '실사용 흐름에 큰 문제 없음' : '확인이 필요한 항목이 있습니다.'
+  ].join('\n');
+}
+
+function createGroupedFlowWarningPreview() {
+  const previousState = JSON.parse(JSON.stringify(FLOW_WARNING_STATE || createDefaultFlowWarningState()));
+  let warning = null;
+  try {
+    warning = createGroupedFlowWarning();
+  } finally {
+    replaceFlowWarningState(previousState);
+    try { saveFlowWarningState(); } catch (e) {}
+  }
+  return warning;
+}
+
+function createUsageFlowSummary() {
+  const warnings = [];
+  const errors = [];
+  const safeRun = (label, fn, fallback = null) => {
+    try {
+      return fn();
+    } catch (error) {
+      errors.push(`${label} 생성 중 문제가 생겼습니다: ${error?.message || error}`);
+      return fallback;
+    }
+  };
+  const hub = safeRun('리포트 허브', () => createReportHub(), null);
+  const flowWarning = safeRun('흐름 경고', () => createGroupedFlowWarningPreview(), null);
+  const latest = array => Array.isArray(array) && array.length ? array[0] : null;
+  return {
+    app_version: APP_VERSION,
+    generated_at: new Date().toISOString(),
+    counts: {
+      raw_logs: RAW_LOGS.length,
+      analysis_results: ANALYSIS_RESULTS.length,
+      player_records: PLAYER.records.length,
+      running_records: RUNNING_RECORDS.length,
+      fuel_records: FUEL_RECORDS.length,
+      sleep_records: SLEEP_RECORDS.length,
+      art_archives: ART_ARCHIVES.length,
+      report_snapshots: REPORT_SNAPSHOTS.length
+    },
+    latest: {
+      raw_log: latest(RAW_LOGS),
+      analysis_result: latest(ANALYSIS_RESULTS),
+      player_record: latest(PLAYER.records),
+      running_record: latest(RUNNING_RECORDS),
+      fuel_record: latest(FUEL_RECORDS),
+      sleep_record: latest(SLEEP_RECORDS),
+      art_archive: latest(ART_ARCHIVES),
+      report_snapshot: latest(REPORT_SNAPSHOTS)
+    },
+    reports: {
+      daily: hub?.daily || safeRun('오늘 리포트', () => createDailyReport(), null),
+      weekly: hub?.weekly || safeRun('주간 리포트', () => createWeeklyReport(), null),
+      monthly: hub?.monthly || safeRun('월간 리포트', () => createMonthlyReport(), null),
+      hub
+    },
+    flow_warning: flowWarning,
+    status: errors.length > 0 ? 'error' : (warnings.length > 0 ? 'warning' : 'ok'),
+    warnings,
+    errors
+  };
+}
+
+function renderUsageFlowSummaryText(summary) {
+  if (!summary) return '인생 RPG 사용 흐름 요약이 없습니다.';
+  const reportReady = value => value ? '생성 가능' : '확인 필요';
+  const statusText = summary.status === 'ok' ? '정상' : (summary.status === 'warning' ? '주의 필요' : '확인 필요');
+  return [
+    '인생 RPG 사용 흐름 요약',
+    '',
+    '저장된 기록:',
+    `- 원본 기록: ${summary.counts?.raw_logs || 0}개`,
+    `- 분석 결과: ${summary.counts?.analysis_results || 0}개`,
+    `- 성장 반영 기록: ${summary.counts?.player_records || 0}개`,
+    '',
+    '상세 기록:',
+    `- 러닝 기록: ${summary.counts?.running_records || 0}개`,
+    `- 연료 기록: ${summary.counts?.fuel_records || 0}개`,
+    `- 수면 기록: ${summary.counts?.sleep_records || 0}개`,
+    `- ART 아카이브: ${summary.counts?.art_archives || 0}개`,
+    '',
+    '리포트:',
+    `- 오늘 리포트: ${reportReady(summary.reports?.daily)}`,
+    `- 이번 주 리포트: ${reportReady(summary.reports?.weekly)}`,
+    `- 이번 달 리포트: ${reportReady(summary.reports?.monthly)}`,
+    `- 리포트 허브: ${reportReady(summary.reports?.hub)}`,
+    '',
+    '흐름 경고:',
+    `- ${summary.flow_warning ? '생성 가능' : '확인 필요'}`,
+    '',
+    '상태:',
+    statusText
+  ].join('\n');
+}
+
+function getLatestAnalysisDebugView() {
+  const analysis = ANALYSIS_RESULTS[0];
+  if (!analysis) return null;
+  const rawLog = RAW_LOGS.find(log => log.id === analysis.raw_log_id) || null;
+  const matchedSource = Array.isArray(analysis.matched_skills) && analysis.matched_skills.length
+    ? analysis.matched_skills
+    : (Array.isArray(analysis.metrics?.mock_analysis_results) ? analysis.metrics.mock_analysis_results : []);
+  const matchedSkills = matchedSource.map(item => {
+    const skillId = item?.skill_id || item?.skillId || null;
+    const skill = SKILLS[skillId] || {};
+    return {
+      skill_id: skillId,
+      skill_name: item?.skill_name || item?.name || skill.name || skillId,
+      stat: item?.stat || skill.stat || null,
+      skill_exp: Number(item?.skill_exp) || 0,
+      stat_exp: Number(item?.stat_exp) || 0,
+      character_exp: Number(item?.character_exp ?? item?.char_exp) || 0,
+      confidence: typeof item?.confidence === 'number' ? item.confidence : null
+    };
+  });
+  const primary = analysis.primary_skill || matchedSkills[0] || null;
+  return {
+    id: analysis.id,
+    raw_log_id: analysis.raw_log_id,
+    source_text: analysis.source_text || rawLog?.raw_text || analysis.activity_text || '',
+    route_status: analysis.route_status || analysis.status || 'pending',
+    status: analysis.status || 'pending',
+    primary_skill: primary ? {
+      skill_id: primary.skill_id,
+      skill_name: primary.skill_name || SKILLS[primary.skill_id]?.name || primary.skill_id,
+      stat: primary.stat || SKILLS[primary.skill_id]?.stat || null
+    } : null,
+    matched_skills: matchedSkills,
+    total_exp: {
+      skill_exp: Number(analysis.total_skill_exp ?? analysis.skill_exp) || 0,
+      stat_exp: Number(analysis.total_stat_exp ?? analysis.stat_exp) || 0,
+      character_exp: Number(analysis.total_character_exp ?? analysis.character_exp) || 0
+    },
+    needs_review: !!analysis.needs_review,
+    review_question: analysis.review_question || null
+  };
+}
+
+function renderLatestAnalysisDebugText(view) {
+  if (!view) return '최근 분석 결과가 없습니다.';
+  const primary = view.primary_skill
+    ? `${view.primary_skill.skill_name || view.primary_skill.skill_id} (${view.primary_skill.stat || 'UNKNOWN'})`
+    : '없음';
+  const matchedLines = (view.matched_skills || []).length
+    ? view.matched_skills.map(item => `- ${item.skill_name || item.skill_id} / ${item.stat || 'UNKNOWN'} / +${item.skill_exp}`)
+    : ['- 없음'];
+  return [
+    '최근 분석 결과',
+    '',
+    '원문:',
+    view.source_text || '',
+    '',
+    '상태:',
+    `${view.route_status} / ${view.status}`,
+    '',
+    '대표 스킬:',
+    primary,
+    '',
+    '매칭된 스킬:',
+    ...matchedLines,
+    '',
+    '획득 EXP:',
+    `- 스킬 EXP: +${view.total_exp?.skill_exp || 0}`,
+    `- 스탯 EXP: +${view.total_exp?.stat_exp || 0}`,
+    `- 캐릭터 EXP: +${view.total_exp?.character_exp || 0}`
+  ].join('\n');
+}
+
+function renderDebugUsagePanel() {
+  const panel = document.getElementById('debugUsagePanel');
+  if (!panel) return null;
+  let summary = null;
+  let latest = null;
+  let health = null;
+  let reportHub = null;
+  let flowWarning = null;
+  try {
+    summary = createUsageFlowSummary();
+    latest = getLatestAnalysisDebugView();
+    health = createSystemHealthReport();
+    reportHub = summary.reports?.hub || createReportHub();
+    flowWarning = summary.flow_warning || createGroupedFlowWarningPreview();
+  } catch (error) {
+    panel.innerHTML = `<details><summary>개발 점검 패널</summary><pre>${escapeHtml(error?.message || error)}</pre></details>`;
+    return panel;
+  }
+  const topSkill = reportHub?.summary?.top_skill_month?.skill_name || reportHub?.monthly?.top_skill?.skill_name || '없음';
+  const flowSummary = flowWarning?.summary_text || '흐름 경고 정보 없음';
+  const healthStatus = health?.status === 'ok' ? '정상' : (health?.status || '확인 필요');
+  panel.innerHTML = `
+    <details>
+      <summary>개발 점검 패널 · ${escapeHtml(APP_VERSION)}</summary>
+      <div class="debug-usage-actions">
+        <button type="button" onclick="refreshDebugUsagePanel()">새로고침</button>
+        <button type="button" onclick="saveReportSnapshot({ note: 'debug panel snapshot' }); refreshDebugUsagePanel();">리포트 스냅샷 저장</button>
+        <button type="button" onclick="console.log(renderArtArchiveMonthlyReportText(createArtArchiveMonthlyReport())); refreshDebugUsagePanel();">ART 월간 리포트</button>
+        <button type="button" onclick="console.log(renderGroupedFlowWarningText(createGroupedFlowWarning())); refreshDebugUsagePanel();">흐름 경고 생성</button>
+      </div>
+      <pre>${escapeHtml([
+        `현재 버전: ${APP_VERSION}`,
+        '',
+        `저장소 카운트: 원본 ${summary.counts.raw_logs} / 분석 ${summary.counts.analysis_results} / 성장 ${summary.counts.player_records}`,
+        `상세 기록: 러닝 ${summary.counts.running_records} / 연료 ${summary.counts.fuel_records} / 수면 ${summary.counts.sleep_records} / ART ${summary.counts.art_archives}`,
+        `리포트 스냅샷: ${summary.counts.report_snapshots}`,
+        '',
+        `최근 분석: ${latest?.primary_skill?.skill_name || '없음'} · ${latest?.status || '없음'}`,
+        `리포트 허브: 이번 달 캐릭터 EXP +${reportHub?.summary?.month_char_exp || 0} / TOP 스킬 ${topSkill}`,
+        `흐름 경고: ${flowSummary}`,
+        `시스템 상태: ${healthStatus}`
+      ].join('\n'))}</pre>
+    </details>
+  `;
+  return panel;
+}
+
+function refreshDebugUsagePanel() {
+  try {
+    return renderDebugUsagePanel();
+  } catch (error) {
+    console.warn('debug usage panel refresh failed', error);
+    return null;
+  }
+}
+
+function hasRawLog(rawLogId) {
+  return !!rawLogId && RAW_LOGS.some(log => log.id === rawLogId);
+}
+
+function hasAnalysisResult(analysisId) {
+  return !!analysisId && ANALYSIS_RESULTS.some(result => result.id === analysisId);
+}
+
+function countPlayerRecordsByRawLogId(rawLogId) {
+  if (!rawLogId) return 0;
+  return (PLAYER.records || []).filter(record => record.rawLogId === rawLogId).length;
+}
+
+function getAnalysisMatchedSkillIds(analysisResult) {
+  const sources = [
+    ...(Array.isArray(analysisResult?.matched_skills) ? analysisResult.matched_skills : []),
+    ...(Array.isArray(analysisResult?.mock_analysis_results) ? analysisResult.mock_analysis_results : []),
+    ...(Array.isArray(analysisResult?.metrics?.mock_analysis_results) ? analysisResult.metrics.mock_analysis_results : [])
+  ];
+  return [...new Set(sources
+    .map(item => item?.skill_id || item?.skillId)
+    .filter(Boolean))];
+}
+
+function getAnalysisCandidateSkills(analysisResult) {
+  const routes = analysisResult?.metrics?.routing_result?.routing_results
+    || analysisResult?.routing_result?.routing_results
+    || [];
+  return [...new Set(routes
+    .flatMap(route => Array.isArray(route.candidate_skill_tree) ? route.candidate_skill_tree : [])
+    .filter(Boolean))];
+}
+
+function saveBRecordThroughPipeline(text, options = {}) {
+  const errors = [];
+  const warnings = [];
+  const policy = { ...B_RECORD_SAVE_PIPELINE_POLICY, ...(options.policy || {}) };
+  const sourceText = String(text || '').trim();
+  if (!sourceText) {
+    return {
+      ok: false,
+      status: 'error',
+      raw_log: null,
+      analysis_result: null,
+      applied: {
+        exp_applied: false,
+        player_records_added: 0,
+        running_records_added: 0,
+        fuel_records_added: 0,
+        sleep_records_added: 0,
+        art_archives_added: 0
+      },
+      route_status: null,
+      matched_skill_ids: [],
+      total_exp: { skill_exp: 0, stat_exp: 0, character_exp: 0 },
+      message: '저장할 B형 기록이 비어 있습니다.',
+      errors: ['빈 기록은 저장할 수 없습니다.'],
+      warnings: []
+    };
+  }
+
+  try {
+    const now = new Date().toISOString();
+    const rawDraft = options.rawLogDraft || createRawLogDraft(sourceText);
+    const rawLog = {
+      ...rawDraft,
+      raw_text: rawDraft.raw_text || sourceText,
+      status: 'analyzed',
+      updated_at: now,
+      saved_at: now,
+      applied_to_player: false
+    };
+    let analysisResult = null;
+    let applyResult = {
+      appliedCount: 0,
+      appliedRecords: [],
+      rankUps: [],
+      totals: { ap_spent: 0, skill_exp: 0, stat_exp: 0, character_exp: 0 }
+    };
+
+    const rawAlreadySaved = hasRawLog(rawLog.id);
+    const existingAnalysisForRawLog = ANALYSIS_RESULTS.find(result => result.raw_log_id === rawLog.id) || null;
+    if (rawAlreadySaved && existingAnalysisForRawLog && policy.prevent_duplicate_analysis_save) {
+      analysisResult = existingAnalysisForRawLog;
+      warnings.push('이미 저장된 raw_log_id라 기존 analysis_result를 사용했습니다.');
+    } else {
+      analysisResult = createTemporaryAnalysisResult(rawLog);
+    }
+
+    const routeStatus = analysisResult.route_status || analysisResult.status || 'pending';
+    const matchedSkillIdsForDecision = getAnalysisMatchedSkillIds(analysisResult);
+    const hasActiveMatches = matchedSkillIdsForDecision.length > 0;
+    const isNeedsReview = !hasActiveMatches && (
+      routeStatus === 'needs_review'
+      || analysisResult.status === 'needs_review'
+      || analysisResult.needs_review === true
+    );
+    const beforeCounts = {
+      playerRecords: PLAYER.records.length,
+      runningRecords: RUNNING_RECORDS.length,
+      fuelRecords: FUEL_RECORDS.length,
+      sleepRecords: SLEEP_RECORDS.length,
+      artArchives: ART_ARCHIVES.length
+    };
+
+    if (!rawAlreadySaved || !policy.prevent_duplicate_raw_log_save) {
+      RAW_LOGS.unshift(rawLog);
+      if (RAW_LOGS.length > 500) RAW_LOGS.splice(500);
+    } else {
+      warnings.push('동일 raw_log_id가 이미 있어 RAW_LOGS 중복 저장을 건너뛰었습니다.');
+    }
+
+    if (!hasAnalysisResult(analysisResult.id) || !policy.prevent_duplicate_analysis_save) {
+      ANALYSIS_RESULTS.unshift(analysisResult);
+      if (ANALYSIS_RESULTS.length > 500) ANALYSIS_RESULTS.splice(500);
+    } else {
+      warnings.push('동일 analysis_result id가 이미 있어 ANALYSIS_RESULTS 중복 저장을 건너뛰었습니다.');
+    }
+
+    if (!isNeedsReview && policy.auto_apply_exp) {
+      if (countPlayerRecordsByRawLogId(rawLog.id) === 0) {
+        applyResult = applyMockAnalysisResultsToPlayer(rawLog, analysisResult);
+        rawLog.applied_to_player = applyResult.appliedCount > 0;
+        analysisResult.total_skill_exp = Number(analysisResult.skill_exp) || 0;
+        analysisResult.total_stat_exp = Number(analysisResult.stat_exp) || 0;
+        analysisResult.total_character_exp = Number(analysisResult.character_exp) || 0;
+      } else {
+        warnings.push('이미 PLAYER.records에 반영된 raw_log_id라 EXP 중복 반영을 건너뛰었습니다.');
+      }
+    }
+
+    if (!isNeedsReview && policy.auto_save_specialized_records) {
+      try { saveRunningRecordFromRawLog(rawLog, analysisResult); } catch (error) { warnings.push(`러닝 상세 기록 저장 건너뜀: ${error?.message || error}`); }
+      try { saveFuelRecordFromRawLog(rawLog, analysisResult); } catch (error) { warnings.push(`연료 상세 기록 저장 건너뜀: ${error?.message || error}`); }
+      try { saveSleepRecordFromRawLog(rawLog, analysisResult); } catch (error) { warnings.push(`수면 상세 기록 저장 건너뜀: ${error?.message || error}`); }
+    }
+
+    if (!isNeedsReview && policy.auto_save_art_archives) {
+      try { saveArtArchivesFromAnalysis(rawLog, analysisResult); } catch (error) { warnings.push(`ART 아카이브 저장 건너뜀: ${error?.message || error}`); }
+    }
+
+    recalcStats();
+    recalcCharLevel();
+    saveAllLocal();
+    if (DEV_SKIP_LOGIN) {
+      updateSyncIndicator('saved');
+    } else {
+      scheduleSave();
+    }
+    if (policy.auto_refresh_debug_panel && typeof refreshDebugUsagePanel === 'function') {
+      try { refreshDebugUsagePanel(); } catch (error) { warnings.push(`디버그 패널 갱신 건너뜀: ${error?.message || error}`); }
+    }
+
+    const matchedSkillIds = getAnalysisMatchedSkillIds(analysisResult);
+    const totalExp = {
+      skill_exp: Number(analysisResult.total_skill_exp ?? analysisResult.skill_exp) || 0,
+      stat_exp: Number(analysisResult.total_stat_exp ?? analysisResult.stat_exp) || 0,
+      character_exp: Number(analysisResult.total_character_exp ?? analysisResult.character_exp) || 0
+    };
+    const applied = {
+      exp_applied: applyResult.appliedCount > 0,
+      player_records_added: PLAYER.records.length - beforeCounts.playerRecords,
+      running_records_added: RUNNING_RECORDS.length - beforeCounts.runningRecords,
+      fuel_records_added: FUEL_RECORDS.length - beforeCounts.fuelRecords,
+      sleep_records_added: SLEEP_RECORDS.length - beforeCounts.sleepRecords,
+      art_archives_added: ART_ARCHIVES.length - beforeCounts.artArchives
+    };
+
+    return {
+      ok: true,
+      status: isNeedsReview ? 'needs_review' : 'saved',
+      raw_log: rawLog,
+      analysis_result: analysisResult,
+      applied,
+      exp_applied: applied.exp_applied,
+      route_status: isNeedsReview ? 'needs_review' : (analysisResult.route_status || 'active_skill'),
+      matched_skill_ids: matchedSkillIds,
+      candidate_skills: getAnalysisCandidateSkills(analysisResult),
+      total_exp: totalExp,
+      message: isNeedsReview
+        ? '보충이 필요한 기록으로 저장되었습니다.'
+        : 'B형 기록 저장 파이프라인이 완료되었습니다.',
+      errors,
+      warnings
+    };
+  } catch (error) {
+    errors.push(error?.message || String(error));
+    return {
+      ok: false,
+      status: 'error',
+      raw_log: null,
+      analysis_result: null,
+      applied: {
+        exp_applied: false,
+        player_records_added: 0,
+        running_records_added: 0,
+        fuel_records_added: 0,
+        sleep_records_added: 0,
+        art_archives_added: 0
+      },
+      route_status: null,
+      matched_skill_ids: [],
+      total_exp: { skill_exp: 0, stat_exp: 0, character_exp: 0 },
+      message: 'B형 기록 저장 파이프라인 중 오류가 발생했습니다.',
+      errors,
+      warnings
+    };
+  }
+}
+
+function renderBRecordSavePipelineResultText(result) {
+  if (!result) return 'B형 기록 저장 결과가 없습니다.';
+  const isNeedsReview = result.status === 'needs_review' || result.route_status === 'needs_review';
+  if (isNeedsReview) {
+    return [
+      'B형 기록 저장 결과',
+      '',
+      '상태: 보충 필요',
+      '',
+      '이 기록은 바로 성장으로 반영하지 않았어요.',
+      '조금 더 설명하면 스킬을 더 정확히 찾을 수 있어요.',
+      '',
+      `후보: ${(result.candidate_skills || []).join(', ') || '확인 필요'}`
+    ].join('\n');
+  }
+  const skillLines = (result.matched_skill_ids || [])
+    .map(skillId => `- ${SKILLS[skillId]?.name || skillId}`)
+    .join('\n') || '- 없음';
+  return [
+    'B형 기록 저장 결과',
+    '',
+    `상태: ${result.ok ? '저장 완료' : '확인 필요'}`,
+    '',
+    '원문:',
+    result.raw_log?.raw_text || '',
+    '',
+    '매칭된 스킬:',
+    skillLines,
+    '',
+    '반영 결과:',
+    `- 성장 기록: ${result.applied?.player_records_added || 0}개`,
+    `- 러닝 기록: ${result.applied?.running_records_added || 0}개`,
+    `- 연료 기록: ${result.applied?.fuel_records_added || 0}개`,
+    `- 수면 기록: ${result.applied?.sleep_records_added || 0}개`,
+    `- ART 아카이브: ${result.applied?.art_archives_added || 0}개`,
+    '',
+    '획득 EXP:',
+    `- 스킬 EXP: +${result.total_exp?.skill_exp || 0}`,
+    `- 스탯 EXP: +${result.total_exp?.stat_exp || 0}`,
+    `- 캐릭터 EXP: +${result.total_exp?.character_exp || 0}`
+  ].join('\n');
+}
+
 function normalizeAnalysisResultShape(analysisResult, rawLog) {
   const metrics = analysisResult?.metrics || {};
   const mockAnalysisResults = Array.isArray(metrics.mock_analysis_results)
@@ -8150,35 +9253,13 @@ function savePendingRawLog() {
   const rawDraft = pendingRawLog;
   pendingRawLog = null;
 
-  const now = new Date().toISOString();
-  const log = {
-    ...rawDraft,
-    status: 'analyzed',
-    updated_at: now,
-    saved_at: now,
-    applied_to_player: false
-  };
-  const analysisResult = createTemporaryAnalysisResult(log);
-  const applyResult = applyMockAnalysisResultsToPlayer(log, analysisResult);
-  log.applied_to_player = applyResult.appliedCount > 0;
-
-  RAW_LOGS.unshift(log);
-  if (RAW_LOGS.length > 500) RAW_LOGS.splice(500);
-  ANALYSIS_RESULTS.unshift(analysisResult);
-  if (ANALYSIS_RESULTS.length > 500) ANALYSIS_RESULTS.splice(500);
-  saveRunningRecordFromRawLog(log, analysisResult);
-  saveFuelRecordFromRawLog(log, analysisResult);
-  saveSleepRecordFromRawLog(log, analysisResult);
-  recalcStats();
-  recalcCharLevel();
-  saveAllLocal();
-  if (DEV_SKIP_LOGIN) {
-    updateSyncIndicator('saved');
-  } else {
-    scheduleSave();
-  }
+  const result = saveBRecordThroughPipeline(rawDraft.raw_text || '', { rawLogDraft: rawDraft });
   renderAll();
-  const message = applyResult.appliedCount > 0
+  const message = !result.ok
+    ? '저장 중 문제가 생겼어요. 기록은 다시 확인해주세요.'
+    : result.status === 'needs_review'
+      ? '저장했어요. 원문과 임시 분석 결과를 저장했습니다. 다만 보충이 필요한 기록이라 성장에는 반영하지 않았습니다.'
+      : result.applied.player_records_added > 0
     ? '저장했어요. 원문과 임시 분석 결과를 저장했고, Mock 분석 후보 EXP를 성장에 반영했습니다.'
     : '저장했어요. 원문과 임시 분석 결과를 저장했습니다. 다만 성장에 반영할 활성 스킬 후보는 없었습니다.';
   appendChat(message, 'ai');
@@ -10600,7 +11681,8 @@ window.LIFE_RPG_TEST = {
 
   flowReturnDetectionTest() {
     const rows = [];
-    const dateDaysAgo = days => getDateId(new Date(Date.now() - days * 86400000));
+    const testCurrentDateId = () => new Date().toISOString().slice(0, 10);
+    const dateDaysAgo = days => addDaysToDateId(testCurrentDateId(), -days);
     const addHistoryRecord = (skillId, daysAgo, extra = {}) => {
       const dateId = dateDaysAgo(daysAgo);
       PLAYER.records.unshift({
@@ -10868,6 +11950,422 @@ window.LIFE_RPG_TEST = {
     return rows;
   },
 
+  realUseQATest() {
+    const rows = [];
+
+    const realUse = runRealUseQAScenario();
+    rows.push({
+      case: 'real use save scenario',
+      result: realUse.status === 'ok'
+        && realUse.saved_count >= 8
+        && realUse.active_skill_count >= 5
+        && realUse.needs_review_count >= 1
+        && realUse.counts.running_records >= 1
+        && realUse.counts.fuel_records >= 1
+        && realUse.counts.sleep_records >= 1
+        && realUse.counts.art_archives >= 1
+        ? 'PASS'
+        : 'FAIL',
+      status: realUse.status,
+      saved: realUse.saved_count,
+      active: realUse.active_skill_count,
+      needsReview: realUse.needs_review_count,
+      running: realUse.counts.running_records,
+      fuel: realUse.counts.fuel_records,
+      sleep: realUse.counts.sleep_records,
+      art: realUse.counts.art_archives
+    });
+
+    const duplicate = runDuplicateSaveQATest();
+    rows.push({
+      case: 'duplicate save QA',
+      result: duplicate.status === 'ok' && duplicate.errors.length === 0 ? 'PASS' : 'FAIL',
+      status: duplicate.status,
+      sameTextSeparate: duplicate.same_text_saved_as_separate_records,
+      duplicateRawSafe: duplicate.duplicate_raw_log_safe,
+      duplicateAnalysisSafe: duplicate.duplicate_analysis_safe,
+      duplicateArtSafe: duplicate.duplicate_art_archives_safe,
+      errors: duplicate.errors.length
+    });
+
+    const deletion = runDeleteConsistencyQATest();
+    rows.push({
+      case: 'delete consistency QA',
+      result: deletion.status === 'ok'
+        && deletion.deleted_raw_log === true
+        && deletion.deleted_analysis_result === true
+        && deletion.deleted_player_records === true
+        && deletion.unrelated_stores_safe === true
+        ? 'PASS'
+        : 'FAIL',
+      status: deletion.status,
+      rawLog: deletion.deleted_raw_log,
+      analysis: deletion.deleted_analysis_result,
+      playerRecords: deletion.deleted_player_records,
+      specialized: deletion.deleted_specialized_records,
+      unrelatedSafe: deletion.unrelated_stores_safe
+    });
+
+    const needsReview = runNeedsReviewQATest();
+    rows.push({
+      case: 'needs_review supplement QA',
+      result: needsReview.status === 'ok'
+        && needsReview.initial_needs_review === true
+        && needsReview.supplemented_active_skill === true
+        && needsReview.player_records_added > 0
+        ? 'PASS'
+        : 'FAIL',
+      status: needsReview.status,
+      initialNeedsReview: needsReview.initial_needs_review,
+      supplementedActive: needsReview.supplemented_active_skill,
+      matched: needsReview.matched_skill_ids.join(', '),
+      recordsAdded: needsReview.player_records_added
+    });
+
+    const reportText = renderRealUseQAReportText(realUse);
+    rows.push({
+      case: 'real use QA report text',
+      result: typeof reportText === 'string'
+        && reportText.includes('실사용 QA 리포트')
+        ? 'PASS'
+        : 'FAIL',
+      preview: reportText.split('\n').slice(0, 6).join(' / ')
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_REAL_USE_QA_TEST: ALL PASS' : 'LIFE_RPG_REAL_USE_QA_TEST: FAIL');
+    return rows;
+  },
+
+  usageDebugPanelTest() {
+    const rows = [];
+
+    resetTestData();
+    clearArtArchives();
+    clearReportSnapshots();
+    clearFlowWarningState();
+    let summary = createUsageFlowSummary();
+    rows.push({
+      case: 'empty usage summary',
+      result: summary
+        && summary.counts.raw_logs === 0
+        && summary.counts.analysis_results === 0
+        && summary.status === 'ok'
+        ? 'PASS'
+        : 'FAIL',
+      rawLogs: summary?.counts?.raw_logs,
+      analysisResults: summary?.counts?.analysis_results,
+      status: summary?.status
+    });
+
+    runIntegratedUserJourneyScenario();
+    summary = createUsageFlowSummary();
+    rows.push({
+      case: 'usage summary after integrated scenario',
+      result: summary.counts.raw_logs >= 4
+        && summary.counts.analysis_results >= 4
+        && summary.counts.running_records >= 1
+        && summary.counts.fuel_records >= 1
+        && summary.counts.sleep_records >= 1
+        && summary.counts.art_archives >= 1
+        && !!summary.reports.hub
+        ? 'PASS'
+        : 'FAIL',
+      rawLogs: summary.counts.raw_logs,
+      analysisResults: summary.counts.analysis_results,
+      running: summary.counts.running_records,
+      fuel: summary.counts.fuel_records,
+      sleep: summary.counts.sleep_records,
+      art: summary.counts.art_archives
+    });
+
+    const view = getLatestAnalysisDebugView();
+    rows.push({
+      case: 'latest analysis debug view',
+      result: view
+        && Array.isArray(view.matched_skills)
+        && !!view.total_exp
+        ? 'PASS'
+        : 'FAIL',
+      id: view?.id,
+      matchedCount: view?.matched_skills?.length,
+      totalSkillExp: view?.total_exp?.skill_exp
+    });
+
+    const summaryText = renderUsageFlowSummaryText(summary);
+    const latestText = renderLatestAnalysisDebugText(view);
+    rows.push({
+      case: 'usage debug text renderers',
+      result: typeof summaryText === 'string'
+        && typeof latestText === 'string'
+        && summaryText.includes('인생 RPG 사용 흐름 요약')
+        && latestText.includes('최근 분석 결과')
+        ? 'PASS'
+        : 'FAIL',
+      summaryPreview: summaryText.split('\n').slice(0, 3).join(' / '),
+      latestPreview: latestText.split('\n').slice(0, 3).join(' / ')
+    });
+
+    const health = createSystemHealthReport();
+    rows.push({
+      case: 'system health link',
+      result: health.status === 'ok' ? 'PASS' : 'FAIL',
+      status: health.status,
+      errors: health.errors.length,
+      warnings: health.warnings.length
+    });
+
+    rows.push({
+      case: 'debug panel functions exist',
+      result: typeof renderDebugUsagePanel === 'function'
+        && typeof refreshDebugUsagePanel === 'function'
+        ? 'PASS'
+        : 'FAIL',
+      renderType: typeof renderDebugUsagePanel,
+      refreshType: typeof refreshDebugUsagePanel
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_USAGE_DEBUG_PANEL_TEST: ALL PASS' : 'LIFE_RPG_USAGE_DEBUG_PANEL_TEST: FAIL');
+    return rows;
+  },
+
+  bRecordSavePipelineTest() {
+    const rows = [];
+
+    resetTestData();
+    clearArtArchives();
+    let result = saveBRecordThroughPipeline('5km 뛰고 닭가슴살 2팩 먹었다.');
+    rows.push({
+      case: 'STR compound record pipeline save',
+      result: result.ok === true
+        && RAW_LOGS.length >= 1
+        && ANALYSIS_RESULTS.length >= 1
+        && PLAYER.records.length >= 1
+        && RUNNING_RECORDS.length >= 1
+        && FUEL_RECORDS.length >= 1
+        && result.matched_skill_ids.includes('running_proof')
+        && result.matched_skill_ids.includes('fuel_charge')
+        ? 'PASS'
+        : 'FAIL',
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      playerRecords: PLAYER.records.length,
+      running: RUNNING_RECORDS.length,
+      fuel: FUEL_RECORDS.length,
+      matched: result.matched_skill_ids.join(', ')
+    });
+
+    resetTestData();
+    result = saveBRecordThroughPipeline('7시간 잤다.');
+    rows.push({
+      case: 'sleep record pipeline save',
+      result: result.ok === true
+        && SLEEP_RECORDS.length >= 1
+        && result.matched_skill_ids.includes('recovery_night')
+        ? 'PASS'
+        : 'FAIL',
+      sleep: SLEEP_RECORDS.length,
+      matched: result.matched_skill_ids.join(', ')
+    });
+
+    resetTestData();
+    clearArtArchives();
+    result = saveBRecordThroughPipeline('캐릭터 이미지 프롬프트를 만들었다.');
+    rows.push({
+      case: 'ART record pipeline save',
+      result: result.ok === true
+        && ART_ARCHIVES.length >= 1
+        && result.matched_skill_ids.includes('image_touch')
+        ? 'PASS'
+        : 'FAIL',
+      artArchives: ART_ARCHIVES.length,
+      matched: result.matched_skill_ids.join(', ')
+    });
+
+    resetTestData();
+    clearArtArchives();
+    const beforeWisRecords = PLAYER.records.length;
+    const beforeWisArt = ART_ARCHIVES.length;
+    result = saveBRecordThroughPipeline('주일예배를 드렸다.');
+    rows.push({
+      case: 'WIS record pipeline save without ART archive',
+      result: result.ok === true
+        && result.matched_skill_ids.includes('worship_place')
+        && PLAYER.records.length > beforeWisRecords
+        && ART_ARCHIVES.length === beforeWisArt
+        ? 'PASS'
+        : 'FAIL',
+      playerRecords: PLAYER.records.length,
+      artArchives: ART_ARCHIVES.length,
+      matched: result.matched_skill_ids.join(', ')
+    });
+
+    resetTestData();
+    const beforeNeeds = {
+      playerRecords: PLAYER.records.length,
+      running: RUNNING_RECORDS.length,
+      fuel: FUEL_RECORDS.length,
+      sleep: SLEEP_RECORDS.length
+    };
+    result = saveBRecordThroughPipeline('운동했다.');
+    rows.push({
+      case: 'needs_review pipeline stores without growth',
+      result: (result.status === 'needs_review' || result.route_status === 'needs_review')
+        && RAW_LOGS.length >= 1
+        && ANALYSIS_RESULTS.length >= 1
+        && PLAYER.records.length === beforeNeeds.playerRecords
+        && RUNNING_RECORDS.length === beforeNeeds.running
+        && FUEL_RECORDS.length === beforeNeeds.fuel
+        && SLEEP_RECORDS.length === beforeNeeds.sleep
+        ? 'PASS'
+        : 'FAIL',
+      status: result.status,
+      routeStatus: result.route_status,
+      rawLogs: RAW_LOGS.length,
+      analysisResults: ANALYSIS_RESULTS.length,
+      playerRecords: PLAYER.records.length
+    });
+
+    resetTestData();
+    const duplicateRawLog = createRawLogDraft('5km 뛰었다.');
+    const first = saveBRecordThroughPipeline(duplicateRawLog.raw_text, { rawLogDraft: duplicateRawLog });
+    const afterFirst = {
+      rawLogs: RAW_LOGS.filter(log => log.id === duplicateRawLog.id).length,
+      analysisResults: ANALYSIS_RESULTS.filter(item => item.raw_log_id === duplicateRawLog.id).length,
+      playerRecords: countPlayerRecordsByRawLogId(duplicateRawLog.id)
+    };
+    const second = saveBRecordThroughPipeline(duplicateRawLog.raw_text, { rawLogDraft: duplicateRawLog });
+    rows.push({
+      case: 'duplicate rawLog id is not saved twice',
+      result: first.ok === true
+        && second.ok === true
+        && RAW_LOGS.filter(log => log.id === duplicateRawLog.id).length === 1
+        && ANALYSIS_RESULTS.filter(item => item.raw_log_id === duplicateRawLog.id).length === 1
+        && countPlayerRecordsByRawLogId(duplicateRawLog.id) === afterFirst.playerRecords
+        ? 'PASS'
+        : 'FAIL',
+      rawLogCopies: RAW_LOGS.filter(log => log.id === duplicateRawLog.id).length,
+      analysisCopies: ANALYSIS_RESULTS.filter(item => item.raw_log_id === duplicateRawLog.id).length,
+      playerRecords: countPlayerRecordsByRawLogId(duplicateRawLog.id),
+      firstPlayerRecords: afterFirst.playerRecords
+    });
+
+    const resultText = renderBRecordSavePipelineResultText(first);
+    rows.push({
+      case: 'pipeline result text renderer',
+      result: typeof resultText === 'string'
+        && resultText.includes('B형 기록 저장 결과')
+        ? 'PASS'
+        : 'FAIL',
+      preview: resultText.split('\n').slice(0, 4).join(' / ')
+    });
+
+    resetTestData();
+    saveBRecordThroughPipeline('5km 뛰었다.');
+    const summary = createUsageFlowSummary();
+    rows.push({
+      case: 'pipeline updates usage debug summary',
+      result: summary.counts.raw_logs >= 1
+        && summary.counts.analysis_results >= 1
+        ? 'PASS'
+        : 'FAIL',
+      rawLogs: summary.counts.raw_logs,
+      analysisResults: summary.counts.analysis_results
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_B_RECORD_SAVE_PIPELINE_TEST: ALL PASS' : 'LIFE_RPG_B_RECORD_SAVE_PIPELINE_TEST: FAIL');
+    return rows;
+  },
+
+  integrationStabilityTest() {
+    const rows = [];
+
+    const health = createSystemHealthReport();
+    rows.push({
+      case: 'system health report',
+      result: health.status === 'ok'
+        && health.master_data.skills_count === 29
+        && health.master_data.skill_tree_skill_count === 29
+        && health.stores.PLAYER === true
+        && health.engines.router === true
+        && health.engines.mock_analyzer === true
+        && health.engines.art_archive === true
+        ? 'PASS'
+        : 'FAIL',
+      status: health.status,
+      skills: health.master_data.skills_count,
+      skillTreeSkills: health.master_data.skill_tree_skill_count
+    });
+
+    const consistency = validateCoreDataConsistency();
+    rows.push({
+      case: 'core data consistency',
+      result: ['ok', 'warning'].includes(consistency.status) && consistency.errors.length === 0 ? 'PASS' : 'FAIL',
+      status: consistency.status,
+      errors: consistency.errors.length,
+      warnings: consistency.warnings.length
+    });
+
+    const journey = runIntegratedUserJourneyScenario();
+    rows.push({
+      case: 'integrated user journey scenario',
+      result: journey.status === 'ok'
+        && journey.checks.has_running_record === true
+        && journey.checks.has_fuel_record === true
+        && journey.checks.has_sleep_record === true
+        && journey.checks.has_art_archive === true
+        && journey.checks.has_report_hub === true
+        && journey.checks.has_report_snapshot === true
+        && journey.checks.consistency_ok === true
+        ? 'PASS'
+        : 'FAIL',
+      status: journey.status,
+      rawLogs: journey.counts.raw_logs,
+      records: journey.counts.player_records,
+      running: journey.counts.running_records,
+      fuel: journey.counts.fuel_records,
+      sleep: journey.counts.sleep_records,
+      art: journey.counts.art_archives,
+      snapshots: journey.counts.report_snapshots
+    });
+
+    const journeyText = renderIntegratedUserJourneyScenarioText(journey);
+    rows.push({
+      case: 'integrated scenario text',
+      result: journeyText.includes('통합 사용 시나리오 점검 결과')
+        && journeyText.includes('러닝 상세 기록')
+        && journeyText.includes('ART 아카이브')
+        && journeyText.includes('리포트 스냅샷')
+        ? 'PASS'
+        : 'FAIL',
+      preview: journeyText.split('\n').slice(0, 6).join(' / ')
+    });
+
+    const cascade = runCascadeSafetyScenario();
+    rows.push({
+      case: 'cascade safety scenario',
+      result: cascade.status === 'ok'
+        && cascade.deleted_raw_log === true
+        && cascade.deleted_analysis_result === true
+        && cascade.deleted_player_records === true
+        && cascade.unrelated_stores_safe === true
+        ? 'PASS'
+        : 'FAIL',
+      status: cascade.status,
+      rawLog: cascade.deleted_raw_log,
+      analysis: cascade.deleted_analysis_result,
+      records: cascade.deleted_player_records,
+      running: cascade.deleted_running_records,
+      unrelatedSafe: cascade.unrelated_stores_safe
+    });
+
+    console.table(rows);
+    console.log(rows.every(row => row.result === 'PASS') ? 'LIFE_RPG_INTEGRATION_STABILITY_TEST: ALL PASS' : 'LIFE_RPG_INTEGRATION_STABILITY_TEST: FAIL');
+    return rows;
+  },
+
   artArchiveTest() {
     const rows = [];
 
@@ -11085,6 +12583,7 @@ window.LIFE_RPG = {
   SKILL_ROUTER_KEYWORDS,
   COMMON_MOCK_EXP_TIERS,
   SKILL_MOCK_ANALYZER_HINTS,
+  B_RECORD_SAVE_PIPELINE_POLICY,
   COMMON_ANALYSIS_RESULT_SHAPE,
   ART_ARCHIVE_CATEGORIES,
   ART_ARCHIVE_SHAPE,
@@ -11207,6 +12706,28 @@ window.LIFE_RPG = {
   renderArtArchiveText,
   createArtArchiveMonthlyReport,
   renderArtArchiveMonthlyReportText,
+  createSystemHealthReport,
+  renderSystemHealthReportText,
+  validateCoreDataConsistency,
+  runIntegratedUserJourneyScenario,
+  renderIntegratedUserJourneyScenarioText,
+  runCascadeSafetyScenario,
+  runRealUseQAScenario,
+  runDuplicateSaveQATest,
+  runDeleteConsistencyQATest,
+  runNeedsReviewQATest,
+  renderRealUseQAReportText,
+  createUsageFlowSummary,
+  renderUsageFlowSummaryText,
+  getLatestAnalysisDebugView,
+  renderLatestAnalysisDebugText,
+  renderDebugUsagePanel,
+  refreshDebugUsagePanel,
+  saveBRecordThroughPipeline,
+  renderBRecordSavePipelineResultText,
+  hasRawLog,
+  hasAnalysisResult,
+  countPlayerRecordsByRawLogId,
   normalizeAnalysisResultShape,
   analyzeRunningProofMock,
   analyzeFuelChargeMock,
